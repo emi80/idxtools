@@ -5,9 +5,6 @@ import os
 import json
 import sys
 
-from . import utils
-
-
 class Metadata(object):
     """A class to store metadata retrieved from indices
 
