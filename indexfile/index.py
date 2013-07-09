@@ -1,103 +1,9 @@
-"""The index module provides functionality around grape data indexing
+"""Index module providing functionality around indexfile format
 """
 import re
 import os
 import json
 import sys
-
-class Metadata(object):
-    """A class to store metadata retrieved from indices
-
-    The keys of the tags are mapped to the Metadata class properties dinamically.
-    The class properties name and values are derived form a dictionary
-    passed as an argument to the contructor.
-    """
-
-    def __init__(self, kwargs):
-        """Create an instance of a Metadata class
-
-        Arguments:
-        ----------
-        kwargs - a dictionary containing name and values of the tags
-        tags - a list of supported tags
-        """
-        for k,v in kwargs.items():
-            self.__setattr__(k,str(v))
-
-    def get_tags(self, tags=[], exclude=[], sep=' '):
-        """Concatenate specified tags using the provided tag separator. The tag are formatted
-        according to the 'index file' format
-
-        Keyword arguments:
-        -----------
-        tags - list of keys identifying the tags to be concatenated. Default value is
-               the empty list, which means that all tags will be returned.
-        sep  - the tag separator character. The default value is a <space> according to
-               the 'index file' format.
-        """
-        tag_list = []
-        if not tags:
-            tags = self.__dict__.keys()
-        for key in tags:
-            if key in exclude:
-                continue
-            tag_list.append(self.get_tag(key))
-        return sep.join(tag_list)
-
-    def get_tag(self, key, sep='=', trail=';'):
-        """Return a key/value pair for a give tag, formatted according to the 'index file' format
-
-        Arguments:
-        -----------
-        key   -  the key of the tag
-
-        Keyword arguments:
-        -------------------
-        sep   -  the separator between key and value of the tag. Default is '='.
-        trail -  trailing character of the tag. Default ';'.
-
-        """
-        value = self.__getattribute__(key)
-        return sep.join([key, str(value)])+trail
-
-    def extend(self, dict):
-        for k,v in dict.items():
-            self.__setattr__(k,v)
-
-    #def __setattr__(self, name, value):
-    #    if name in self.__dict__:
-    #        raise ValueError("%r already contains %r property" % (self. __class__, key))
-    #    self.__dict__[name] = str(value)
-
-    @classmethod
-    def parse(cls, string, info=[]):
-        """Parse a string of concatenated tags and converts it to a Metadata object
-
-        Arguments:
-        ----------
-        string - the concatenated tags
-        """
-        tags = cls._parse_tags(string)
-        return Metadata(tags)
-
-    @classmethod
-    def _parse_tags(cls, str, sep='=', trail=';'):
-        """Parse key/value pair tags from a string and returns a dictionary
-
-        Arguments:
-        ----------
-        str - the tags string
-
-        Keyword arguments:
-        ------------------
-        sep   -  the separator between key and value of the tag. Default is '='.
-        trail -  trailing character of the tag. Default ';'.
-        """
-        tags = {}
-        expr = '(?P<key>[^ ]+)%s(?P<value>[^%s]*)%s' % (sep, trail, trail)
-        for match in re.finditer(expr, str):
-            tags[match.group('key')] = match.group('value')
-        return tags
 
 
 class Dataset(object):
@@ -108,21 +14,30 @@ class Dataset(object):
     and information related to the sample.
     """
 
-    def __init__(self, metadata, id_key='labExpId', path_key='path'):
+    def __init__(self, metadata=None):
         """Create an instance of the IndexEntry class
 
         Arguments:
         ----------
-        metadata -  an instance of :class:Metadata that contains the parsed metadata
-                    information
+        metadata -  a dictionary containing the metadata information
         """
-        self.metadata = Metadata({})
-        for k,v in vars(metadata).items():
-            if k not in ['type', 'view', 'md5', 'size', 'path']:
-                self.metadata.__setattr__(k, v)
-        self.tag_id = id_key
-        if hasattr(metadata, path_key):
-            self.add_file(metadata.__getattribute__(path_key), metadata)
+        self._attributes = {}
+
+        if metadata:
+            module = sys.modules[self.__module__.split('.')[0]]
+            for k,v in metadata.items():
+                if k not in module.file_info:
+                    self.__setattr__(k, v)
+            self._tag_id = module.id_key
+            self._tag_path = module.path_key
+
+            self._init_attributes()
+
+    def _init_attributes(self):
+            self._attributes['id'] = (lambda: self.__getattribute__(self._tag_id))
+            self._attributes['primary'] = (lambda: self.fastq[0].path if hasattr(self,'fastq') and len(self.fastq) > 0 else None)
+            self._attributes['secondary'] = (lambda: self.fastq[1].path if hasattr(self,'fastq') and len(self.fastq) > 1 else None)
+            self._attributes['single_end'] = (lambda: self.readType.find('2x') == -1 if hasattr(self, 'readType') else True)
 
     def add_file(self, path, meta):
         """Add the path of a file related to the dataset to the class files dictionary
@@ -167,6 +82,42 @@ class Dataset(object):
                 tags = ' '.join([self.metadata.get_tags(),file.get_tags(exclude=['path', self.tag_id])])
                 out.append('\t'.join([path, tags]))
         return out
+
+    def get_tags(self, tags=[], exclude=[], sep=' '):
+        """Concatenate specified tags using the provided tag separator. The tag are formatted
+        according to the 'index file' format
+
+        Keyword arguments:
+        -----------
+        tags - list of keys identifying the tags to be concatenated. Default value is
+               the empty list, which means that all tags will be returned.
+        sep  - the tag separator character. The default value is a <space> according to
+               the 'index file' format.
+        """
+        tag_list = []
+        if not tags:
+            tags = self.__dict__.keys()
+        for key in tags:
+            if key in exclude:
+                continue
+            tag_list.append(self.get_tag(key))
+        return sep.join(tag_list)
+
+    def get_tag(self, key, sep='=', trail=';'):
+        """Return a key/value pair for a give tag, formatted according to the 'index file' format
+
+        Arguments:
+        -----------
+        key   -  the key of the tag
+
+        Keyword arguments:
+        -------------------
+        sep   -  the separator between key and value of the tag. Default is '='.
+        trail -  trailing character of the tag. Default ';'.
+
+        """
+        value = self.__getattribute__(key)
+        return sep.join([key, str(value)])+trail
 
     def folder(self, name=None):
         """Resolve a folder based on datasets project folder and
@@ -247,17 +198,8 @@ class Dataset(object):
         return self.metadata.quality
 
     def __getattr__(self, name):
-        #if name is 'id':
-        #    return self.metadata.__getattribute__(self.tag_id)
-        if name not in ['metadata']:
-            if hasattr(self.metadata, name):
-                return self.metadata.__getattribute__(name)
-            if name is 'id': return self.metadata.__getattribute__(self.tag_id)
-            if name is 'primary': return self.fastq[0].path if hasattr(self,'fastq') and len(self.fastq) > 0 else None
-            if name is 'secondary': return self.fastq[1].path if hasattr(self,'fastq') and len(self.fastq) > 1 else None
-            if name is 'single_end': return self.metadata.readType.find('2x') == -1 if hasattr(self.metadata, 'readType') else True
-        #if hasattr(self.metadata, name):
-        #    return self.metadata.__getattribute__(name)
+        if name in self.__dict__['_attributes'].keys():
+            return self.__dict__['_attributes'][name]()
         raise AttributeError('%r object has no attribute %r' % (self.__class__.__name__,name))
 
     def __repr__(self):
@@ -376,17 +318,17 @@ class IndexDefinition(object):
     def dump(cls, tabs=2):
         return json.dumps(cls.data, indent=tabs)
 
-class Index(object):
+class IndexFile(object):
     """A class to access information stored into 'index files'.
     """
 
-    def __init__(self, path, datasets={}, clear=False):
-        """Creates an instance of an Index class
+    def __init__(self, path=".index", datasets={}, clear=False):
+        """Creates an instance of an IndexFile class
 
         path - path of the index file
 
         Keyword arguments:
-        entries -  a list containing all the entries as dictionaries. Default empty list.
+        datasets -  a list containing all the entries as dictionaries. Default empty list.
         """
 
         self.path = path
@@ -441,13 +383,45 @@ class Index(object):
 
         dataset.add_file(file, meta)
 
-    def add(self, id, path, file_info):
-        meta = Metadata(file_info)
-        dataset = self.datasets.get(id, None)
-        if not dataset:
-            raise ValueError("Dataset %r not found" % id)
-        dataset.add_file(path, meta)
+    @classmethod
+    def parse(cls, string, info=[]):
+        """Parse a string of concatenated tags and converts it to a Metadata object
 
+        Arguments:
+        ----------
+        string - the concatenated tags
+        """
+        tags = cls._parse_tags(string)
+        return Metadata(tags)
+
+    @classmethod
+    def _parse_tags(cls, str, sep='=', trail=';'):
+        """Parse key/value pair tags from a string and returns a dictionary
+
+        Arguments:
+        ----------
+        str - the tags string
+
+        Keyword arguments:
+        ------------------
+        sep   -  the separator between key and value of the tag. Default is '='.
+        trail -  trailing character of the tag. Default ';'.
+        """
+        tags = {}
+        expr = '(?P<key>[^ ]+)%s(?P<value>[^%s]*)%s' % (sep, trail, trail)
+        for match in re.finditer(expr, str):
+            tags[match.group('key')] = match.group('value')
+        return tags
+
+
+    def add_dataset(self, metadata, id=None):
+        if not id:
+            id = length(self.datasets)
+        dataset = self.datasets.get(id, None)
+        if dataset:
+            raise ValueError("Dataset %r already exists" % id)
+        self.datasets[id] = Dataset(metadata)
+        return self.datasets[id]
 
     def export(self, out=None, absolute=False):
         """Save changes made to the index structure loaded in memory to the index file
