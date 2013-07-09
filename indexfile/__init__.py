@@ -8,13 +8,14 @@ class IndexFileWrapper(object):
 
     path_key = 'path'
     id_key = 'labExpId'
+    _file_info = ['type', 'view', 'md5', 'size']
 
     def __init__(self, wrapped):
         self.wrapped = wrapped
 
     def __getattr__(self, name):
         if name == 'file_info':
-            return [self.path_key, 'md5', 'size']
+            return self._file_info + [self.path_key]
         else:
             raise AttributeError("%r object has no attribute %r" % (type(self.wrapped).__name__, name))
 
