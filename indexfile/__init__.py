@@ -1,5 +1,5 @@
 import sys
-
+from .index import *
 
 class IndexFileWrapper(object):
     """ The indexfile API """
