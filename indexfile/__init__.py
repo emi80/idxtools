@@ -1,8 +1,9 @@
 import sys
 
-""" The indexfile API """
 
 class IndexFileWrapper(object):
+    """ The indexfile API """
+
     __version__ = "0.9-alpha"
 
     path_key = 'path'
