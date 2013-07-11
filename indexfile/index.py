@@ -5,6 +5,17 @@ import os
 import json
 import sys
 
+class dotdict(dict):
+    def __init__(self, d={}):
+        for k,v in d.items():
+            if hasattr(v, 'keys'):
+                v = dotdict(v)
+            self[k] = v
+
+    def __getattr__(self, name):
+        return self.get(name)
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
 class Dataset(object):
     """A class that represent dataset entry in the index file.
@@ -21,8 +32,8 @@ class Dataset(object):
         ----------
          -  a dictionary containing the metadata information
         """
-        self.__dict__['metadata'] = {}
-        self.__dict__['files'] = {}
+        self.__dict__['_metadata'] = {}
+        self.__dict__['_files'] = dotdict()
         self.__dict__['_attributes'] = {}
         self.__dict__['_module'] = sys.modules[self.__module__.split('.')[0]]
 
@@ -40,33 +51,21 @@ class Dataset(object):
             self._attributes['single_end'] = (lambda x: x.readType.upper().find('2X') == -1 if x.metadata.get('readType') else True)
             self._attributes['stranded'] = (lambda x: x.readType.upper().endswith('D') if x.metadata.get('readType') else False)
 
-    def add_file(self, metadata):
+    def add_file(self, path, file_type, **kwargs):
         """Add the path of a file related to the dataset to the class files dictionary
 
         file_info - a :class:Metadata object containing the file information
         """
-        for k,v in metadata.items():
-            if k in self._module.file_info:
-                self.__setattr__(k, v)
-        type = file_info.type
-        if not hasattr(file_info, 'md5'):
-            try:
-                file_info.md5 = utils.md5sum(path)
-            except:
-                pass
-        file_info.path = path
-        if not hasattr(self, type):
-            self.__setattr__(type, [])
-        if not path in [x.path for x in self.__getattribute__(type)]:
-            self.__getattribute__(type).append(file_info)
-            self.__setattr__(type, sorted(self.__getattribute__(type), key=lambda file: file.path))
-        else:
-            flist = [x for x in self.__getattribute__(type) if x.path == path]
-            if len(flist) > 1:
-                raise ValueError('Duplicate index entry for %r' % path)
-            self.__getattribute__(type)[self.__getattribute__(type).index(flist[0])] = file_info
-        if type == 'fastq':
-            self._get_fastq()
+        if not self._files.get(file_type):
+            self._files[file_type] = dotdict()
+
+        if not path in self._files.get(file_type).keys():
+            self._files.get(file_type)[path] = dotdict()
+
+        f = self._files.get(file_type).get(path)
+
+        for k,v in kwargs.items():
+            f[k] = v
 
     def export(self, absolute=False, types=[]):
         """Convert an index entry object to its string representation in index file format
@@ -159,33 +158,13 @@ class Dataset(object):
             return None
 
     def _get_fastq(self, sort_by_name=True):
-        #self.primary = os.path.abspath(self.fastq[0].path)
-        #self.secondary = None
         self.type_folders = False
         self.data_folder = os.path.dirname(self.primary)
-        # check for type folders
         if os.path.split(self.data_folder)[1] == "fastq":
             self.type_folders = True
             self.data_folder = os.path.split(self.data_folder)[0]
 
-        #detect secondary
         directory = os.path.dirname(self.primary)
-        #self.secondary = Dataset.find_secondary(self.primary)
-        #if self.secondary is not None:
-        #    self.secondary = "%s/%s" % (directory, self.secondary)
-
-        # set name
-        #if self.secondary is not None:
-        #    # exclude _1/_2 pair identifiers
-        #    self.name = re.match("^(?P<name>.*)([_\.-])(\d)"
-        #                         "\.(fastq|fq)(.gz)*?$",
-        #                         os.path.basename(self.primary)).group("name")
-        #else:
-        #    # single datafile name
-        #    self.name = re.match("^(?P<name>.*)\.(fastq|fq)(.gz)*?$",
-        #                         os.path.basename(self.primary)).group("name")
-
-        # sort primary and secondary
         if sort_by_name and len(self.fastq) > 1:
             s = sorted([self.fastq[0], self.fastq[1]], key = lambda x: x.path)
             self.fastq[0] = s[0]
@@ -193,11 +172,13 @@ class Dataset(object):
 
     def __getattr__(self, name):
         if name == 'id':
-            return self.metadata.get(self._tag_id)
+            return self._metadata.get(self._tag_id)
         if name in self.__dict__['_attributes'].keys():
             return self.__dict__['_attributes'][name](self)
-        if name in self.metadata.keys():
-            return self.metadata.get(name)
+        if name in self._metadata.keys():
+            return self._metadata.get(name)
+        if name in self._files.keys():
+            return self._files.get(name)
         raise AttributeError('%r object has no attribute %r' % (self.__class__.__name__,name))
 
     def __setattr__(self, name, value):
@@ -209,7 +190,7 @@ class Dataset(object):
             if name in self._module.file_info:
                 raise ValueError("File information %r detected. To add this please add afile to the dataset." % name)
             if not self._module._meta_info or name in self._module._meta_info:
-                self.__dict__['metadata'][name] = value
+                self.__dict__['_metadata'][name] = value
                 return
             raise ValueError("Cannot add %r information" % name)
 
