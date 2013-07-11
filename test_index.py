@@ -11,4 +11,3 @@ def test_create_dataset():
     assert dataset.id == '1'
     assert dataset.sex == 'M'
     assert dataset.age == '65'
-    assert dataset.single_end == False
