@@ -2,13 +2,13 @@ import sys
 from .index import *
 
 class IndexFileWrapper(object):
-    """ The indexfile API """
+    """ The IndexFile API """
 
     __version__ = "0.9-alpha"
 
     path_key = 'path'
     id_key = 'labExpId'
-    _file_info = ['type', 'view', 'md5', 'size']
+    _file_info = ['view', 'md5', 'size']
     _meta_info = []
 
     def __init__(self, wrapped):
