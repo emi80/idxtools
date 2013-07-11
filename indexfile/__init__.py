@@ -9,6 +9,7 @@ class IndexFileWrapper(object):
     path_key = 'path'
     id_key = 'labExpId'
     _file_info = ['type', 'view', 'md5', 'size']
+    _meta_info = []
 
     def __init__(self, wrapped):
         self.wrapped = wrapped
