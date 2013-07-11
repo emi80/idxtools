@@ -14,40 +14,40 @@ class Dataset(object):
     and information related to the sample.
     """
 
-    def __init__(self, metadata=None):
-        """Create an instance of the IndexEntry class
+    def __init__(self, **kwargs):
+        """Create an instance of the Dataset class
 
         Arguments:
         ----------
-        metadata -  a dictionary containing the metadata information
+         -  a dictionary containing the metadata information
         """
-        self._attributes = {}
+        self.__dict__['metadata'] = {}
+        self.__dict__['files'] = {}
+        self.__dict__['_attributes'] = {}
+        self.__dict__['_module'] = sys.modules[self.__module__.split('.')[0]]
 
-        if metadata:
-            module = sys.modules[self.__module__.split('.')[0]]
-            for k,v in metadata.items():
-                if k not in module.file_info:
-                    self.__setattr__(k, v)
-            self._tag_id = module.id_key
-            self._tag_path = module.path_key
+        self.__dict__['_tag_id'] = self._module.id_key
+        self.__dict__['_tag_path'] = self._module.path_key
 
-            self._init_attributes()
+        for k,v in kwargs.items():
+            self.__setattr__(k,v)
+
+        self._init_attributes()
 
     def _init_attributes(self):
-            self._attributes['id'] = (lambda: self.__getattribute__(self._tag_id))
-            self._attributes['primary'] = (lambda: self.fastq[0].path if hasattr(self,'fastq') and len(self.fastq) > 0 else None)
-            self._attributes['secondary'] = (lambda: self.fastq[1].path if hasattr(self,'fastq') and len(self.fastq) > 1 else None)
-            self._attributes['single_end'] = (lambda: self.readType.find('2x') == -1 if hasattr(self, 'readType') else True)
+            self._attributes['primary'] = (lambda x: x.fastq[0].path if x.files.get('fastq') and len(x.fastq) > 0 else None)
+            self._attributes['secondary'] = (lambda x: x.fastq[1].path if x.files.get('fastq') and len(x.fastq) > 1 else None)
+            self._attributes['single_end'] = (lambda x: x.readType.upper().find('2X') == -1 if x.metadata.get('readType') else True)
+            self._attributes['stranded'] = (lambda x: x.readType.upper().endswith('D') if x.metadata.get('readType') else False)
 
-    def add_file(self, path, meta):
+    def add_file(self, metadata):
         """Add the path of a file related to the dataset to the class files dictionary
 
         file_info - a :class:Metadata object containing the file information
         """
-        file_info = Metadata({})
-        for k,v in vars(meta).items():
-            if k in ['type', 'view', 'md5', 'size', 'path']:
-                file_info.__setattr__(k, v)
+        for k,v in metadata.items():
+            if k in self._module.file_info:
+                self.__setattr__(k, v)
         type = file_info.type
         if not hasattr(file_info, 'md5'):
             try:
@@ -96,7 +96,7 @@ class Dataset(object):
         """
         tag_list = []
         if not tags:
-            tags = self.__dict__.keys()
+            tags = self.metadata.keys()
         for key in tags:
             if key in exclude:
                 continue
@@ -116,7 +116,7 @@ class Dataset(object):
         trail -  trailing character of the tag. Default ';'.
 
         """
-        value = self.__getattribute__(key)
+        value = self.metadata.get(key)
         return sep.join([key, str(value)])+trail
 
     def folder(self, name=None):
@@ -191,19 +191,33 @@ class Dataset(object):
             self.fastq[0] = s[0]
             self.fastq[1] = s[1]
 
-    def _get_single_end(self):
-        return self.metadata.readType.find('2x') == -1
-
-    def _get_quality(self):
-        return self.metadata.quality
-
     def __getattr__(self, name):
+        if name == 'id':
+            return self.metadata.get(self._tag_id)
         if name in self.__dict__['_attributes'].keys():
-            return self.__dict__['_attributes'][name]()
+            return self.__dict__['_attributes'][name](self)
+        if name in self.metadata.keys():
+            return self.metadata.get(name)
         raise AttributeError('%r object has no attribute %r' % (self.__class__.__name__,name))
+
+    def __setattr__(self, name, value):
+        if name != '__dict__':
+            if name == 'id':
+                name = self._tag_id
+            if name == 'path':
+                name = self._tag_path
+            if name in self._module.file_info:
+                raise ValueError("File information %r detected. To add this please add afile to the dataset." % name)
+            if not self._module._meta_info or name in self._module._meta_info:
+                self.__dict__['metadata'][name] = value
+                return
+            raise ValueError("Cannot add %r information" % name)
 
     def __repr__(self):
         return "Dataset: %s" % (self.id)
+
+    def __str__(self):
+        return self.get_tags()
 
     @staticmethod
     def find(path):
