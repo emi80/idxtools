@@ -87,7 +87,7 @@ class Dataset(object):
                 for path,info in getattr(self,type).items():
                     if absolute:
                         path = os.path.abspath(path)
-                    tags = ' '.join([self.get_tags(),to_tags(**info)])
+                    tags = ' '.join([self.get_tags(),to_tags(**{'type':type}),to_tags(**info)])
                     out.append('\t'.join([path, tags]))
             except:
                 pass
