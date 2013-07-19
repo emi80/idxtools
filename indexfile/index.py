@@ -5,6 +5,15 @@ import os
 import json
 import sys
 
+def to_tags(tag_sep=' ', kw_sep='=', kw_trail=';', **kwargs):
+    taglist=[]
+    for k,v in kwargs.items():
+        v = str(v)
+        if v.find(' ') > 0:
+            v= '\"%s\"' % v
+        taglist.append('%s%s%s%s' % (k, kw_sep, v, kw_trail))
+    return tag_sep.join(taglist)
+
 class dotdict(dict):
     def __init__(self, d={}):
         for k,v in d.items():
@@ -32,30 +41,31 @@ class Dataset(object):
         ----------
          -  a dictionary containing the metadata information
         """
+        import indexfile
+
         self.__dict__['_metadata'] = {}
         self.__dict__['_files'] = dotdict()
         self.__dict__['_attributes'] = {}
-        self.__dict__['_module'] = sys.modules[self.__module__.split('.')[0]]
 
-        self.__dict__['_tag_id'] = self._module.id_key
-        self.__dict__['_tag_path'] = self._module.path_key
+        self.__dict__['_tag_id'] = indexfile._id_key
+        self.__dict__['_tag_path'] = indexfile._path_key
+        self.__dict__['_meta_info'] = indexfile._meta_info
+        self.__dict__['_file_info'] = indexfile._file_info
+
 
         for k,v in kwargs.items():
             self.__setattr__(k,v)
 
-        self._init_attributes()
-
-    def _init_attributes(self):
-            self._attributes['primary'] = (lambda x: x.fastq[0].path if x.files.get('fastq') and len(x.fastq) > 0 else None)
-            self._attributes['secondary'] = (lambda x: x.fastq[1].path if x.files.get('fastq') and len(x.fastq) > 1 else None)
-            self._attributes['single_end'] = (lambda x: x.readType.upper().find('2X') == -1 if x.metadata.get('readType') else True)
-            self._attributes['stranded'] = (lambda x: x.readType.upper().endswith('D') if x.metadata.get('readType') else False)
-
-    def add_file(self, path, file_type, **kwargs):
+    def add_file(self, path, file_type, absolute=False, **kwargs):
         """Add the path of a file related to the dataset to the class files dictionary
 
-        file_info - a :class:Metadata object containing the file information
+        path - the path of the file
+        file_type - the type of the file
         """
+
+        if absolute:
+            path = os.path.abspath(path)
+
         if not self._files.get(file_type):
             self._files[file_type] = dotdict()
 
@@ -72,51 +82,34 @@ class Dataset(object):
         """
         out = []
         if not types:
-            types = [x for x in self.__dict__ if x not in ['metadata', 'type_folders', 'data_folder', 'tag_id']]
+            types = self._files.keys()
         for type in types:
-            for file in self.__getattribute__(type):
-                path = file.path
-                if absolute:
-                    path = os.path.abspath(path)
-                tags = ' '.join([self.metadata.get_tags(),file.get_tags(exclude=['path', self.tag_id])])
-                out.append('\t'.join([path, tags]))
+            try:
+                for path,info in getattr(self,type).items():
+                    if absolute:
+                        path = os.path.abspath(path)
+                    tags = ' '.join([self.get_tags(),to_tags(**info)])
+                    out.append('\t'.join([path, tags]))
+            except:
+                pass
         return out
 
-    def get_tags(self, tags=[], exclude=[], sep=' '):
+    def get_tags(self, tags=[], exclude=[]):
         """Concatenate specified tags using the provided tag separator. The tag are formatted
         according to the 'index file' format
 
         Keyword arguments:
         -----------
-        tags - list of keys identifying the tags to be concatenated. Default value is
+        tags - list of keys to be included into output. Default value is
                the empty list, which means that all tags will be returned.
-        sep  - the tag separator character. The default value is a <space> according to
-               the 'index file' format.
+        exclude  - list of keys to be excluded from output. Default value is
+                    the empty list meaning that all keys will be included.
         """
-        tag_list = []
         if not tags:
-            tags = self.metadata.keys()
-        for key in tags:
-            if key in exclude:
-                continue
-            tag_list.append(self.get_tag(key))
-        return sep.join(tag_list)
-
-    def get_tag(self, key, sep='=', trail=';'):
-        """Return a key/value pair for a give tag, formatted according to the 'index file' format
-
-        Arguments:
-        -----------
-        key   -  the key of the tag
-
-        Keyword arguments:
-        -------------------
-        sep   -  the separator between key and value of the tag. Default is '='.
-        trail -  trailing character of the tag. Default ';'.
-
-        """
-        value = self.metadata.get(key)
-        return sep.join([key, str(value)])+trail
+            tags = self._metadata.keys()
+        tags = list(set(tags).difference(set(exclude)))
+        data = dict(filter(lambda i:i[0] in tags, self._metadata.iteritems()))
+        return to_tags(**data)
 
     def folder(self, name=None):
         """Resolve a folder based on datasets project folder and
@@ -173,6 +166,10 @@ class Dataset(object):
     def __getattr__(self, name):
         if name == 'id':
             return self._metadata.get(self._tag_id)
+        if name == 'file_info':
+            return [self._tag_path] + self._file_info
+        if name == 'meta_info':
+            return [self._tag_id] + self._meta_info
         if name in self.__dict__['_attributes'].keys():
             return self.__dict__['_attributes'][name](self)
         if name in self._metadata.keys():
@@ -182,14 +179,15 @@ class Dataset(object):
         raise AttributeError('%r object has no attribute %r' % (self.__class__.__name__,name))
 
     def __setattr__(self, name, value):
+        import indexfile
         if name != '__dict__':
             if name == 'id':
                 name = self._tag_id
             if name == 'path':
                 name = self._tag_path
-            if name in self._module.file_info:
-                raise ValueError("File information %r detected. To add this please add afile to the dataset." % name)
-            if not self._module._meta_info or name in self._module._meta_info:
+            if name in self.file_info:
+                raise ValueError("File information %r detected. To add this please add a file to the dataset." % name)
+            if not indexfile._meta_info or name in indexfile._meta_info:
                 self.__dict__['_metadata'][name] = value
                 return
             raise ValueError("Cannot add %r information" % name)
