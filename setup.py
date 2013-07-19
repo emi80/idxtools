@@ -14,7 +14,7 @@ setup(
     long_description='''A set of function to import, manage, export index files data.
 ''',
     platforms=['lx64'],
-    packages=['indexfile'],
+    packages=['indexfile','rnaseq'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
