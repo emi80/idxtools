@@ -34,7 +34,7 @@ class Dataset(object):
     and information related to the sample.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, format={}, **kwargs):
         """Create an instance of the Dataset class
 
         Arguments:
@@ -47,8 +47,7 @@ class Dataset(object):
         self.__dict__['_files'] = dotdict()
         self.__dict__['_attributes'] = {}
 
-        self.__dict__['_tag_id'] = indexfile._id_key
-        self.__dict__['_tag_path'] = indexfile._path_key
+        self.__dict__['_format'] = indexfile._format
         self.__dict__['_meta_info'] = indexfile._meta_info
         self.__dict__['_file_info'] = indexfile._file_info
 
@@ -165,11 +164,11 @@ class Dataset(object):
 
     def __getattr__(self, name):
         if name == 'id':
-            return self._metadata.get(self._tag_id)
+            return self._metadata.get(self._format.get('id'))
         if name == 'file_info':
-            return [self._tag_path] + self._file_info
+            return [self._format.get('path')] + self._file_info
         if name == 'meta_info':
-            return [self._tag_id] + self._meta_info
+            return [self._format.get('id')] + self._meta_info
         if name in self.__dict__['_attributes'].keys():
             return self.__dict__['_attributes'][name](self)
         if name in self._metadata.keys():
@@ -182,9 +181,9 @@ class Dataset(object):
         import indexfile
         if name != '__dict__':
             if name == 'id':
-                name = self._tag_id
+                name = self._format.get('id')
             if name == 'path':
-                name = self._tag_path
+                name = self._format.get('path')
             if name in self.file_info:
                 raise ValueError("File information %r detected. To add this please add a file to the dataset." % name)
             if not indexfile._meta_info or name in indexfile._meta_info:
