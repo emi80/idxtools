@@ -76,7 +76,7 @@ class Dataset(object):
         for k,v in kwargs.items():
             f[k] = v
 
-    def export(self, absolute=False, types=[]):
+    def export(self, absolute=False, types=[], jsonout=False):
         """Convert an index entry object to its string representation in index file format
         """
         out = []
@@ -85,10 +85,13 @@ class Dataset(object):
         for type in types:
             try:
                 for path,info in getattr(self,type).items():
-                    if absolute:
-                        path = os.path.abspath(path)
-                    tags = ' '.join([self.get_tags(),to_tags(**{'type':type}),to_tags(**info)])
-                    out.append('\t'.join([path, tags]))
+                    if jsonout:
+                        out.append(json.dumps(dict(self._metadata.items() + {'path':path, 'type':type}.items() + info.items())))
+                    else:
+                        if absolute:
+                            path = os.path.abspath(path)
+                        tags = ' '.join([self.get_tags(),to_tags(**{'type':type}),to_tags(**info)])
+                        out.append('\t'.join([path, tags]))
             except:
                 pass
         return out
@@ -109,58 +112,6 @@ class Dataset(object):
         tags = list(set(tags).difference(set(exclude)))
         data = dict(filter(lambda i:i[0] in tags, self._metadata.iteritems()))
         return to_tags(**data)
-
-    def folder(self, name=None):
-        """Resolve a folder based on datasets project folder and
-        if type_folders. If type folders is True, this always resolves
-        to the data folder. Otherwise, if name is specified, it resolves
-        to the named folder under this datasets data folder.
-        """
-        if not self.type_folders or name is None:
-            return self.data_folder
-        else:
-            return os.path.join(self.data_folder, name)
-
-    def get_genome(self, config):
-        """Return the default index that should be used by this dataset
-        """
-        try:
-            sex = self.sex.lower()
-            if not config.get('.'.join(['genomes', sex, 'path'])):
-                sex = { 'm': 'male',
-                        'f': 'female'
-                        }.get(sex, None)
-            return config.get('.'.join(['genomes', sex, 'path']))
-        except:
-            return None
-
-    def get_index(self, config):
-        """Return the default index that should be used by this dataset
-        """
-        return config.get('.'.join(['genomes', self.sex, 'index']))
-
-    def get_annotation(self, config):
-        """Return the default annotation that should be used for this
-        dataset
-        """
-        try:
-            sex = self.sex
-            return config.get('.'.join(['annotations', self.sex, 'path']))
-        except:
-            return None
-
-    def _get_fastq(self, sort_by_name=True):
-        self.type_folders = False
-        self.data_folder = os.path.dirname(self.primary)
-        if os.path.split(self.data_folder)[1] == "fastq":
-            self.type_folders = True
-            self.data_folder = os.path.split(self.data_folder)[0]
-
-        directory = os.path.dirname(self.primary)
-        if sort_by_name and len(self.fastq) > 1:
-            s = sorted([self.fastq[0], self.fastq[1]], key = lambda x: x.path)
-            self.fastq[0] = s[0]
-            self.fastq[1] = s[1]
 
     def __getattr__(self, name):
         if name == 'id':
@@ -197,125 +148,13 @@ class Dataset(object):
     def __str__(self):
         return self.get_tags()
 
-    @staticmethod
-    def find(path):
-        """Find dataset from path. Detect if paired and find mate
-        file if possible
 
-        path: path to the input file
-
-        return:
-            None if no dataset found
-            [name, mate1] if single end
-            [name, mate1, mate2] if paired end
-        """
-
-        basedir = os.path.dirname(path)
-        name = os.path.basename(path)
-        expr_paired = "^(?P<name>.*)(?P<delim>[_\.-])" \
-               "(?P<id>\d)\.(?P<type>fastq|fq)(?P<compression>\.gz)*?$"
-        expr_single = "^(?P<name>.*)\.(fastq|fq)(\.gz)*?$"
-        match = re.match(expr_paired, name)
-        if match:
-            try:
-                id = int(match.group('id'))
-                if id < 2:
-                    id += 1
-                else:
-                    id -= 1
-                compr = match.group("compression")
-                if compr is None:
-                    compr = ""
-                files = [path, os.path.join(basedir, "%s%s%d.%s%s")
-                                                    % (match.group('name'),
-                                                    match.group('delim'),
-                                                    id, match.group('type'),
-                                                    compr)]
-                files.sort()
-
-                return match.group('name'), files
-            except:
-                pass
-        match = re.match(expr_single, name)
-        if match:
-            return match.group('name'), [path]
-        return None
-
-    @staticmethod
-    def find_secondary(name):
-        """Find secondary dataset file and return the basename of
-        that file or return None
-        """
-
-        basedir = os.path.dirname(name)
-        name = os.path.basename(name)
-        expr = "^(?P<name>.*)(?P<delim>[_\.-])" \
-               "(?P<id>\d)\.(?P<type>fastq|fq)(?P<compression>\.gz)*?$"
-        match = re.match(expr, name)
-        if match is not None:
-            try:
-                id = int(match.group("id"))
-                if id < 2:
-                    id += 1
-                else:
-                    id -= 1
-                compr = match.group("compression")
-                if compr is None:
-                    compr = ""
-                return match.group("name"), os.path.join(basedir, "%s%s%d.%s%s"
-                                        % (match.group("name"),
-                                           match.group("delim"),
-                                           id, match.group("type"),
-                                           compr))
-            except Exception:
-                pass
-        return None
-
-
-class IndexDefinition(object):
-    """A class to specify the index meta information
-    """
-
-    data = {}
-
-##### TODO: not hardcode this information ##############################
-    data['id'] = 'labExpId'
-    data['metainfo'] = ['labProtocolId',
-                'dataType',
-                'age',
-                'localization',
-                'sraStudyAccession',
-                'lab',
-                'sex',
-                'cell',
-                'rnaExtract',
-                'tissue',
-                'sraSampleAccession',
-                'readType',
-                'donorId',
-                'ethnicity'
-                ]
-    data['fileinfo'] = ['type',
-                'size',
-                'md5',
-                'view'
-                ]
-
-    data['file_types'] = ['fastq', 'bam', 'bai', 'gff', 'map', 'bigWig', 'bed']
-
-    #data['default_path'] = '.index'
-######################################################################
-
-    @classmethod
-    def dump(cls, tabs=2):
-        return json.dumps(cls.data, indent=tabs)
-
-class IndexFile(object):
+class Index(object):
     """A class to access information stored into 'index files'.
     """
 
-    def __init__(self, path=".index", datasets={}, clear=False):
-        """Creates an instance of an IndexFile class
+    def __init__(self, path=None, datasets={}, clear=False):
+        """Creates an instance of an Index
 
         path - path of the index file
 
