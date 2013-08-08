@@ -4,14 +4,19 @@ import re
 import os
 import json
 import sys
+import warnings
 
-def to_tags(tag_sep=' ', kw_sep='=', kw_trail=';', **kwargs):
+def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
+    return ' %s:%s: %s: %s\n' % (filename, lineno, category.__name__, message)
+warnings.formatwarning = warning_on_one_line
+
+def to_tags(tag_sep=' ', kv_sep='=', kv_trail=';', **kwargs):
     taglist=[]
     for k,v in kwargs.items():
         v = str(v)
         if v.find(' ') > 0:
             v= '\"%s\"' % v
-        taglist.append('%s%s%s%s' % (k, kw_sep, v, kw_trail))
+        taglist.append('%s%s%s%s' % (k, kv_sep, v, kv_trail))
     return tag_sep.join(taglist)
 
 class dotdict(dict):
@@ -53,20 +58,34 @@ class Dataset(object):
 
 
         for k,v in kwargs.items():
-            self.__setattr__(k,v)
+            if not k in self.__dict__['_file_info']:
+                self.__setattr__(k,v)
 
-    def add_file(self, path, file_type, absolute=False, **kwargs):
+    def add_file(self, absolute=False, **kwargs):
         """Add the path of a file related to the dataset to the class files dictionary
 
         path - the path of the file
         file_type - the type of the file
         """
 
+        if not kwargs.get('path'):
+            raise ValueError("Please specify a path for the file")
+
+        if not kwargs.get('type'):
+            raise ValueError("Please specify a type for the file")
+
+        path =  kwargs.get('path')
+        file_type = kwargs.get('type')
+
         if absolute:
             path = os.path.abspath(path)
 
         if not self._files.get(file_type):
             self._files[file_type] = dotdict()
+
+        if path in self._files.get(file_type).keys():
+            warnings.warn("Entry for %s already exist..skipping." % path)
+            return
 
         if not path in self._files.get(file_type).keys():
             self._files.get(file_type)[path] = dotdict()
@@ -163,16 +182,22 @@ class Index(object):
         """
 
         self.path = path
+
         self.datasets = datasets
         self._lock = None
 
-        if not self.datasets:
-            indices = path
-            if not isinstance(indices, list):
-                indices = [indices]
-            for index in indices:
-                if os.path.exists(index):
-                    self.load(index, clear)
+        self.initialize(clear)
+
+    def initialize(self, clear=False):
+        """Initialize the index with data
+
+        """
+        if not self.path:
+            raise ValueError("No index to load. Please specify a path")
+        if self.datasets:
+            warnings.warn("The index already contains data. Merging with data from file.")
+
+        self.load(self.path, clear)
 
     def load(self, path, clear=False):
         """Add datasets to the index object by parsing an index file
@@ -186,82 +211,78 @@ class Index(object):
             self.datasets = {}
         with open(os.path.abspath(path), 'r') as index_file:
             for line in index_file:
-                self._parse_line(line)
+                file,tags = Index.parse(line)
+
+                dataset = self.add_dataset(**tags)
+                dataset.add_file(path=file, **tags)
+
 
     def save(self):
         """Save changes to the index file
         """
         with open(self.path,'w+') as index:
-           self.export(out=index)
+            for line in self.export():
+                index.write("%s%s" % (line, os.linesep))
 
-
-    def _parse_line(self, line):
-        """Parse a line of the index file and append the parsed entry to the entries list.
-
-        line - the line to be parsed
-        """
-        expr = '^(?P<file>.+)\t(?P<tags>.+)$'
-        match = re.match(expr, line)
-        file = match.group('file')
-        tags = match.group('tags')
-
-        meta = Metadata.parse(tags)
-        dataset = self.datasets.get(meta.labExpId, None)
+    def add_dataset(self, **kwargs):
+        import indexfile
+        warnings.simplefilter('default')
+        meta = set(kwargs.keys()).difference(indexfile._file_info+['path'])
+        d = Dataset(**{k: kwargs.get(k) for k in meta})
+        dataset = self.datasets.get(d.id)
 
         if not dataset:
-            dataset = Dataset(meta)
-            self.datasets[dataset.id] = dataset
+            self.datasets[d.id] = d
+        else:
+            warnings.warn('Using existing dataset %s' % dataset.id)
 
-        dataset.add_file(file, meta)
+        if kwargs.get('path') and kwargs.get('type'):
+            warnings.warn('Adding %s to existing dataset' % kwargs.get('path'))
+            dataset.add_file(**kwargs)
 
-    @classmethod
-    def parse(cls, string, info=[]):
-        """Parse a string of concatenated tags and converts it to a Metadata object
+        return self.datasets[d.id]
 
-        Arguments:
-        ----------
-        string - the concatenated tags
-        """
-        tags = cls._parse_tags(string)
-        return Metadata(tags)
 
     @classmethod
-    def _parse_tags(cls, str, sep='=', trail=';'):
+    def parse(cls, str, sep='=', trail=';'):
         """Parse key/value pair tags from a string and returns a dictionary
 
         Arguments:
         ----------
-        str - the tags string
+        str - the string to parse.
 
         Keyword arguments:
         ------------------
         sep   -  the separator between key and value of the tag. Default is '='.
         trail -  trailing character of the tag. Default ';'.
         """
-        tags = {}
+        file = None
+        tags = str
+
+        expr = '^(?P<file>.+)\t(?P<tags>.+)$'
+        match = re.match(expr, str)
+        if match:
+            file = match.group('file')
+            tags = match.group('tags')
+
+        tagsd = {}
         expr = '(?P<key>[^ ]+)%s(?P<value>[^%s]*)%s' % (sep, trail, trail)
-        for match in re.finditer(expr, str):
-            tags[match.group('key')] = match.group('value')
-        return tags
+        for match in re.finditer(expr, tags):
+            tagsd[match.group('key')] = match.group('value')
 
+        if not tagsd:
+            if os.path.isfile(os.path.abspath(tags)):
+                file = os.path.abspath(tags)
 
-    def add_dataset(self, metadata, id=None):
-        if not id:
-            id = length(self.datasets)
-        dataset = self.datasets.get(id, None)
-        if dataset:
-            raise ValueError("Dataset %r already exists" % id)
-        self.datasets[id] = Dataset(metadata)
-        return self.datasets[id]
+        return file,tagsd
 
-    def export(self, out=None, absolute=False):
+    def export(self, absolute=False, jsonout=False):
         """Save changes made to the index structure loaded in memory to the index file
         """
-        if not out:
-            out = sys.stdout
+        out = []
         for dataset in self.datasets.values():
-            for line in dataset.export(absolute=absolute):
-                out.write('%s%s' % (line, os.linesep))
+            out.extend(dataset.export(absolute=absolute, jsonout=jsonout))
+        return out
 
 
     def lock(self):
