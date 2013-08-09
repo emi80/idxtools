@@ -221,16 +221,20 @@ class Index(object):
         """
         import json as j
 
-        if self.format and not kwargs:
-            kwargs = dict(self.format)
+        if self.format:
+            if not kwargs:
+                kwargs = {}
+            kwargs = dict(self.format.items() + kwargs.items())
 
         id = kwargs.pop('id',None)
-        map = kwargs.pop('map',{})
+        map = kwargs.pop('map',None)
         colsep = kwargs.pop('colsep','\t')
         fileinfo = kwargs.pop('fileinfo',[])
         if map:
             for k,v in map.items():
                 if v: map[v] = k
+        else:
+            map = {}
 
         path = map.get('path','path')
 
