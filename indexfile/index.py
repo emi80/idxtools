@@ -147,7 +147,7 @@ class Index(object):
     """A class to access information stored into 'index files'.
     """
 
-    def __init__(self, path=None, datasets={}, clear=False):
+    def __init__(self, path=None, datasets={}, format={}, clear=False):
         """Creates an instance of an Index
 
         path - path of the index file
@@ -160,7 +160,7 @@ class Index(object):
 
         self.datasets = datasets
         self._lock = None
-        self.format = { 'id':'labExpId' }
+        self.format = format
 
         self.initialize(clear)
 
@@ -221,8 +221,19 @@ class Index(object):
         """
         import json as j
 
-        id = kwargs.get('id')
-        colsep = kwargs.get('colsep','\t')
+        if self.format and not kwargs:
+            kwargs = dict(self.format)
+
+        id = kwargs.pop('id',None)
+        map = kwargs.pop('map',{})
+        colsep = kwargs.pop('colsep','\t')
+        fileinfo = kwargs.pop('fileinfo',[])
+        if map:
+            for k,v in map.items():
+                if v: map[v] = k
+
+        path = map.get('path','path')
+
         if type=='tab':
             header = []
 
@@ -230,19 +241,25 @@ class Index(object):
         for dataset in self.datasets.values():
             expd = dataset.export(absolute=absolute)
             for d in expd:
-                if id:
-                    if d.get('id'):
-                        d[id] = d.get('id')
-                        del d['id']
-                if type=='json':
-                    out.append(j.dumps(d))
+                line = dict()
+                for k,v in d.items():
+                    if k == 'id':
+                        if id: k = id
+                    if map:
+                        k = map.get(k)
+                    if k:
+                        line[k] = v
                 if type=='index':
-                    out.append(colsep.join([d.get('path'),to_tags(**d)]))
+                    out.append(colsep.join([line.pop(path,'.'),to_tags(**dict(line.items()+kwargs.items()))]))
+                if type=='json':
+                    out.append(j.dumps(line))
                 if type=='tab':
                     if not header:
-                        header = d.keys()
+                        header = line.keys()
                         out.append(colsep.join(header))
-                    out.append(colsep.join(d.values()))
+                    if len(line.values()) != len(header):
+                        raise ValueError('Found lines with different number of fields. Please check your input file.')
+                    out.append(colsep.join(line.values()))
         return out
 
     def lock(self):
