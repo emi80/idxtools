@@ -216,26 +216,33 @@ class Index(object):
             for line in self.export():
                 index.write("%s%s" % (line, os.linesep))
 
-    def export(self, absolute=False, json=False, **kwargs):
+    def export(self, absolute=False, type='index', **kwargs):
         """Save changes made to the index structure loaded in memory to the index file
         """
         import json as j
 
         id = kwargs.get('id')
         colsep = kwargs.get('colsep','\t')
+        if type=='tab':
+            header = []
 
         out = []
         for dataset in self.datasets.values():
-            d = dataset.export(absolute=absolute)
-            for line in d:
-                for k,v in line.items():
-                    if id and k == 'id':
-                        line[id] = v
-                        del line['id']
-                if json:
-                    out.append(j.dumps())
-                else:
-                    out.append(colsep.join([line.get('path'),to_tags(**line)]))
+            expd = dataset.export(absolute=absolute)
+            for d in expd:
+                if id:
+                    if d.get('id'):
+                        d[id] = d.get('id')
+                        del d['id']
+                if type=='json':
+                    out.append(j.dumps(d))
+                if type=='index':
+                    out.append(colsep.join([d.get('path'),to_tags(**d)]))
+                if type=='tab':
+                    if not header:
+                        header = d.keys()
+                        out.append(colsep.join(header))
+                    out.append(colsep.join(d.values()))
         return out
 
     def lock(self):
