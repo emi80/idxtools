@@ -39,27 +39,19 @@ class Dataset(object):
     and information related to the sample.
     """
 
-    def __init__(self, format={}, **kwargs):
+    def __init__(self, **kwargs):
         """Create an instance of the Dataset class
 
         Arguments:
         ----------
          -  a dictionary containing the metadata information
         """
-        import indexfile
-
         self.__dict__['_metadata'] = {}
         self.__dict__['_files'] = dotdict()
         self.__dict__['_attributes'] = {}
 
-        self.__dict__['_format'] = indexfile._format
-        self.__dict__['_meta_info'] = indexfile._meta_info
-        self.__dict__['_file_info'] = indexfile._file_info
-
-
         for k,v in kwargs.items():
-            if not k in self.__dict__['_file_info']:
-                self.__setattr__(k,v)
+            self.__setattr__(k,v)
 
     def add_file(self, absolute=False, **kwargs):
         """Add the path of a file related to the dataset to the class files dictionary
@@ -96,23 +88,20 @@ class Dataset(object):
             f[k] = v
 
     def export(self, absolute=False, types=[], jsonout=False):
-        """Convert an index entry object to its string representation in index file format
+        """Convert an index entry object to its string representation in index file format. Optionally the output format can be json.
         """
         out = []
         if not types:
             types = self._files.keys()
         for type in types:
-            try:
-                for path,info in getattr(self,type).items():
-                    if jsonout:
-                        out.append(json.dumps(dict(self._metadata.items() + {'path':path, 'type':type}.items() + info.items())))
-                    else:
-                        if absolute:
-                            path = os.path.abspath(path)
-                        tags = ' '.join([self.get_tags(),to_tags(**{'type':type}),to_tags(**info)])
-                        out.append('\t'.join([path, tags]))
-            except:
-                pass
+           for path,info in getattr(self,type).items():
+               if jsonout:
+                   out.append(json.dumps(dict(self._metadata.items() + {'path':path, 'type':type}.items() + info.items())))
+               else:
+                   if absolute:
+                       path = os.path.abspath(path)
+                   tags = ' '.join([self.get_tags(),to_tags(**{'type':type}),to_tags(**info)])
+                   out.append('\t'.join([path, tags]))
         return out
 
     def get_tags(self, tags=[], exclude=[]):
@@ -129,16 +118,10 @@ class Dataset(object):
         if not tags:
             tags = self._metadata.keys()
         tags = list(set(tags).difference(set(exclude)))
-        data = dict(filter(lambda i:i[0] in tags, self._metadata.iteritems()))
+        data = dict([i for i in self._metadata.iteritems() if i[0] in tags])
         return to_tags(**data)
 
     def __getattr__(self, name):
-        if name == 'id':
-            return self._metadata.get(self._format.get('id'))
-        if name == 'file_info':
-            return [self._format.get('path')] + self._file_info
-        if name == 'meta_info':
-            return [self._format.get('id')] + self._meta_info
         if name in self.__dict__['_attributes'].keys():
             return self.__dict__['_attributes'][name](self)
         if name in self._metadata.keys():
@@ -148,18 +131,8 @@ class Dataset(object):
         raise AttributeError('%r object has no attribute %r' % (self.__class__.__name__,name))
 
     def __setattr__(self, name, value):
-        import indexfile
         if name != '__dict__':
-            if name == 'id':
-                name = self._format.get('id')
-            if name == 'path':
-                name = self._format.get('path')
-            if name in self.file_info:
-                raise ValueError("File information %r detected. To add this please add a file to the dataset." % name)
-            if not indexfile._meta_info or name in indexfile._meta_info:
-                self.__dict__['_metadata'][name] = value
-                return
-            raise ValueError("Cannot add %r information" % name)
+            self.__dict__['_metadata'][name] = value
 
     def __repr__(self):
         return "Dataset: %s" % (self.id)
@@ -185,6 +158,7 @@ class Index(object):
 
         self.datasets = datasets
         self._lock = None
+        self.format = { 'id':'labExpId' }
 
         self.initialize(clear)
 
@@ -211,24 +185,15 @@ class Index(object):
             self.datasets = {}
         with open(os.path.abspath(path), 'r') as index_file:
             for line in index_file:
-                file,tags = Index.parse(line)
+                file,tags = Index.parse(line, **self.format)
 
                 dataset = self.add_dataset(**tags)
                 dataset.add_file(path=file, **tags)
 
-
-    def save(self):
-        """Save changes to the index file
-        """
-        with open(self.path,'w+') as index:
-            for line in self.export():
-                index.write("%s%s" % (line, os.linesep))
-
     def add_dataset(self, **kwargs):
-        import indexfile
-        warnings.simplefilter('default')
-        meta = set(kwargs.keys()).difference(indexfile._file_info+['path'])
-        d = Dataset(**{k: kwargs.get(k) for k in meta})
+        #meta = set(kwargs.keys()).difference(format.file_info+['path'])
+        #d = Dataset(**{k: kwargs.get(k) for k in meta})
+        d = Dataset(**kwargs)
         dataset = self.datasets.get(d.id)
 
         if not dataset:
@@ -242,39 +207,12 @@ class Index(object):
 
         return self.datasets[d.id]
 
-
-    @classmethod
-    def parse(cls, str, sep='=', trail=';'):
-        """Parse key/value pair tags from a string and returns a dictionary
-
-        Arguments:
-        ----------
-        str - the string to parse.
-
-        Keyword arguments:
-        ------------------
-        sep   -  the separator between key and value of the tag. Default is '='.
-        trail -  trailing character of the tag. Default ';'.
+    def save(self):
+        """Save changes to the index file
         """
-        file = None
-        tags = str
-
-        expr = '^(?P<file>.+)\t(?P<tags>.+)$'
-        match = re.match(expr, str)
-        if match:
-            file = match.group('file')
-            tags = match.group('tags')
-
-        tagsd = {}
-        expr = '(?P<key>[^ ]+)%s(?P<value>[^%s]*)%s' % (sep, trail, trail)
-        for match in re.finditer(expr, tags):
-            tagsd[match.group('key')] = match.group('value')
-
-        if not tagsd:
-            if os.path.isfile(os.path.abspath(tags)):
-                file = os.path.abspath(tags)
-
-        return file,tagsd
+        with open(self.path,'w+') as index:
+            for line in self.export():
+                index.write("%s%s" % (line, os.linesep))
 
     def export(self, absolute=False, jsonout=False):
         """Save changes made to the index structure loaded in memory to the index file
@@ -283,7 +221,6 @@ class Index(object):
         for dataset in self.datasets.values():
             out.extend(dataset.export(absolute=absolute, jsonout=jsonout))
         return out
-
 
     def lock(self):
         """Lock the index"""
@@ -309,6 +246,47 @@ class Index(object):
         self._lock.release()
         self._lock = None
         return True
+
+    @classmethod
+    def parse(cls, str, **kwargs):
+        """Parse key/value pair tags from a string and returns a dictionary
+
+        Arguments:
+        ----------
+        str - the string to parse.
+
+        Keyword arguments:
+        ------------------
+        sep   -  the separator between key and value of the tag. Default is '='.
+        trail -  trailing character of the tag. Default ';'.
+        """
+        file = None
+        tags = str
+
+        sep = kwargs.get('sep','=')
+        trail = kwargs.get('trail',';')
+        id = kwargs.get('id')
+
+        expr = '^(?P<file>.+)\t(?P<tags>.+)$'
+        match = re.match(expr, str)
+        if match:
+            file = match.group('file')
+            tags = match.group('tags')
+
+        tagsd = {}
+        expr = '(?P<key>[^ ]+)%s(?P<value>[^%s]*)%s' % (sep, trail, trail)
+        for match in re.finditer(expr, tags):
+            key = match.group('key')
+            if key == id:
+                key = 'id'
+            tagsd[key] = match.group('value')
+
+        if not tagsd:
+            if os.path.isfile(os.path.abspath(tags)):
+                file = os.path.abspath(tags)
+
+        return file,tagsd
+
 
 class _OnSuccessListener(object):
     def __init__(self, project, config):
