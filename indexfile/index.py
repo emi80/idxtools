@@ -10,14 +10,19 @@ def warning_on_one_line(message, category, filename, lineno, file=None, line=Non
     return ' %s:%s: %s: %s\n' % (filename, lineno, category.__name__, message)
 warnings.formatwarning = warning_on_one_line
 
-def to_tags(tag_sep=' ', kv_sep='=', kv_trail=';', **kwargs):
+def to_tags(kw_sep=' ', sep='=', trail=';', quote=None, **kwargs):
     taglist=[]
     for k,v in kwargs.items():
         v = str(v)
-        if v.find(' ') > 0:
-            v= '\"%s\"' % v
-        taglist.append('%s%s%s%s' % (k, kv_sep, v, kv_trail))
-    return tag_sep.join(taglist)
+        if quote:
+            if quote=='value' or quote=='both':
+                if '\"' not in v: v = '\"%s\"' % v
+            if quote=='key' or quote=='both':
+                if '\"' not in k: k = '\"%s\"' % k
+        if ' ' in v:
+            if '\"' not in v: v = '\"%s\"' % v
+        taglist.append('%s%s%s%s' % (k, sep, v, trail))
+    return kw_sep.join(taglist)
 
 class dotdict(dict):
     def __init__(self, d={}):
@@ -87,21 +92,18 @@ class Dataset(object):
         for k,v in kwargs.items():
             f[k] = v
 
-    def export(self, absolute=False, types=[], jsonout=False):
+    def export(self, absolute=False, types=[]):
         """Convert an index entry object to its string representation in index file format. Optionally the output format can be json.
         """
         out = []
         if not types:
             types = self._files.keys()
         for type in types:
-           for path,info in getattr(self,type).items():
-               if jsonout:
-                   out.append(json.dumps(dict(self._metadata.items() + {'path':path, 'type':type}.items() + info.items())))
-               else:
-                   if absolute:
-                       path = os.path.abspath(path)
-                   tags = ' '.join([self.get_tags(),to_tags(**{'type':type}),to_tags(**info)])
-                   out.append('\t'.join([path, tags]))
+            for path,info in getattr(self,type).items():
+                if absolute:
+                    path = os.path.abspath(path)
+                tags = dict(self._metadata.items() + {'type':type}.items() + info.items())
+                out.append(tags)
         return out
 
     def get_tags(self, tags=[], exclude=[]):
@@ -214,12 +216,26 @@ class Index(object):
             for line in self.export():
                 index.write("%s%s" % (line, os.linesep))
 
-    def export(self, absolute=False, jsonout=False):
+    def export(self, absolute=False, json=False, **kwargs):
         """Save changes made to the index structure loaded in memory to the index file
         """
+        import json as j
+
+        id = kwargs.get('id')
+        colsep = kwargs.get('colsep','\t')
+
         out = []
         for dataset in self.datasets.values():
-            out.extend(dataset.export(absolute=absolute, jsonout=jsonout))
+            d = dataset.export(absolute=absolute)
+            for line in d:
+                for k,v in line.items():
+                    if id and k == 'id':
+                        line[id] = v
+                        del line['id']
+                if json:
+                    out.append(j.dumps())
+                else:
+                    out.append(colsep.join([line.get('path'),to_tags(**line)]))
         return out
 
     def lock(self):
