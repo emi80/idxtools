@@ -1,4 +1,7 @@
-"""Index module providing functionality around indexfile format
+"""Index module.
+
+The module provide classes to perform operations on index files.
+
 """
 import re
 import os
