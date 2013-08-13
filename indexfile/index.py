@@ -150,10 +150,19 @@ class Index(object):
     def __init__(self, path=None, datasets={}, format={}):
         """Creates an instance of an Index
 
-        path - path of the index file
+        :param path: the path to the index file
+        :keyword datasets: a list containing all the entries as dictionaries. Default: [].
+        :keyword format: a dictionary containing the format and mapping information. Default: {}.
 
-        Keyword arguments:
-        datasets -  a list containing all the entries as dictionaries. Default empty list.
+        The format information can be expressed with a dictionary as follows:
+
+        :key fileinfo: a list with the names of the keys related to files
+        :key id: the dataset identifier name. Default: 'id'
+        :key map: a dictionary contatining the mapping information
+        :key sep: the key/value separator character
+        :key trail: the key/value pair trailing character
+        :key kw_sep: the keywords separator character
+
         """
 
         self.path = path
@@ -178,6 +187,9 @@ class Index(object):
 
     def open(self, path):
         """Open a file and load/import data into the index
+
+        :param path: the path to the input file
+
         """
         with open(os.path.abspath(path), 'r') as index_file:
             if self.datasets:
@@ -192,10 +204,10 @@ class Index(object):
                 self.load_index(index_file)
             self.path = path
 
-    def load_index(self, path):
-        """Add datasets to the index object by parsing an index file
+    def load_index(self, index_file):
+        """Load a file complying with the index file format.
 
-        path -- path of the index file
+        :param index_file: a :class:`file` object pointing to the input file
 
         """
         for line in index_file:
@@ -204,19 +216,35 @@ class Index(object):
             dataset = self.add_dataset(**tags)
             dataset.add_file(path=file, **tags)
 
+    def import_data(self, index_file, dialect=None):
+        """Import entries from a SV file. The sv file must have an header line with the name of the properties.
+
+        :param index_file: a :class:`file` object pointing to the input file
+        :keyword dialect: a :class:`csv.dialect` containg the input file format information
+
+        """
+        import csv
+
+        reader = csv.DictReader(index_file, dialect=dialect)
+        for line in reader:
+            tags = Index.map_keys(line, **self.format)
+            dataset = self.add_dataset(**tags)
+            dataset.add_file(**tags)
+
     def add_dataset(self, **kwargs):
-        #meta = set(kwargs.keys()).difference(format.file_info+['path'])
-        #d = Dataset(**{k: kwargs.get(k) for k in meta})
+        """Add a dataset to the index. Keyword arguments specify the dataset properties.
+        """
         d = Dataset(**kwargs)
         dataset = self.datasets.get(d.id)
 
         if not dataset:
             self.datasets[d.id] = d
+            dataset = self.datasets.get(d.id)
         else:
             warnings.warn('Using existing dataset %s' % dataset.id)
 
         if kwargs.get('path') and kwargs.get('type'):
-            warnings.warn('Adding %s to existing dataset' % kwargs.get('path'))
+            warnings.warn('Adding %s to dataset' % kwargs.get('path'))
             dataset.add_file(**kwargs)
 
         return self.datasets[d.id]
@@ -229,7 +257,11 @@ class Index(object):
                 index.write("%s%s" % (line, os.linesep))
 
     def export(self, absolute=False, type='index', **kwargs):
-        """Save changes made to the index structure loaded in memory to the index file
+        """Export the index file information. ``kwargs`` contains the format information.
+
+        :keyword absolute: specify if absolute paths should be used. Default: false
+        :keyword type: specify the export type. Values: ['index','tab','json']. Default: 'index'
+
         """
         import json
 
@@ -279,7 +311,9 @@ class Index(object):
         return out
 
     def lock(self):
-        """Lock the index"""
+        """Lock this index file
+
+        """
         if self._lock is not None:
             return False
 
@@ -297,7 +331,9 @@ class Index(object):
             raise StoreException("Locking index file failed: %s" % str(e))
 
     def release(self):
+        """Release a lock on this index file
 
+        """
         if self._lock is None:
             return False
         self._lock.release()
@@ -306,6 +342,13 @@ class Index(object):
 
     @classmethod
     def guess_type(cls, file, trail=';', delimiters=None):
+        """Guess type of an input file for importing data into the index.
+
+        :param file: the input file
+        :keyword trail: the trailing charachter of each key/value pair
+        :keyword delimiters: the allowed fields delimiters
+
+        """
         import csv
 
         if not csv.Sniffer().has_header(file.readline()):
@@ -331,11 +374,10 @@ class Index(object):
     def parse_line(cls, str, **kwargs):
         """Parse an index file line and returns a tuple with
         the path to the file referred by the line (if any) and a
-        dictionary with the parsed key/value pairs.
+        dictionary with the parsed key/value pairs. ``kwargs`` is
+        used to specify the index format information.
 
-        Arguments:
-        ----------
-        str - the string to parse.
+        :param str: the line to parse
 
         """
         file = None
@@ -365,24 +407,15 @@ class Index(object):
 
         return file,tagsd
 
-    def import_data(self, index_file, dialect=None):
-        """Import entries from a SV file. The sv file must have an header line with the name of the properties.
-
-        Arguments:
-        ----------
-        path - path to the sv files to be imported
-        """
-        import csv
-
-        reader = csv.DictReader(index_file, dialect=dialect)
-        for line in reader:
-            tags = Index.map_keys(line, **self.format)
-
-            dataset = self.add_dataset(**tags)
-            dataset.add_file(**tags)
-
     @classmethod
     def map_keys(cls, obj, **kwargs):
+        """ Maps ``obj`` keys using the mapping information contained
+        in the arguments. ``kwargs`` is used to specify the index format
+        information.
+
+        :param obj: the input dictionary
+
+        """
         if not obj:
             return {}
 
