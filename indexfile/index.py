@@ -37,19 +37,16 @@ class dotdict(dict):
     __delattr__ = dict.__delitem__
 
 class Dataset(object):
-    """A class that represent dataset entry in the index file.
+    """A class that represent dataset in the index file.
 
-    Each entry is identified by the dataset name (eg. labExpId) and has metadata
-    information as long as file information in order to be able to retrieve files
-    and information related to the sample.
+    Each entry is identified by a dataset id (eg. labExpId) and has metadata
+    information as long as file information.
     """
 
     def __init__(self, **kwargs):
-        """Create an instance of the Dataset class
+        """Create an instance of a Dataset. ``kwargs`` contains
+        the dataset attributes.
 
-        Arguments:
-        ----------
-         -  a dictionary containing the metadata information
         """
         self.__dict__['_metadata'] = {}
         self.__dict__['_files'] = dotdict()
@@ -59,10 +56,11 @@ class Dataset(object):
             self.__setattr__(k,v)
 
     def add_file(self, absolute=False, **kwargs):
-        """Add the path of a file related to the dataset to the class files dictionary
+        """Add a file to the dataset files dictionary. ``kwargs`` contains
+        the file information. 'path' and 'type' argument are mandatory in order
+        to add the file.
 
-        path - the path of the file
-        file_type - the type of the file
+        :keyword absolute: specifies if an absolute path should be used. Default: False
         """
 
         if not kwargs.get('path'):
@@ -93,7 +91,12 @@ class Dataset(object):
             f[k] = v
 
     def export(self, absolute=False, types=[]):
-        """Convert an index entry object to its string representation in index file format. Optionally the output format can be json.
+        """Export a :class:Dataset object to a list of dictionaries (one for each file).
+
+        :keyword absolute: specify if an absolute path should be used. Deafult: False
+        :keyword types: the list of file types to be exported. If set only the file types
+                        in the list are exported. Defalut: [] (all types exported).
+
         """
         out = []
         if not types:
@@ -107,15 +110,11 @@ class Dataset(object):
         return out
 
     def get_tags(self, tags=[], exclude=[]):
-        """Concatenate specified tags using the provided tag separator. The tag are formatted
-        according to the 'index file' format
+        """Concatenate specified tags. The tag are formatted according to the index file format
 
-        Keyword arguments:
-        -----------
-        tags - list of keys to be included into output. Default value is
-               the empty list, which means that all tags will be returned.
-        exclude  - list of keys to be excluded from output. Default value is
-                    the empty list meaning that all keys will be included.
+        :keyword tags: list of keys to be included into output. Default: [] (all tags returned).
+        :keyword exclude: list of keys to be excluded from output. Default: [] (all keys included).
+
         """
         if not tags:
             tags = self._metadata.keys()
@@ -217,7 +216,7 @@ class Index(object):
             dataset.add_file(path=file, **tags)
 
     def import_data(self, index_file, dialect=None):
-        """Import entries from a SV file. The sv file must have an header line with the name of the properties.
+        """Import entries from a SV file. The sv file must have an header line with the name of the attributes.
 
         :param index_file: a :class:`file` object pointing to the input file
         :keyword dialect: a :class:`csv.dialect` containg the input file format information
@@ -232,7 +231,7 @@ class Index(object):
             dataset.add_file(**tags)
 
     def add_dataset(self, **kwargs):
-        """Add a dataset to the index. Keyword arguments specify the dataset properties.
+        """Add a dataset to the index. Keyword arguments contains the dataset attributes.
         """
         d = Dataset(**kwargs)
         dataset = self.datasets.get(d.id)
