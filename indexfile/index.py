@@ -147,7 +147,7 @@ class Index(object):
     """A class to access information stored into 'index files'.
     """
 
-    def __init__(self, path=None, datasets={}, format={}, clear=False):
+    def __init__(self, path=None, datasets={}, format={}):
         """Creates an instance of an Index
 
         path - path of the index file
@@ -162,9 +162,10 @@ class Index(object):
         self._lock = None
         self.format = format
 
-        self.initialize(clear)
+        if self.path:
+            self.initialize()
 
-    def initialize(self, clear=False):
+    def initialize(self):
         """Initialize the index with data
 
         """
@@ -173,24 +174,35 @@ class Index(object):
         if self.datasets:
             warnings.warn("The index already contains data. Merging with data from file.")
 
-        self.load(self.path, clear)
+        self.load(self.path)
 
-    def load(self, path, clear=False):
+    def open(self, path):
+        """Open a file and load/import data into the index
+        """
+        with open(os.path.abspath(path), 'r') as index_file:
+            if self.datasets:
+                warnings.warn("Overwrting exisitng data")
+                del self.datasets
+                self.datasets = {}
+            file_type, dialect = Index.guess_type(index_file)
+            index_file.seek(0)
+            if dialect:
+                self.import_data(index_file, dialect)
+            else:
+                self.load_index(index_file)
+            self.path = path
+
+    def load_index(self, path):
         """Add datasets to the index object by parsing an index file
 
         path -- path of the index file
 
-        Keyword arguments:
-        clear -- specify if index clean up is required before loadng (default False)
         """
-        if clear:
-            self.datasets = {}
-        with open(os.path.abspath(path), 'r') as index_file:
-            for line in index_file:
-                file,tags = Index.parse(line, **self.format)
+        for line in index_file:
+            file,tags = Index.parse_line(line, **self.format)
 
-                dataset = self.add_dataset(**tags)
-                dataset.add_file(path=file, **tags)
+            dataset = self.add_dataset(**tags)
+            dataset.add_file(path=file, **tags)
 
     def add_dataset(self, **kwargs):
         #meta = set(kwargs.keys()).difference(format.file_info+['path'])
@@ -219,7 +231,7 @@ class Index(object):
     def export(self, absolute=False, type='index', **kwargs):
         """Save changes made to the index structure loaded in memory to the index file
         """
-        import json as j
+        import json
 
         if self.format:
             if not kwargs:
@@ -256,7 +268,7 @@ class Index(object):
                 if type=='index':
                     out.append(colsep.join([line.pop(path,'.'),to_tags(**dict(line.items()+kwargs.items()))]))
                 if type=='json':
-                    out.append(j.dumps(line))
+                    out.append(json.dumps(line))
                 if type=='tab':
                     if not header:
                         header = line.keys()
@@ -285,6 +297,7 @@ class Index(object):
             raise StoreException("Locking index file failed: %s" % str(e))
 
     def release(self):
+
         if self._lock is None:
             return False
         self._lock.release()
@@ -292,17 +305,38 @@ class Index(object):
         return True
 
     @classmethod
-    def parse(cls, str, **kwargs):
-        """Parse key/value pair tags from a string and returns a dictionary
+    def guess_type(cls, file, trail=';', delimiters=None):
+        import csv
+
+        if not csv.Sniffer().has_header(file.readline()):
+            raise ValueError('Metadata file must have a header')
+
+        dialect = csv.Sniffer().sniff(file.readline(), delimiters=delimiters)
+        file.seek(0)
+
+        if dialect.delimiter == ',':
+            return 'csv', dialect
+
+        reader = csv.DictReader(file, dialect=dialect)
+
+        if len(reader.fieldnames)<2:
+            raise ValueError('Not enough columns in metadata file')
+
+        if trail in reader.fieldnames[1]:
+            return 'index', None
+
+        return 'tsv', dialect
+
+    @classmethod
+    def parse_line(cls, str, **kwargs):
+        """Parse an index file line and returns a tuple with
+        the path to the file referred by the line (if any) and a
+        dictionary with the parsed key/value pairs.
 
         Arguments:
         ----------
         str - the string to parse.
 
-        Keyword arguments:
-        ------------------
-        sep   -  the separator between key and value of the tag. Default is '='.
-        trail -  trailing character of the tag. Default ';'.
         """
         file = None
         tags = str
@@ -330,4 +364,47 @@ class Index(object):
                 file = os.path.abspath(tags)
 
         return file,tagsd
+
+    def import_data(self, index_file, dialect=None):
+        """Import entries from a SV file. The sv file must have an header line with the name of the properties.
+
+        Arguments:
+        ----------
+        path - path to the sv files to be imported
+        """
+        import csv
+
+        reader = csv.DictReader(index_file, dialect=dialect)
+        for line in reader:
+            tags = Index.map_keys(line, **self.format)
+
+            dataset = self.add_dataset(**tags)
+            dataset.add_file(**tags)
+
+    @classmethod
+    def map_keys(cls, obj, **kwargs):
+        if not obj:
+            return {}
+
+        id = kwargs.get('id')
+        map = kwargs.get('map',{})
+
+        if not map:
+            return obj
+
+        for k,v in map.items():
+            if not v:
+                map.pop(k)
+                continue
+            map[v] = k
+
+        out = {}
+        for k,v in obj.items():
+            key = map.get(k)
+            if key:
+                if key == id:
+                    key = "id"
+                out[key] = v
+        return out
+
 
