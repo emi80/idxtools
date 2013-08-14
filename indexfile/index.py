@@ -205,6 +205,7 @@ class Index(object):
             else:
                 self.load_index(index_file)
             self.path = path
+            self._create_lookup()
 
     def load_index(self, index_file):
         """Load a file complying with the index file format.
@@ -311,6 +312,57 @@ class Index(object):
                         raise ValueError('Found lines with different number of fields. Please check your input file.')
                     out.append(colsep.join(line.values()))
         return out
+
+    def _create_lookup(self):
+        """Create the index lookup table for queries.
+
+        """
+        if self.datasets:
+            self._lookup = {}
+            for k in self.datasets.values()[0]._metadata.keys():
+                self._lookup[k] = {}
+            for d in self.datasets.values():
+                for k,v in d._metadata.items():
+                    if not self._lookup[k].get(v):
+                        self._lookup[k][v] = []
+                    self._lookup[k][v].append(d.id)
+
+    def select(self, id=None, oplist =  ['>','=','<', '!'], **kwargs):
+        """Select datasets from indexfile. ``kwargs`` contains the attributes to be looked for.
+
+        :keyword id: the id to select
+
+        """
+
+        setlist = []
+
+        if id:
+            setlist.append(set([self.datasets.get(id)]))
+
+        if kwargs:
+            for k,v in kwargs.items():
+                #if k in format.get('file_info'):
+                #    finfo.append(k)
+                #    continue
+                if not k in self._lookup.keys():
+                    raise ValueError("The attribute %r is not present in the index" % k)
+                op = "".join([x for x in list(v) if x in oplist])
+                while op in ['', '=','!']:
+                    op = '%s=' % op
+                val = "".join([x for x in list(v) if x not in oplist])
+                try:
+                    val = int(val)
+                    query = "[id for k,v in self._lookup[%r].items() if int(k)%s%r for id in v]" % (k,op,val)
+                except:
+                    query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
+                setlist.append(set(eval(query)))
+
+        datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist)])
+
+        i = Index(datasets=datasets)
+        i._create_lookup()
+
+        return i
 
     def lock(self):
         """Lock this index file
