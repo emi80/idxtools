@@ -374,7 +374,7 @@ class Index(object):
         return i
 
     @property
-    def length(self):
+    def size(self):
         return len(self.datasets)
 
     def lock(self):
