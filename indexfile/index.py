@@ -9,6 +9,8 @@ import json
 import sys
 import warnings
 
+# utils methods
+
 def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
     return ' %s:%s: %s: %s\n' % (filename, lineno, category.__name__, message)
 warnings.formatwarning = warning_on_one_line
@@ -38,6 +40,8 @@ class dotdict(dict):
         return self.get(name)
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+# end of util methods
 
 class Dataset(object):
     """A class that represent dataset in the index file.
@@ -322,14 +326,28 @@ class Index(object):
         """
         if self.datasets:
             warnings.warn('Creating lookup table...')
+
             self._lookup = {}
-            for k in self.datasets.values()[0]._metadata.keys():
+            keys = set(self.datasets.values()[0]._metadata.keys()).union(set(self.format.get('fileinfo')))
+            for k in keys:
                 self._lookup[k] = {}
             for d in self.datasets.values():
                 for k,v in d._metadata.items():
+                    if k in self.format.get('fileinfo'):
+                        continue
                     if not self._lookup[k].get(v):
                         self._lookup[k][v] = []
                     self._lookup[k][v].append(d.id)
+                for key,info in [x for x in d._files.items()]:
+                    if not self._lookup['type'].get(key):
+                        self._lookup['type'][key] = []
+                    self._lookup['type'][key].extend(info.keys())
+                    for k,v in info.items():
+                        if k in self.format.get('fileinfo'):
+                            if not self._lookup[k].get(v):
+                                self._lookup[k][v] = []
+                            self._lookup[k][v].append(k)
+
             warnings.warn('Lookup table created successfully.')
 
     def select(self, id=None, oplist =  ['>','=','<', '!'], **kwargs):
@@ -340,6 +358,7 @@ class Index(object):
         """
 
         setlist = []
+        finfo = {}
 
         if id:
             if type(id) == str:
@@ -347,12 +366,21 @@ class Index(object):
             setlist.append(set(id))
 
         if kwargs:
+            meta = False
+            if set(kwargs.keys()).difference(set(self.format.get('fileinfo'))):
+                meta = True
+            if not self.datasets:
+                if meta:
+                    return self
+                else:
+                    return []
             if not self._lookup:
                 self._create_lookup()
             for k,v in kwargs.items():
-                #if k in format.get('file_info'):
-                #    finfo[k] = v
-                #    continue
+                if meta:
+                    if k in self.format.get('fileinfo'):
+                        finfo[k] = v
+                        continue
                 if not k in self._lookup.keys():
                     raise ValueError("The attribute %r is not present in the index" % k)
                 op = "".join([x for x in list(v) if x in oplist])
@@ -366,10 +394,16 @@ class Index(object):
                     query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
                 setlist.append(set(eval(query)))
 
-        datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist) if self.datasets.get(x)])
+        if meta:
+            datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist) if self.datasets.get(x)])
+            i = Index(datasets=datasets, format=self.format)
+            i._create_lookup()
+        else:
+            filelist = [x for x in set.intersection(*setlist) if "/" in x]
+            i = filelist
 
-        i = Index(datasets=datasets)
-        i._create_lookup()
+        if finfo and meta:
+            i = i.select(**finfo)
 
         return i
 
@@ -489,18 +523,18 @@ class Index(object):
         id = kwargs.get('id')
         map = kwargs.get('map',{})
 
-        if not map:
-            return obj
-
-        for k,v in map.items():
-            if not v:
-                map.pop(k)
-                continue
-            map[v] = k
-
         out = {}
+        if map:
+            for k,v in map.items():
+                if not v:
+                    map.pop(k)
+                    continue
+                map[v] = k
+
         for k,v in obj.items():
-            key = map.get(k)
+            key = k
+            if map:
+                key = map.get(k)
             if key:
                 if key == id:
                     key = "id"
