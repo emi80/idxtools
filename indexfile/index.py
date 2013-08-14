@@ -144,6 +144,9 @@ class Dataset(object):
     def __str__(self):
         return self.get_tags()
 
+    def __iter__(self):
+        return iter([self])
+
 
 class Index(object):
     """A class to access information stored into 'index files'.
@@ -339,14 +342,16 @@ class Index(object):
         setlist = []
 
         if id:
-            setlist.append(set(list(self.datasets.get(id,[]))))
+            if type(id) == str:
+                id = [id]
+            setlist.append(set(id))
 
         if kwargs:
             if not self._lookup:
                 self._create_lookup()
             for k,v in kwargs.items():
                 #if k in format.get('file_info'):
-                #    finfo.append(k)
+                #    finfo[k] = v
                 #    continue
                 if not k in self._lookup.keys():
                     raise ValueError("The attribute %r is not present in the index" % k)
@@ -361,12 +366,16 @@ class Index(object):
                     query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
                 setlist.append(set(eval(query)))
 
-        datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist)])
+        datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist) if self.datasets.get(x)])
 
         i = Index(datasets=datasets)
         i._create_lookup()
 
         return i
+
+    @property
+    def length(self):
+        return len(self.datasets)
 
     def lock(self):
         """Lock this index file
