@@ -202,7 +202,7 @@ class Index(object):
             file_type, dialect = Index.guess_type(index_file)
             index_file.seek(0)
             if dialect:
-                self.import_data(index_file, dialect)
+                self.load_table(index_file, dialect)
             else:
                 self.load_index(index_file)
             self.path = path
@@ -216,10 +216,10 @@ class Index(object):
         for line in index_file:
             file,tags = Index.parse_line(line, **self.format)
 
-            dataset = self.add_dataset(**tags)
+            dataset = self.insert(**tags)
             dataset.add_file(path=file, **tags)
 
-    def import_data(self, index_file, dialect=None):
+    def load_table(self, index_file, dialect=None):
         """Import entries from a SV file. The sv file must have an header line with the name of the attributes.
 
         :param index_file: a :class:`file` object pointing to the input file
@@ -231,10 +231,10 @@ class Index(object):
         reader = csv.DictReader(index_file, dialect=dialect)
         for line in reader:
             tags = Index.map_keys(line, **self.format)
-            dataset = self.add_dataset(**tags)
+            dataset = self.insert(**tags)
             dataset.add_file(**tags)
 
-    def add_dataset(self, **kwargs):
+    def insert(self, **kwargs):
         """Add a dataset to the index. Keyword arguments contains the dataset attributes.
         """
         d = Dataset(**kwargs)
@@ -339,7 +339,7 @@ class Index(object):
         setlist = []
 
         if id:
-            setlist.append(set([self.datasets.get(id)]))
+            setlist.append(set(list(self.datasets.get(id,[]))))
 
         if kwargs:
             if not self._lookup:
