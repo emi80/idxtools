@@ -172,6 +172,7 @@ class Index(object):
         self.datasets = datasets
         self._lock = None
         self.format = format
+        self._lookup = {}
 
         if self.path:
             self.initialize()
@@ -205,7 +206,6 @@ class Index(object):
             else:
                 self.load_index(index_file)
             self.path = path
-            self._create_lookup()
 
     def load_index(self, index_file):
         """Load a file complying with the index file format.
@@ -314,10 +314,11 @@ class Index(object):
         return out
 
     def _create_lookup(self):
-        """Create the index lookup table for queries.
+        """Create the index lookup table for querying the index by attribute values.
 
         """
         if self.datasets:
+            warnings.warn('Creating lookup table...')
             self._lookup = {}
             for k in self.datasets.values()[0]._metadata.keys():
                 self._lookup[k] = {}
@@ -326,6 +327,7 @@ class Index(object):
                     if not self._lookup[k].get(v):
                         self._lookup[k][v] = []
                     self._lookup[k][v].append(d.id)
+            warnings.warn('Lookup table created successfully.')
 
     def select(self, id=None, oplist =  ['>','=','<', '!'], **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes to be looked for.
@@ -340,6 +342,8 @@ class Index(object):
             setlist.append(set([self.datasets.get(id)]))
 
         if kwargs:
+            if not self._lookup:
+                self._create_lookup()
             for k,v in kwargs.items():
                 #if k in format.get('file_info'):
                 #    finfo.append(k)
