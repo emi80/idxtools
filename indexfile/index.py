@@ -60,6 +60,8 @@ class Dataset(object):
         self.__dict__['_attributes'] = {}
 
         for k,v in kwargs.items():
+            if not v or v == '':
+                v = 'NA'
             self.__setattr__(k,v)
 
     def add_file(self, absolute=False, **kwargs):
@@ -68,16 +70,17 @@ class Dataset(object):
         to add the file.
 
         :keyword absolute: specifies if an absolute path should be used. Default: False
+
         """
-
-        if not kwargs.get('path'):
-            raise ValueError("Please specify a path for the file")
-
-        if not kwargs.get('type'):
-            raise ValueError("Please specify a type for the file")
 
         path =  kwargs.get('path')
         file_type = kwargs.get('type')
+
+        if not path:
+            path = '.'
+
+        if not file_type:
+            file_type = os.path.splitext(path)[1].strip('.')
 
         if absolute:
             path = os.path.abspath(path)
@@ -95,6 +98,8 @@ class Dataset(object):
         f = self._files.get(file_type).get(path)
 
         for k,v in kwargs.items():
+            if not v or v == '':
+                v = 'NA'
             f[k] = v
 
     def export(self, absolute=False, types=[]):
@@ -201,18 +206,25 @@ class Index(object):
         :param path: the path to the input file
 
         """
-        with open(os.path.abspath(path), 'r') as index_file:
-            if self.datasets:
-                warnings.warn("Overwrting exisitng data")
-                del self.datasets
-                self.datasets = {}
-            file_type, dialect = Index.guess_type(index_file)
-            index_file.seek(0)
-            if dialect:
-                self.load_table(index_file, dialect)
-            else:
-                self.load_index(index_file)
-            self.path = path
+        if type(path) == str:
+            with open(os.path.abspath(path), 'r') as index_file:
+                self._open_file(index_file)
+        if type(path) == file:
+            self._open_file(path)
+        self.path = path
+
+    def _open_file(self, index_file):
+       if self.datasets:
+           warnings.warn("Overwrting exisitng data")
+           del self.datasets
+           self.datasets = {}
+       file_type, dialect = Index.guess_type(index_file)
+       index_file.seek(0)
+       if dialect:
+           self.load_table(index_file, dialect)
+       else:
+           self.load_index(index_file)
+
 
     def load_index(self, index_file):
         """Load a file complying with the index file format.
