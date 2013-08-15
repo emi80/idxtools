@@ -23,7 +23,7 @@ from docopt import docopt
 import os
 __doc__ %= os.path.basename(__file__)
 
-def main(args):
+def run(args):
     import json
     import signal
     import re
@@ -42,17 +42,17 @@ def main(args):
         except:
             i.format = json.loads(args.get('--format'))
     i.open(args.get('--input'))
-    
+
     if args.get('--select'):
         indices = []
         for arg in args.get('--select'):
-            queries = arg.split(',')        
+            queries = arg.split(',')
             kwargs = {}
             for q in queries:
                 m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
                 kwargs[m.group('key')] = m.group('value')
             indices.append(i.select(absolute=absolute, **kwargs))
-   
+
     for index in indices:
         if isinstance(index,Index):
             if args.get('--count'):
@@ -72,7 +72,7 @@ def main(args):
             for line in index:
                 args.get('--output').write('%s%s' % (line,os.linesep))
 
-if __name__ == "__main__":
+def main():
     import warnings
     warnings.simplefilter('ignore')
     args = docopt(__doc__, version='IndexFile 0.9-alpha')
@@ -85,6 +85,6 @@ if __name__ == "__main__":
     if not args.get('--input'):
         args['--input'] = sys.stdin
 
-    main(args)
+    run(args)
 
 
