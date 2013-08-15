@@ -346,11 +346,12 @@ class Index(object):
                     if not self._lookup['type'].get(key):
                         self._lookup['type'][key] = []
                     self._lookup['type'][key].extend(info.keys())
-                    for k,v in info.items():
-                        if k in self.format.get('fileinfo'):
-                            if not self._lookup[k].get(v):
-                                self._lookup[k][v] = []
-                            self._lookup[k][v].append(k)
+                    for path,infos in info.items():
+                        for k,v in infos.items():
+                            if k in self.format.get('fileinfo'):
+                                if not self._lookup[k].get(v):
+                                    self._lookup[k][v] = []
+                                self._lookup[k][v].append(path)
 
             warnings.warn('Lookup table created successfully.')
 
@@ -367,6 +368,7 @@ class Index(object):
         meta = False
 
         if id:
+            meta = True
             if type(id) == str:
                 id = [id]
             setlist.append(set(id))
@@ -398,6 +400,7 @@ class Index(object):
                 except:
                     val = str(val)
                     query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
+
                 setlist.append(set(eval(query)))
 
         if meta:
@@ -411,7 +414,7 @@ class Index(object):
             i = filelist
 
         if finfo and meta:
-            i = i.select(id,oplist,absolute,**finfo)
+            i = i.select(None,oplist,absolute,**finfo)
 
         return i
 
