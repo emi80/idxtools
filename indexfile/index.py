@@ -371,6 +371,7 @@ class Index(object):
 
         setlist = []
         finfo = {}
+        meta = False
 
         if id:
             if type(id) == str:
@@ -378,7 +379,6 @@ class Index(object):
             setlist.append(set(id))
 
         if kwargs:
-            meta = False
             if set(kwargs.keys()).difference(set(self.format.get('fileinfo'))):
                 meta = True
             if not self.datasets:
@@ -403,6 +403,7 @@ class Index(object):
                     val = int(val)
                     query = "[id for k,v in self._lookup[%r].items() if int(k)%s%r for id in v]" % (k,op,val)
                 except:
+                    val = str(val)
                     query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
                 setlist.append(set(eval(query)))
 
@@ -463,6 +464,9 @@ class Index(object):
 
         """
         import csv
+
+        if file == sys.stdin:
+            raise ValueError('Cannot guess input type from STDIN')
 
         if not csv.Sniffer().has_header(file.readline()):
             raise ValueError('Metadata file must have a header')
