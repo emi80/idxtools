@@ -43,8 +43,8 @@ def run(args):
             i.format = json.loads(args.get('--format'))
     i.open(args.get('--input'))
 
+    indices = []
     if args.get('--select'):
-        indices = []
         for arg in args.get('--select'):
             queries = arg.split(',')
             kwargs = {}
@@ -52,6 +52,8 @@ def run(args):
                 m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
                 kwargs[m.group('key')] = m.group('value')
             indices.append(i.select(absolute=absolute, **kwargs))
+    else:
+        indices.append(i)
 
     for index in indices:
         if isinstance(index,Index):
