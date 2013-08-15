@@ -64,12 +64,10 @@ class Dataset(object):
                 v = 'NA'
             self.__setattr__(k,v)
 
-    def add_file(self, absolute=False, **kwargs):
+    def add_file(self, **kwargs):
         """Add a file to the dataset files dictionary. ``kwargs`` contains
         the file information. 'path' and 'type' argument are mandatory in order
         to add the file.
-
-        :keyword absolute: specifies if an absolute path should be used. Default: False
 
         """
 
@@ -81,9 +79,6 @@ class Dataset(object):
 
         if not file_type:
             file_type = os.path.splitext(path)[1].strip('.')
-
-        if absolute:
-            path = os.path.abspath(path)
 
         if not self._files.get(file_type):
             self._files[file_type] = dotdict()
@@ -102,10 +97,9 @@ class Dataset(object):
                 v = 'NA'
             f[k] = v
 
-    def export(self, absolute=False, types=[]):
+    def export(self, types=[]):
         """Export a :class:Dataset object to a list of dictionaries (one for each file).
 
-        :keyword absolute: specify if an absolute path should be used. Deafult: False
         :keyword types: the list of file types to be exported. If set only the file types
                         in the list are exported. Defalut: [] (all types exported).
 
@@ -115,8 +109,6 @@ class Dataset(object):
             types = self._files.keys()
         for type in types:
             for path,info in getattr(self,type).items():
-                if absolute:
-                    path = os.path.abspath(path)
                 tags = dict(self._metadata.items() + {'type':type}.items() + info.items())
                 out.append(tags)
         return out
@@ -185,9 +177,6 @@ class Index(object):
         self._lock = None
         self.format = format
         self._lookup = {}
-
-        if self.path:
-            self.initialize()
 
     def initialize(self):
         """Initialize the index with data
@@ -309,12 +298,15 @@ class Index(object):
 
         out = []
         for dataset in self.datasets.values():
-            expd = dataset.export(absolute=absolute)
+            expd = dataset.export()
             for d in expd:
                 line = dict()
                 for k,v in d.items():
-                    if k == 'id':
-                        if id: k = id
+                    if k == 'id' and id:
+                        k = id
+                    if k == 'path' and absolute:
+                        if self.path and not os.path.isabs(v):
+                            v = os.path.join(os.path.dirname(self.path),v)
                     if map:
                         k = map.get(k)
                     if k:
@@ -362,10 +354,11 @@ class Index(object):
 
             warnings.warn('Lookup table created successfully.')
 
-    def select(self, id=None, oplist =  ['>','=','<', '!'], **kwargs):
+    def select(self, id=None, oplist=['>','=','<', '!'], absolute=False, **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes to be looked for.
 
         :keyword id: the id to select
+        :keyword absolute: specify if absolute paths should be used. Default: false
 
         """
 
@@ -409,14 +402,16 @@ class Index(object):
 
         if meta:
             datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist) if self.datasets.get(x)])
-            i = Index(datasets=datasets, format=self.format)
+            i = Index(datasets=datasets, format=self.format, path=self.path)
             i._create_lookup()
         else:
             filelist = [x for x in set.intersection(*setlist) if "/" in x]
+            if absolute:
+                filelist = [os.path.join(os.path.dirname(self.path),x) if not os.path.isabs(x) and self.path else x for x in filelist]
             i = filelist
 
         if finfo and meta:
-            i = i.select(**finfo)
+            i = i.select(id,oplist,absolute,**finfo)
 
         return i
 
