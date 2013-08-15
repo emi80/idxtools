@@ -203,16 +203,22 @@ class Index(object):
         self.path = path
 
     def _open_file(self, index_file):
-       if self.datasets:
-           warnings.warn("Overwrting exisitng data")
-           del self.datasets
-           self.datasets = {}
-       file_type, dialect = Index.guess_type(index_file)
-       index_file.seek(0)
-       if dialect:
-           self.load_table(index_file, dialect)
-       else:
-           self.load_index(index_file)
+        if self.datasets:
+            warnings.warn("Overwrting exisitng data")
+            del self.datasets
+            self.datasets = {}
+        if index_file == sys.stdin:
+            import tempfile
+            index_file = tempfile.TemporaryFile()
+            for line in sys.stdin:
+                index_file.write("%s" % line)
+            index_file.seek(0)
+        file_type, dialect = Index.guess_type(index_file)
+        index_file.seek(0)
+        if dialect:
+            self.load_table(index_file, dialect)
+        else:
+            self.load_index(index_file)
 
 
     def load_index(self, index_file):
@@ -462,9 +468,6 @@ class Index(object):
 
         """
         import csv
-
-        if file == sys.stdin:
-            raise ValueError('Cannot guess input type from STDIN')
 
         if not csv.Sniffer().has_header(file.readline()):
             raise ValueError('Metadata file must have a header')

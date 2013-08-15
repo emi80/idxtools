@@ -75,16 +75,14 @@ def run(args):
 def main():
     import warnings
     warnings.simplefilter('ignore')
-    args = docopt(__doc__, version='IndexFile 0.9-alpha')
 
+    args = docopt(__doc__, version='IndexFile 0.9-alpha')
+    if not args.get('--input'):
+        args['--input'] = sys.stdin
     if not args.get('--output'):
         args['--output'] = sys.stdout
     else:
         args['--output'] = open(args['--output'],'w+')
-
-    if not args.get('--input'):
-        args['--input'] = sys.stdin
-
     run(args)
 
 
