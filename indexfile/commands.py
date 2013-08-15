@@ -21,7 +21,7 @@ from indexfile.index import *
 from docopt import docopt
 
 import os
-__doc__ %= os.path.basename(__file__)
+__doc__ %= "idxtools"
 
 def run(args):
     import json
