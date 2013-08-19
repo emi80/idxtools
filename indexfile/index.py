@@ -393,6 +393,9 @@ class Index(object):
         finfo = {}
         meta = False
 
+        if not id and not kwargs:
+            return self
+
         if id:
             meta = True
             if type(id) == str:
