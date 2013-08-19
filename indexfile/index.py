@@ -201,7 +201,7 @@ class Index(object):
             self.path = path
         if type(path) == file:
             self._open_file(path)
-            self.path = file.name
+            self.path = path.name
 
     def _open_file(self, index_file):
         if self.datasets:
