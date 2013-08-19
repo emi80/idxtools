@@ -203,6 +203,19 @@ class Index(object):
             self._open_file(path)
             self.path = path.name
 
+    def set_format(self, str):
+        """Set index format from json string or file
+
+        :param str: the input string. It can be a path to a file or a valid json string.
+
+        """
+        try:
+            format = open(str,'r')
+            self.format = json.load(format)
+        except:
+            self.format = json.loads(str)
+
+
     def _open_file(self, index_file):
         if self.datasets:
             warnings.warn("Overwrting exisitng data")
