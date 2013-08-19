@@ -471,6 +471,7 @@ class Index(object):
 
         if not csv.Sniffer().has_header(file.readline()):
             raise ValueError('Metadata file must have a header')
+        file.seek(0)
 
         dialect = csv.Sniffer().sniff(file.readline(), delimiters=delimiters)
         file.seek(0)
