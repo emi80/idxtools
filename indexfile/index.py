@@ -198,9 +198,10 @@ class Index(object):
         if type(path) == str:
             with open(os.path.abspath(path), 'r') as index_file:
                 self._open_file(index_file)
+            self.path = path
         if type(path) == file:
             self._open_file(path)
-        self.path = path
+            self.path = file.name
 
     def _open_file(self, index_file):
         if self.datasets:
