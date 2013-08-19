@@ -14,7 +14,7 @@ setup(
     long_description='''A set of function to import, manage, export index files data.
 ''',
     platforms=['lx64'],
-    packages=['indexfile','rnaseq'],
+    packages=['indexfile'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -29,7 +29,7 @@ setup(
                       "clint==0.3.1"],
     entry_points={
         'console_scripts': [
-            'indexfile = indexfile.commands:main',
+            'idxtools = indexfile.commands:main',
         ]
     },
 )

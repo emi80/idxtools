@@ -1,18 +1,33 @@
-"""Index module providing functionality around indexfile format
+"""Index module.
+
+The module provide classes to perform operations on index files.
+
 """
 import re
 import os
 import json
 import sys
+import warnings
 
-def to_tags(tag_sep=' ', kw_sep='=', kw_trail=';', **kwargs):
+# utils methods
+
+def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
+    return ' %s:%s: %s: %s\n' % (filename, lineno, category.__name__, message)
+warnings.formatwarning = warning_on_one_line
+
+def to_tags(kw_sep=' ', sep='=', trail=';', quote=None, **kwargs):
     taglist=[]
     for k,v in kwargs.items():
         v = str(v)
-        if v.find(' ') > 0:
-            v= '\"%s\"' % v
-        taglist.append('%s%s%s%s' % (k, kw_sep, v, kw_trail))
-    return tag_sep.join(taglist)
+        if quote:
+            if quote=='value' or quote=='both':
+                if '\"' not in v: v = '\"%s\"' % v
+            if quote=='key' or quote=='both':
+                if '\"' not in k: k = '\"%s\"' % k
+        if ' ' in v:
+            if '\"' not in v: v = '\"%s\"' % v
+        taglist.append('%s%s%s%s' % (k, sep, v, trail))
+    return kw_sep.join(taglist)
 
 class dotdict(dict):
     def __init__(self, d={}):
@@ -26,47 +41,51 @@ class dotdict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-class Dataset(object):
-    """A class that represent dataset entry in the index file.
+# end of util methods
 
-    Each entry is identified by the dataset name (eg. labExpId) and has metadata
-    information as long as file information in order to be able to retrieve files
-    and information related to the sample.
+class Dataset(object):
+    """A class that represent dataset in the index file.
+
+    Each entry is identified by a dataset id (eg. labExpId) and has metadata
+    information as long as file information.
     """
 
-    def __init__(self, format={}, **kwargs):
-        """Create an instance of the Dataset class
+    def __init__(self, **kwargs):
+        """Create an instance of a Dataset. ``kwargs`` contains
+        the dataset attributes.
 
-        Arguments:
-        ----------
-         -  a dictionary containing the metadata information
         """
-        import indexfile
-
         self.__dict__['_metadata'] = {}
         self.__dict__['_files'] = dotdict()
         self.__dict__['_attributes'] = {}
 
-        self.__dict__['_format'] = indexfile._format
-        self.__dict__['_meta_info'] = indexfile._meta_info
-        self.__dict__['_file_info'] = indexfile._file_info
-
-
         for k,v in kwargs.items():
+            if not v or v == '':
+                v = 'NA'
             self.__setattr__(k,v)
 
-    def add_file(self, path, file_type, absolute=False, **kwargs):
-        """Add the path of a file related to the dataset to the class files dictionary
+    def add_file(self, **kwargs):
+        """Add a file to the dataset files dictionary. ``kwargs`` contains
+        the file information. 'path' and 'type' argument are mandatory in order
+        to add the file.
 
-        path - the path of the file
-        file_type - the type of the file
         """
 
-        if absolute:
-            path = os.path.abspath(path)
+        path =  kwargs.get('path')
+        file_type = kwargs.get('type')
+
+        if not path:
+            path = '.'
+
+        if not file_type:
+            file_type = os.path.splitext(path)[1].strip('.')
 
         if not self._files.get(file_type):
             self._files[file_type] = dotdict()
+
+        if path in self._files.get(file_type).keys():
+            warnings.warn("Entry for %s already exist..skipping." % path)
+            return
 
         if not path in self._files.get(file_type).keys():
             self._files.get(file_type)[path] = dotdict()
@@ -74,101 +93,40 @@ class Dataset(object):
         f = self._files.get(file_type).get(path)
 
         for k,v in kwargs.items():
+            if not v or v == '':
+                v = 'NA'
             f[k] = v
 
-    def export(self, absolute=False, types=[]):
-        """Convert an index entry object to its string representation in index file format
+    def export(self, types=[]):
+        """Export a :class:Dataset object to a list of dictionaries (one for each file).
+
+        :keyword types: the list of file types to be exported. If set only the file types
+                        in the list are exported. Defalut: [] (all types exported).
+
         """
         out = []
         if not types:
             types = self._files.keys()
         for type in types:
-            try:
-                for path,info in getattr(self,type).items():
-                    if absolute:
-                        path = os.path.abspath(path)
-                    tags = ' '.join([self.get_tags(),to_tags(**{'type':type}),to_tags(**info)])
-                    out.append('\t'.join([path, tags]))
-            except:
-                pass
+            for path,info in getattr(self,type).items():
+                tags = dict(self._metadata.items() + {'type':type}.items() + info.items())
+                out.append(tags)
         return out
 
     def get_tags(self, tags=[], exclude=[]):
-        """Concatenate specified tags using the provided tag separator. The tag are formatted
-        according to the 'index file' format
+        """Concatenate specified tags. The tag are formatted according to the index file format
 
-        Keyword arguments:
-        -----------
-        tags - list of keys to be included into output. Default value is
-               the empty list, which means that all tags will be returned.
-        exclude  - list of keys to be excluded from output. Default value is
-                    the empty list meaning that all keys will be included.
+        :keyword tags: list of keys to be included into output. Default: [] (all tags returned).
+        :keyword exclude: list of keys to be excluded from output. Default: [] (all keys included).
+
         """
         if not tags:
             tags = self._metadata.keys()
         tags = list(set(tags).difference(set(exclude)))
-        data = dict(filter(lambda i:i[0] in tags, self._metadata.iteritems()))
+        data = dict([i for i in self._metadata.iteritems() if i[0] in tags])
         return to_tags(**data)
 
-    def folder(self, name=None):
-        """Resolve a folder based on datasets project folder and
-        if type_folders. If type folders is True, this always resolves
-        to the data folder. Otherwise, if name is specified, it resolves
-        to the named folder under this datasets data folder.
-        """
-        if not self.type_folders or name is None:
-            return self.data_folder
-        else:
-            return os.path.join(self.data_folder, name)
-
-    def get_genome(self, config):
-        """Return the default index that should be used by this dataset
-        """
-        try:
-            sex = self.sex.lower()
-            if not config.get('.'.join(['genomes', sex, 'path'])):
-                sex = { 'm': 'male',
-                        'f': 'female'
-                        }.get(sex, None)
-            return config.get('.'.join(['genomes', sex, 'path']))
-        except:
-            return None
-
-    def get_index(self, config):
-        """Return the default index that should be used by this dataset
-        """
-        return config.get('.'.join(['genomes', self.sex, 'index']))
-
-    def get_annotation(self, config):
-        """Return the default annotation that should be used for this
-        dataset
-        """
-        try:
-            sex = self.sex
-            return config.get('.'.join(['annotations', self.sex, 'path']))
-        except:
-            return None
-
-    def _get_fastq(self, sort_by_name=True):
-        self.type_folders = False
-        self.data_folder = os.path.dirname(self.primary)
-        if os.path.split(self.data_folder)[1] == "fastq":
-            self.type_folders = True
-            self.data_folder = os.path.split(self.data_folder)[0]
-
-        directory = os.path.dirname(self.primary)
-        if sort_by_name and len(self.fastq) > 1:
-            s = sorted([self.fastq[0], self.fastq[1]], key = lambda x: x.path)
-            self.fastq[0] = s[0]
-            self.fastq[1] = s[1]
-
     def __getattr__(self, name):
-        if name == 'id':
-            return self._metadata.get(self._format.get('id'))
-        if name == 'file_info':
-            return [self._format.get('path')] + self._file_info
-        if name == 'meta_info':
-            return [self._format.get('id')] + self._meta_info
         if name in self.__dict__['_attributes'].keys():
             return self.__dict__['_attributes'][name](self)
         if name in self._metadata.keys():
@@ -178,18 +136,8 @@ class Dataset(object):
         raise AttributeError('%r object has no attribute %r' % (self.__class__.__name__,name))
 
     def __setattr__(self, name, value):
-        import indexfile
         if name != '__dict__':
-            if name == 'id':
-                name = self._format.get('id')
-            if name == 'path':
-                name = self._format.get('path')
-            if name in self.file_info:
-                raise ValueError("File information %r detected. To add this please add a file to the dataset." % name)
-            if not indexfile._meta_info or name in indexfile._meta_info:
-                self.__dict__['_metadata'][name] = value
-                return
-            raise ValueError("Cannot add %r information" % name)
+            self.__dict__['_metadata'][name] = value
 
     def __repr__(self):
         return "Dataset: %s" % (self.id)
@@ -197,236 +145,293 @@ class Dataset(object):
     def __str__(self):
         return self.get_tags()
 
-    @staticmethod
-    def find(path):
-        """Find dataset from path. Detect if paired and find mate
-        file if possible
-
-        path: path to the input file
-
-        return:
-            None if no dataset found
-            [name, mate1] if single end
-            [name, mate1, mate2] if paired end
-        """
-
-        basedir = os.path.dirname(path)
-        name = os.path.basename(path)
-        expr_paired = "^(?P<name>.*)(?P<delim>[_\.-])" \
-               "(?P<id>\d)\.(?P<type>fastq|fq)(?P<compression>\.gz)*?$"
-        expr_single = "^(?P<name>.*)\.(fastq|fq)(\.gz)*?$"
-        match = re.match(expr_paired, name)
-        if match:
-            try:
-                id = int(match.group('id'))
-                if id < 2:
-                    id += 1
-                else:
-                    id -= 1
-                compr = match.group("compression")
-                if compr is None:
-                    compr = ""
-                files = [path, os.path.join(basedir, "%s%s%d.%s%s")
-                                                    % (match.group('name'),
-                                                    match.group('delim'),
-                                                    id, match.group('type'),
-                                                    compr)]
-                files.sort()
-
-                return match.group('name'), files
-            except:
-                pass
-        match = re.match(expr_single, name)
-        if match:
-            return match.group('name'), [path]
-        return None
-
-    @staticmethod
-    def find_secondary(name):
-        """Find secondary dataset file and return the basename of
-        that file or return None
-        """
-
-        basedir = os.path.dirname(name)
-        name = os.path.basename(name)
-        expr = "^(?P<name>.*)(?P<delim>[_\.-])" \
-               "(?P<id>\d)\.(?P<type>fastq|fq)(?P<compression>\.gz)*?$"
-        match = re.match(expr, name)
-        if match is not None:
-            try:
-                id = int(match.group("id"))
-                if id < 2:
-                    id += 1
-                else:
-                    id -= 1
-                compr = match.group("compression")
-                if compr is None:
-                    compr = ""
-                return match.group("name"), os.path.join(basedir, "%s%s%d.%s%s"
-                                        % (match.group("name"),
-                                           match.group("delim"),
-                                           id, match.group("type"),
-                                           compr))
-            except Exception:
-                pass
-        return None
+    def __iter__(self):
+        return iter([self])
 
 
-class IndexDefinition(object):
-    """A class to specify the index meta information
-    """
-
-    data = {}
-
-##### TODO: not hardcode this information ##############################
-    data['id'] = 'labExpId'
-    data['metainfo'] = ['labProtocolId',
-                'dataType',
-                'age',
-                'localization',
-                'sraStudyAccession',
-                'lab',
-                'sex',
-                'cell',
-                'rnaExtract',
-                'tissue',
-                'sraSampleAccession',
-                'readType',
-                'donorId',
-                'ethnicity'
-                ]
-    data['fileinfo'] = ['type',
-                'size',
-                'md5',
-                'view'
-                ]
-
-    data['file_types'] = ['fastq', 'bam', 'bai', 'gff', 'map', 'bigWig', 'bed']
-
-    #data['default_path'] = '.index'
-######################################################################
-
-    @classmethod
-    def dump(cls, tabs=2):
-        return json.dumps(cls.data, indent=tabs)
-
-class IndexFile(object):
+class Index(object):
     """A class to access information stored into 'index files'.
     """
 
-    def __init__(self, path=".index", datasets={}, clear=False):
-        """Creates an instance of an IndexFile class
+    def __init__(self, path=None, datasets={}, format={}):
+        """Creates an instance of an Index
 
-        path - path of the index file
+        :param path: the path to the index file
+        :keyword datasets: a list containing all the entries as dictionaries. Default: [].
+        :keyword format: a dictionary containing the format and mapping information. Default: {}.
 
-        Keyword arguments:
-        datasets -  a list containing all the entries as dictionaries. Default empty list.
+        The format information can be expressed with a dictionary as follows:
+
+        :key fileinfo: a list with the names of the keys related to files
+        :key id: the dataset identifier name. Default: 'id'
+        :key map: a dictionary contatining the mapping information
+        :key sep: the key/value separator character
+        :key trail: the key/value pair trailing character
+        :key kw_sep: the keywords separator character
+
         """
 
         self.path = path
+
         self.datasets = datasets
         self._lock = None
+        self.format = format
+        self._lookup = {}
 
-        if not self.datasets:
-            indices = path
-            if not isinstance(indices, list):
-                indices = [indices]
-            for index in indices:
-                if os.path.exists(index):
-                    self.load(index, clear)
+    def initialize(self):
+        """Initialize the index with data
 
-    def load(self, path, clear=False):
-        """Add datasets to the index object by parsing an index file
-
-        path -- path of the index file
-
-        Keyword arguments:
-        clear -- specify if index clean up is required before loadng (default False)
         """
-        if clear:
+        if not self.path:
+            raise ValueError("No index to load. Please specify a path")
+        if self.datasets:
+            warnings.warn("The index already contains data. Merging with data from file.")
+
+        self.load(self.path)
+
+    def open(self, path):
+        """Open a file and load/import data into the index
+
+        :param path: the path to the input file
+
+        """
+        if type(path) == str:
+            with open(os.path.abspath(path), 'r') as index_file:
+                self._open_file(index_file)
+        if type(path) == file:
+            self._open_file(path)
+        self.path = path
+
+    def _open_file(self, index_file):
+        if self.datasets:
+            warnings.warn("Overwrting exisitng data")
+            del self.datasets
             self.datasets = {}
-        with open(os.path.abspath(path), 'r') as index_file:
-            for line in index_file:
-                self._parse_line(line)
+        if index_file == sys.stdin:
+            import tempfile
+            index_file = tempfile.TemporaryFile()
+            for line in sys.stdin:
+                index_file.write("%s" % line)
+            index_file.seek(0)
+        file_type, dialect = Index.guess_type(index_file)
+        index_file.seek(0)
+        if dialect:
+            self.load_table(index_file, dialect)
+        else:
+            self.load_index(index_file)
+
+
+    def load_index(self, index_file):
+        """Load a file complying with the index file format.
+
+        :param index_file: a :class:`file` object pointing to the input file
+
+        """
+        for line in index_file:
+            file,tags = Index.parse_line(line, **self.format)
+
+            dataset = self.insert(**tags)
+            dataset.add_file(path=file, **tags)
+
+    def load_table(self, index_file, dialect=None):
+        """Import entries from a SV file. The sv file must have an header line with the name of the attributes.
+
+        :param index_file: a :class:`file` object pointing to the input file
+        :keyword dialect: a :class:`csv.dialect` containg the input file format information
+
+        """
+        import csv
+
+        reader = csv.DictReader(index_file, dialect=dialect)
+        for line in reader:
+            tags = Index.map_keys(line, **self.format)
+            dataset = self.insert(**tags)
+            dataset.add_file(**tags)
+
+    def insert(self, **kwargs):
+        """Add a dataset to the index. Keyword arguments contains the dataset attributes.
+        """
+        d = Dataset(**kwargs)
+        dataset = self.datasets.get(d.id)
+
+        if not dataset:
+            self.datasets[d.id] = d
+            dataset = self.datasets.get(d.id)
+        else:
+            warnings.warn('Using existing dataset %s' % dataset.id)
+
+        if kwargs.get('path') and kwargs.get('type'):
+            warnings.warn('Adding %s to dataset' % kwargs.get('path'))
+            dataset.add_file(**kwargs)
+
+        return self.datasets[d.id]
 
     def save(self):
         """Save changes to the index file
         """
         with open(self.path,'w+') as index:
-           self.export(out=index)
+            for line in self.export():
+                index.write("%s%s" % (line, os.linesep))
 
+    def export(self, absolute=False, type='index', **kwargs):
+        """Export the index file information. ``kwargs`` contains the format information.
 
-    def _parse_line(self, line):
-        """Parse a line of the index file and append the parsed entry to the entries list.
+        :keyword absolute: specify if absolute paths should be used. Default: false
+        :keyword type: specify the export type. Values: ['index','tab','json']. Default: 'index'
 
-        line - the line to be parsed
         """
-        expr = '^(?P<file>.+)\t(?P<tags>.+)$'
-        match = re.match(expr, line)
-        file = match.group('file')
-        tags = match.group('tags')
+        import json
 
-        meta = Metadata.parse(tags)
-        dataset = self.datasets.get(meta.labExpId, None)
+        if self.format:
+            if not kwargs:
+                kwargs = {}
+            kwargs = dict(self.format.items() + kwargs.items())
 
-        if not dataset:
-            dataset = Dataset(meta)
-            self.datasets[dataset.id] = dataset
+        id = kwargs.pop('id',None)
+        map = kwargs.pop('map',None)
+        colsep = kwargs.pop('colsep','\t')
+        fileinfo = kwargs.pop('fileinfo',[])
+        if map:
+            for k,v in map.items():
+                if v: map[v] = k
+        else:
+            map = {}
 
-        dataset.add_file(file, meta)
+        path = map.get('path','path')
 
-    @classmethod
-    def parse(cls, string, info=[]):
-        """Parse a string of concatenated tags and converts it to a Metadata object
+        if type=='tab':
+            header = []
 
-        Arguments:
-        ----------
-        string - the concatenated tags
-        """
-        tags = cls._parse_tags(string)
-        return Metadata(tags)
-
-    @classmethod
-    def _parse_tags(cls, str, sep='=', trail=';'):
-        """Parse key/value pair tags from a string and returns a dictionary
-
-        Arguments:
-        ----------
-        str - the tags string
-
-        Keyword arguments:
-        ------------------
-        sep   -  the separator between key and value of the tag. Default is '='.
-        trail -  trailing character of the tag. Default ';'.
-        """
-        tags = {}
-        expr = '(?P<key>[^ ]+)%s(?P<value>[^%s]*)%s' % (sep, trail, trail)
-        for match in re.finditer(expr, str):
-            tags[match.group('key')] = match.group('value')
-        return tags
-
-
-    def add_dataset(self, metadata, id=None):
-        if not id:
-            id = length(self.datasets)
-        dataset = self.datasets.get(id, None)
-        if dataset:
-            raise ValueError("Dataset %r already exists" % id)
-        self.datasets[id] = Dataset(metadata)
-        return self.datasets[id]
-
-    def export(self, out=None, absolute=False):
-        """Save changes made to the index structure loaded in memory to the index file
-        """
-        if not out:
-            out = sys.stdout
+        out = []
         for dataset in self.datasets.values():
-            for line in dataset.export(absolute=absolute):
-                out.write('%s%s' % (line, os.linesep))
+            expd = dataset.export()
+            for d in expd:
+                line = dict()
+                for k,v in d.items():
+                    if k == 'id' and id:
+                        k = id
+                    if k == 'path' and absolute:
+                        if self.path and not os.path.isabs(v):
+                            v = os.path.join(os.path.dirname(self.path),v)
+                    if map:
+                        k = map.get(k)
+                    if k:
+                        line[k] = v
+                if type=='index':
+                    out.append(colsep.join([line.pop(path,'.'),to_tags(**dict(line.items()+kwargs.items()))]))
+                if type=='json':
+                    out.append(json.dumps(line))
+                if type=='tab':
+                    if not header:
+                        header = line.keys()
+                        out.append(colsep.join(header))
+                    if len(line.values()) != len(header):
+                        raise ValueError('Found lines with different number of fields. Please check your input file.')
+                    out.append(colsep.join(line.values()))
+        return out
 
+    def _create_lookup(self):
+        """Create the index lookup table for querying the index by attribute values.
+
+        """
+        if self.datasets:
+            warnings.warn('Creating lookup table...')
+
+            self._lookup = {}
+            keys = set(self.datasets.values()[0]._metadata.keys()).union(set(self.format.get('fileinfo')))
+            for k in keys:
+                self._lookup[k] = {}
+            for d in self.datasets.values():
+                for k,v in d._metadata.items():
+                    if k in self.format.get('fileinfo'):
+                        continue
+                    if not self._lookup[k].get(v):
+                        self._lookup[k][v] = []
+                    self._lookup[k][v].append(d.id)
+                for key,info in [x for x in d._files.items()]:
+                    if not self._lookup['type'].get(key):
+                        self._lookup['type'][key] = []
+                    self._lookup['type'][key].extend(info.keys())
+                    for path,infos in info.items():
+                        for k,v in infos.items():
+                            if k in self.format.get('fileinfo'):
+                                if not self._lookup[k].get(v):
+                                    self._lookup[k][v] = []
+                                self._lookup[k][v].append(path)
+
+            warnings.warn('Lookup table created successfully.')
+
+    def select(self, id=None, oplist=['>','=','<', '!'], absolute=False, **kwargs):
+        """Select datasets from indexfile. ``kwargs`` contains the attributes to be looked for.
+
+        :keyword id: the id to select
+        :keyword absolute: specify if absolute paths should be used. Default: false
+
+        """
+
+        setlist = []
+        finfo = {}
+        meta = False
+
+        if id:
+            meta = True
+            if type(id) == str:
+                id = [id]
+            setlist.append(set(id))
+
+        if kwargs:
+            if set(kwargs.keys()).difference(set(self.format.get('fileinfo'))):
+                meta = True
+            if not self.datasets:
+                if meta:
+                    return self
+                else:
+                    return []
+            if not self._lookup:
+                self._create_lookup()
+            for k,v in kwargs.items():
+                if meta:
+                    if k in self.format.get('fileinfo'):
+                        finfo[k] = v
+                        continue
+                if not k in self._lookup.keys():
+                    raise ValueError("The attribute %r is not present in the index" % k)
+                op = "".join([x for x in list(v) if x in oplist])
+                while op in ['', '=','!']:
+                    op = '%s=' % op
+                val = "".join([x for x in list(v) if x not in oplist])
+                try:
+                    val = int(val)
+                    query = "[id for k,v in self._lookup[%r].items() if int(k)%s%r for id in v]" % (k,op,val)
+                except:
+                    val = str(val)
+                    query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
+
+                setlist.append(set(eval(query)))
+
+        if meta:
+            datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist) if self.datasets.get(x)])
+            i = Index(datasets=datasets, format=self.format, path=self.path)
+            i._create_lookup()
+        else:
+            filelist = [x for x in set.intersection(*setlist) if "/" in x]
+            if absolute:
+                filelist = [os.path.join(os.path.dirname(self.path),x) if not os.path.isabs(x) and self.path else x for x in filelist]
+            i = filelist
+
+        if finfo and meta:
+            i = i.select(None,oplist,absolute,**finfo)
+
+        return i
+
+    @property
+    def size(self):
+        return len(self.datasets)
 
     def lock(self):
-        """Lock the index"""
+        """Lock this index file
+
+        """
         if self._lock is not None:
             return False
 
@@ -444,49 +449,113 @@ class IndexFile(object):
             raise StoreException("Locking index file failed: %s" % str(e))
 
     def release(self):
+        """Release a lock on this index file
+
+        """
         if self._lock is None:
             return False
         self._lock.release()
         self._lock = None
         return True
 
-class _OnSuccessListener(object):
-    def __init__(self, project, config):
-        self.project = project
-        self.config = config
-    def __call__(self, tool, args):
-        # grape.grape has an import grape.index.* so we
-        # import implicitly here to avoid circular dependencies
-        from .grape import Project
+    @classmethod
+    def guess_type(cls, file, trail=';', delimiters=None):
+        """Guess type of an input file for importing data into the index.
 
-        project = Project(self.project)
-        index = project.index
-        try:
-            index.lock()
-            for k in tool.__dict__['outputs']:
-                v = self.config[k]
-                if os.path.exists(v):
-                    name, ext = os.path.splitext(v)
-                    if ext == '.gz':
-                        name, ext = os.path.splitext(name)
-                    info = {'type': ext.lstrip('.'), 'md5': utils.md5sum(v)}
-                    if self.config.has_key('view') and self.config['view'].get(k, None):
-                        info['view'] = self.config['view'][k]
-                    index.add(self.config['name'], v, info)
-            index.save()
-        finally:
-            index.release()
+        :param file: the input file
+        :keyword trail: the trailing charachter of each key/value pair
+        :keyword delimiters: the allowed fields delimiters
 
-def prepare_tool(tool, project, config):
-    """Add listeners to the tool to ensure that it updates the index
-    during execution.
+        """
+        import csv
 
-    :param tool: the tool instance
-    :type tool: jip.tools.Tool
-    :param project: the project
-    :type project: grape.Project
-    :param name: the run name used to identify the job store
-    :type name: string
-    """
-    tool.on_success.append(_OnSuccessListener(project, config))
+        if not csv.Sniffer().has_header(file.readline()):
+            raise ValueError('Metadata file must have a header')
+
+        dialect = csv.Sniffer().sniff(file.readline(), delimiters=delimiters)
+        file.seek(0)
+
+        if dialect.delimiter == ',':
+            return 'csv', dialect
+
+        reader = csv.DictReader(file, dialect=dialect)
+
+        if len(reader.fieldnames)<2:
+            raise ValueError('Not enough columns in metadata file')
+
+        if trail in reader.fieldnames[1]:
+            return 'index', None
+
+        return 'tsv', dialect
+
+    @classmethod
+    def parse_line(cls, str, **kwargs):
+        """Parse an index file line and returns a tuple with
+        the path to the file referred by the line (if any) and a
+        dictionary with the parsed key/value pairs. ``kwargs`` is
+        used to specify the index format information.
+
+        :param str: the line to parse
+
+        """
+        file = None
+        tags = str
+
+        sep = kwargs.get('sep','=')
+        trail = kwargs.get('trail',';')
+        id = kwargs.get('id')
+
+        expr = '^(?P<file>.+)\t(?P<tags>.+)$'
+        match = re.match(expr, str)
+        if match:
+            file = match.group('file')
+            tags = match.group('tags')
+
+        tagsd = {}
+        expr = '(?P<key>[^ ]+)%s(?P<value>[^%s]*)%s' % (sep, trail, trail)
+        for match in re.finditer(expr, tags):
+            key = match.group('key')
+            if key == id:
+                key = 'id'
+            tagsd[key] = match.group('value')
+
+        if not tagsd:
+            if os.path.isfile(os.path.abspath(tags)):
+                file = os.path.abspath(tags)
+
+        return file,tagsd
+
+    @classmethod
+    def map_keys(cls, obj, **kwargs):
+        """ Maps ``obj`` keys using the mapping information contained
+        in the arguments. ``kwargs`` is used to specify the index format
+        information.
+
+        :param obj: the input dictionary
+
+        """
+        if not obj:
+            return {}
+
+        id = kwargs.get('id')
+        map = kwargs.get('map',{})
+
+        out = {}
+        if map:
+            for k,v in map.items():
+                if not v:
+                    map.pop(k)
+                    continue
+                map[v] = k
+
+        for k,v in obj.items():
+            key = k
+            if map:
+                key = map.get(k)
+            if key:
+                if key == id:
+                    key = "id"
+                out[key] = v
+        return out
+
 
