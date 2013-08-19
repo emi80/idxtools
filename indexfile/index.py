@@ -189,12 +189,14 @@ class Index(object):
 
         self.load(self.path)
 
-    def open(self, path):
+    def open(self, path=None):
         """Open a file and load/import data into the index
 
         :param path: the path to the input file
 
         """
+        if not path:
+            path = self.path
         if type(path) == str:
             with open(os.path.abspath(path), 'r') as index_file:
                 self._open_file(index_file)
@@ -280,10 +282,12 @@ class Index(object):
 
         return self.datasets[d.id]
 
-    def save(self):
+    def save(self, path=None):
         """Save changes to the index file
         """
-        with open(self.path,'w+') as index:
+        if not path:
+            path = self.path
+        with open(path,'w+') as index:
             for line in self.export():
                 index.write("%s%s" % (line, os.linesep))
 
