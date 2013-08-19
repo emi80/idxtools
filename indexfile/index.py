@@ -287,6 +287,8 @@ class Index(object):
         """
         if not path:
             path = self.path
+        if path != self.path:
+            self.path = path
         with open(path,'w+') as index:
             for line in self.export():
                 index.write("%s%s" % (line, os.linesep))
