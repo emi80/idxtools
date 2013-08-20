@@ -358,6 +358,8 @@ class Index(object):
             warnings.warn('Creating lookup table...')
 
             self._lookup = {}
+            if not self.format.get('fileinfo'):
+                self.format['fileinfo'] = []
             keys = set(self.datasets.values()[0]._metadata.keys()).union(set(self.format.get('fileinfo')))
             for k in keys:
                 self._lookup[k] = {}
@@ -369,6 +371,8 @@ class Index(object):
                         self._lookup[k][v] = []
                     self._lookup[k][v].append(d.id)
                 for key,info in [x for x in d._files.items()]:
+                    if not self._lookup.get('type'):
+                        self._lookup['type'] = {}
                     if not self._lookup['type'].get(key):
                         self._lookup['type'][key] = []
                     self._lookup['type'][key].extend(info.keys())
