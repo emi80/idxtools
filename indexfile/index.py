@@ -171,23 +171,14 @@ class Index(object):
 
         """
 
+        if path:
+            path = os.path.abspath(path)
         self.path = path
 
         self.datasets = datasets
         self._lock = None
         self.format = format
         self._lookup = {}
-
-    def initialize(self):
-        """Initialize the index with data
-
-        """
-        if not self.path:
-            raise ValueError("No index to load. Please specify a path")
-        if self.datasets:
-            warnings.warn("The index already contains data. Merging with data from file.")
-
-        self.load(self.path)
 
     def open(self, path=None):
         """Open a file and load/import data into the index
@@ -200,10 +191,10 @@ class Index(object):
         if type(path) == str:
             with open(os.path.abspath(path), 'r') as index_file:
                 self._open_file(index_file)
-            self.path = path
+            self.path = os.path.abspath(path)
         if type(path) == file:
             self._open_file(path)
-            self.path = path.name
+            self.path = os.path.abspath(path.name)
 
     def set_format(self, str):
         """Set index format from json string or file
@@ -288,7 +279,7 @@ class Index(object):
         if not path:
             path = self.path
         if path != self.path:
-            self.path = path
+            self.path = os.path.abspath(path)
         with open(path,'w+') as index:
             for line in self.export():
                 index.write("%s%s" % (line, os.linesep))
