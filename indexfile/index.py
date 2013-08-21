@@ -105,6 +105,8 @@ class Dataset(object):
 
         """
         out = []
+        if not self._files:
+             return [self._metadata]
         if not types:
             types = self._files.keys()
         for type in types:
@@ -235,10 +237,9 @@ class Index(object):
 
         """
         for line in index_file:
-            file,tags = Index.parse_line(line, **self.format)
+            tags = Index.parse_line(line, **self.format)
 
             dataset = self.insert(**tags)
-            dataset.add_file(path=file, **tags)
 
     def load_table(self, index_file, dialect=None):
         """Import entries from a SV file. The sv file must have an header line with the name of the attributes.
@@ -253,12 +254,15 @@ class Index(object):
         for line in reader:
             tags = Index.map_keys(line, **self.format)
             dataset = self.insert(**tags)
-            dataset.add_file(**tags)
 
     def insert(self, **kwargs):
         """Add a dataset to the index. Keyword arguments contains the dataset attributes.
         """
-        d = Dataset(**kwargs)
+        meta = kwargs
+        if self.format.get('fileinfo'):
+            meta = dict([(k,v) for k,v in kwargs.items() if k not in self.format.get('fileinfo')])
+        d = Dataset(**meta)
+
         dataset = self.datasets.get(d.id)
 
         if not dataset:
@@ -542,7 +546,9 @@ class Index(object):
             if os.path.isfile(os.path.abspath(tags)):
                 file = os.path.abspath(tags)
 
-        return file,tagsd
+        tagsd['path'] = file
+
+        return tagsd
 
     @classmethod
     def map_keys(cls, obj, **kwargs):
