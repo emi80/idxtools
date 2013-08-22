@@ -2,26 +2,26 @@
 """Load index files
 
 Usage:
-   %s [-h] [-a] [-m] [-c] [-i <input_file>] [-o <output_file>]
-                 [-f <format_file>] [-s <query_string>]...
+   idxtools [-h] [-a] [-m] [-c] [-i INPUT_FILE] [-o OUTPUT_FILE]
+            [-f FORMAT_FILE] [-s QUERY_STRING]...
+            [<command> [<args>...]]
 
 Options:
-  -h --help  show this help message and exit
-  -i <input_file>, --input <input_file>  open file
-  -o <output_file>, --output <output_file>  export to file
-  -f <format_file>, --format <format_file>  index format specs in json
-  -a --absolute-path  specify if absolute path should be returned
-  -m --map-keys  specify if mapping information for key should be used for output
-  -c --count  return the number of files/datasets
-  -s <query_string>, --select <query_string>  select datasets using query strings.
-                                              Examples of valid strings are: sex=M and sex=M,lab=CRG
+  -h --help                                 Show this help message and exit
+  -a --absolute-path                        Specify if absolute path should be returned
+  -m --map-keys                             Specify if mapping information for key should be used for output
+  -c --count                               Return the number of files/datasets
+  -i INPUT_FILE, --input INPUT_FILE        The input file. [default: stdin]
+  -o OUTPUT_FILE, --output OUTPUT_FILE     The output file. [default: stdout]
+  -f FORMAT_FILE, --format FORMAT_FILE     Index format specifications in JSON format
+  -s QUERY_STRING, --select QUERY_STRING   Select datasets using query strings.
+                                           Examples of valid strings are: sex=M and sex=M,lab=CRG
 
 """
 from indexfile.index import *
 from docopt import docopt
 
 import os
-__doc__ %= "idxtools"
 
 def run(args):
     import json
@@ -29,6 +29,7 @@ def run(args):
     import re
     absolute = False
     map_keys = False
+
     if args.get('--absolute-path'):
         absolute = True
     if args.get('--map-keys'):
@@ -42,6 +43,7 @@ def run(args):
         except:
             i.format = json.loads(args.get('--format'))
     i.open(args.get('--input'))
+    i.lock()
 
     indices = []
     if args.get('--select'):
@@ -73,15 +75,57 @@ def run(args):
                 return
             for line in index:
                 args.get('--output').write('%s%s' % (line,os.linesep))
+    i.release()
+
+class AddCommand(object):
+    """Add files
+
+    Usage:
+       idxtools add [-h] -i INDEX_FILE -f FORMAT_FILE -m FILE_INFO
+
+    Options:
+      -h --help  show this help message and exit
+      -i INPUT_FILE, --input INPUT_FILE       the index file
+      -f FORMAT_FILE, --format FORMAT_FILE    format file
+      -m FILE_INFO, --metadata METADATA       information related to the file (eg. path, type, size, md5...)
+
+    """
+
+    def run(self, argv):
+        args = docopt(self.__doc__, argv=argv)
+        i = Index()
+        if args.get('--format'):
+            try:
+                format = open(args.get('--format'),'r')
+                i.format = json.load(format)
+            except:
+                i.format = json.loads(args.get('--format'))
+        i.open(args.get('--input'))
+        i.lock()
+        infos = args.get("--metadata").split(',')
+        kwargs = {}
+        for info in infos:
+            m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
+            kwargs[m.group('key')] = m.group('value')
+        i.insert(**kwargs)
+        i.save()
+        i.release()
 
 def main():
     import warnings
     warnings.simplefilter('ignore')
 
-    args = docopt(__doc__, version='IndexFile 0.9-alpha')
-    if not args.get('--input'):
+    args = docopt(__doc__, version='IndexFile 0.9-alpha',options_first=True)
+
+    if args.get('<command>'):
+        argv = [args.get('<command>')] + args.get('<args>')
+        if args.get('<command>') == 'add':
+            c = AddCommand().run(argv)
+            sys.exit(0)
+
+    if args.get('--input')=='stdin':
         args['--input'] = sys.stdin
-    if not args.get('--output'):
+    if args.get('--output') == 'stdout':
         args['--output'] = sys.stdout
     else:
         args['--output'] = open(args['--output'],'w+')
