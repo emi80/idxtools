@@ -64,7 +64,7 @@ class Dataset(object):
                 v = 'NA'
             self.__setattr__(k,v)
 
-    def add_file(self, **kwargs):
+    def add_file(self, update=False, **kwargs):
         """Add a file to the dataset files dictionary. ``kwargs`` contains
         the file information. 'path' and 'type' argument are mandatory in order
         to add the file.
@@ -84,10 +84,12 @@ class Dataset(object):
             self._files[file_type] = dotdict()
 
         if path in self._files.get(file_type).keys():
-            warnings.warn("Entry for %s already exist..skipping." % path)
-            return
+            if not update:
+                warnings.warn("Entry for %s already exist..skipping." % path)
+                return
+            warnings.warn("Updating entry for %s." % path)
 
-        if not path in self._files.get(file_type).keys():
+        if (not path in self._files.get(file_type).keys()) or update:
             self._files.get(file_type)[path] = dotdict()
 
         f = self._files.get(file_type).get(path)
@@ -213,7 +215,7 @@ class Index(object):
 
     def _open_file(self, index_file):
         if self.datasets:
-            warnings.warn("Overwrting exisitng data")
+            warnings.warn("Overwriting exisitng data")
             del self.datasets
             self.datasets = {}
         if index_file == sys.stdin:
@@ -273,7 +275,7 @@ class Index(object):
 
         if kwargs.get('path') and kwargs.get('type'):
             warnings.warn('Adding %s to dataset' % kwargs.get('path'))
-            dataset.add_file(**kwargs)
+            dataset.add_file(update=True, **kwargs)
 
         return self.datasets[d.id]
 
@@ -285,7 +287,7 @@ class Index(object):
         if path != self.path:
             self.path = os.path.abspath(path)
         with open(path,'w+') as index:
-            for line in self.export():
+            for line in self.export(map=None):
                 index.write("%s%s" % (line, os.linesep))
 
     def export(self, absolute=False, type='index', **kwargs):
