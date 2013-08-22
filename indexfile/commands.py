@@ -23,6 +23,21 @@ from docopt import docopt
 
 import os
 
+def open_index(args):
+    i = Index()
+    format = args.get('--format')
+    if not format:
+        format = os.environ.get('IDX_FORMAT')
+
+    if format:
+        try:
+            format = open(format,'r')
+            i.format = json.load(format)
+        except:
+            i.format = json.loads(format)
+    i.open(args.get('--input'))
+    return i
+
 def run(args):
     import json
     import signal
@@ -35,14 +50,7 @@ def run(args):
     if args.get('--map-keys'):
         map_keys = True
 
-    i = Index()
-    if args.get('--format'):
-        try:
-            format = open(args.get('--format'),'r')
-            i.format = json.load(format)
-        except:
-            i.format = json.loads(args.get('--format'))
-    i.open(args.get('--input'))
+    i = open_index(args)
     i.lock()
 
     try:
