@@ -45,37 +45,39 @@ def run(args):
     i.open(args.get('--input'))
     i.lock()
 
-    indices = []
-    if args.get('--select'):
-        for arg in args.get('--select'):
-            queries = arg.split(',')
-            kwargs = {}
-            for q in queries:
-                m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
-                kwargs[m.group('key')] = m.group('value')
-            indices.append(i.select(absolute=absolute, **kwargs))
-    else:
-        indices.append(i)
-
-    for index in indices:
-        if isinstance(index,Index):
-            if args.get('--count'):
-                args.get('--output').write("%s%s" % (index.size,os.linesep))
-                return
-            signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-            command = "index.export(absolute=absolute"
-            if not map_keys:
-                command = "%s,map=None" % command
-            command = "%s)" % command
-            for line in eval(command):
-                args.get('--output').write('%s%s' % (line,os.linesep))
+    try:
+        indices = []
+        if args.get('--select'):
+            for arg in args.get('--select'):
+                queries = arg.split(',')
+                kwargs = {}
+                for q in queries:
+                    m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
+                    kwargs[m.group('key')] = m.group('value')
+                indices.append(i.select(absolute=absolute, **kwargs))
         else:
-            if  args.get('--count'):
-                args.get('--output').write("%s%s" % (len(index),os.linesep))
-                return
-            for line in index:
-                args.get('--output').write('%s%s' % (line,os.linesep))
-    i.release()
+            indices.append(i)
+
+        for index in indices:
+            if isinstance(index,Index):
+                if args.get('--count'):
+                    args.get('--output').write("%s%s" % (index.size,os.linesep))
+                    return
+                signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+                command = "index.export(absolute=absolute"
+                if not map_keys:
+                    command = "%s,map=None" % command
+                command = "%s)" % command
+                for line in eval(command):
+                    args.get('--output').write('%s%s' % (line,os.linesep))
+            else:
+                if  args.get('--count'):
+                    args.get('--output').write("%s%s" % (len(index),os.linesep))
+                    return
+                for line in index:
+                    args.get('--output').write('%s%s' % (line,os.linesep))
+    finally:
+        i.release()
 
 class AddCommand(object):
     """Add files
@@ -87,7 +89,7 @@ class AddCommand(object):
       -h --help  show this help message and exit
       -i INPUT_FILE, --input INPUT_FILE       the index file
       -f FORMAT_FILE, --format FORMAT_FILE    format file
-      -m FILE_INFO, --metadata METADATA       information related to the file (eg. path, type, size, md5...)
+      -m METADATA, --metadata METADATA       information related to the file (eg. path, type, size, md5...)
 
     """
 
@@ -107,9 +109,43 @@ class AddCommand(object):
         for info in infos:
             m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
             kwargs[m.group('key')] = m.group('value')
-        i.insert(**kwargs)
-        i.save()
-        i.release()
+        try:
+            i.insert(**kwargs)
+            i.save()
+        finally:
+            i.release()
+
+class RemoveCommand(object):
+    """Remove files
+
+    Usage:
+       idxtools rm [-h] -i INDEX_FILE -f FORMAT_FILE -p FILE_PATH
+
+    Options:
+      -h --help  show this help message and exit
+      -i INPUT_FILE, --input INPUT_FILE       the index file
+      -f FORMAT_FILE, --format FORMAT_FILE    format file
+      -p FILE_PATH, --path FILE_PATH          path of the file to remove
+
+    """
+
+    def run(self, argv):
+        args = docopt(self.__doc__, argv=argv)
+        i = Index()
+        if args.get('--format'):
+            try:
+                format = open(args.get('--format'),'r')
+                i.format = json.load(format)
+            except:
+                i.format = json.loads(args.get('--format'))
+        i.open(args.get('--input'))
+        i.lock()
+        path = args.get('--path')
+        try:
+            i.remove(path=path)
+            i.save()
+        finally:
+            i.release()
 
 def main():
     import warnings
@@ -121,6 +157,9 @@ def main():
         argv = [args.get('<command>')] + args.get('<args>')
         if args.get('<command>') == 'add':
             c = AddCommand().run(argv)
+            sys.exit(0)
+        if args.get('<command>') == 'rm':
+            c = RemoveCommand().run(argv)
             sys.exit(0)
 
     if args.get('--input')=='stdin':
