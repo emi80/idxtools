@@ -99,6 +99,31 @@ class Dataset(object):
                 v = 'NA'
             f[k] = v
 
+    def rm_file(self, **kwargs):
+        """Remove a file form the dataset files dictionary. ``kwargs`` contains
+        the file information. 'path' and 'type' argument are mandatory in order
+        to add the file.
+
+        """
+
+        path = kwargs.get('path')
+        type = kwargs.get('type')
+
+        if not path:
+            warnings.warn('[rm_file] No path found..skipping')
+            return
+
+        if not type:
+            for k,v in self._files.items():
+                if path in v:
+                    type = k
+                    break
+        if type:
+            del self._files.get(type)[path]
+            if not self._files.get(type):
+                del self._files[type]
+
+
     def export(self, types=[]):
         """Export a :class:Dataset object to a list of dictionaries (one for each file).
 
@@ -279,6 +304,18 @@ class Index(object):
 
         return self.datasets[d.id]
 
+    def remove(self, **kwargs):
+        """Remove dataset(s) from the index given a search query.
+        """
+        datasets = self.select(**kwargs).datasets
+        if datasets:
+            for d in datasets.values():
+                if 'path' in kwargs:
+                    d.rm_file(path=kwargs.get('path'))
+                else:
+                    del d
+
+
     def save(self, path=None):
         """Save changes to the index file
         """
@@ -378,7 +415,10 @@ class Index(object):
                             if k in self.format.get('fileinfo'):
                                 if not self._lookup[k].get(v):
                                     self._lookup[k][v] = []
-                                self._lookup[k][v].append(path)
+                                if k == 'path':
+                                    self._lookup[k][v].append(d.id)
+                                else:
+                                    self._lookup[k][v].append(path)
 
             warnings.warn('Lookup table created successfully.')
 
@@ -433,7 +473,7 @@ class Index(object):
 
                 setlist.append(set(eval(query)))
 
-        if meta:
+        if meta or 'path' in kwargs.keys():
             datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist) if self.datasets.get(x)])
             i = Index(datasets=datasets, format=self.format, path=self.path)
             i._create_lookup()
