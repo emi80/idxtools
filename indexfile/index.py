@@ -577,7 +577,7 @@ class Index(object):
             tags = match.group('tags')
 
         tagsd = {}
-        expr = '(?P<key>[^ ]+)%s(?P<value>[^%s]*)%s' % (sep, trail, trail)
+        expr = '(?P<key>[^ ]+)%s\"?(?P<value>[^%s\"]*)\"?%s' % (sep, trail, trail)
         for match in re.finditer(expr, tags):
             key = match.group('key')
             if key == id:
