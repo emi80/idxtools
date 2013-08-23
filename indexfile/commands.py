@@ -26,6 +26,8 @@ import os
 def open_index(args):
     i = Index()
     format = args.get('--format')
+    index = args.get('--input')
+
     if not format:
         format = os.environ.get('IDX_FORMAT')
 
@@ -35,7 +37,12 @@ def open_index(args):
             i.format = json.load(format)
         except:
             i.format = json.loads(format)
-    i.open(args.get('--input'))
+
+    if index is sys.stdin and os.environ.get('IDX_FILE'):
+        index = os.environ.get('IDX_FILE')
+
+    i.open(index)
+
     return i
 
 def run(args):
