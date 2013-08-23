@@ -23,6 +23,64 @@ from docopt import docopt
 
 import os
 
+class AddCommand(object):
+    """Add files
+
+    Usage:
+       idxtools add [-h] [-i INDEX_FILE] [-f FORMAT_FILE] -m FILE_INFO
+
+    Options:
+      -h --help  show this help message and exit
+      -i INPUT_FILE, --input INPUT_FILE       the index file
+      -f FORMAT_FILE, --format FORMAT_FILE    format file
+      -m METADATA, --metadata METADATA       information related to the file (eg. path, type, size, md5...)
+
+    """
+
+    def run(self, argv):
+        args = docopt(self.__doc__, argv=argv)
+        args = validate(args)
+        i = open_index(args)
+        i.lock()
+        infos = args.get("--metadata").split(',')
+        kwargs = {}
+        for info in infos:
+            m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
+            kwargs[m.group('key')] = m.group('value')
+        try:
+            i.insert(**kwargs)
+            i.save()
+        finally:
+            i.release()
+
+
+class RemoveCommand(object):
+    """Remove files
+
+    Usage:
+       idxtools rm [-h] [-i INDEX_FILE] [-f FORMAT_FILE] -p FILE_PATH
+
+    Options:
+      -h --help  show this help message and exit
+      -i INPUT_FILE, --input INPUT_FILE       the index file
+      -f FORMAT_FILE, --format FORMAT_FILE    format file
+      -p FILE_PATH, --path FILE_PATH          path of the file to remove
+
+    """
+
+    def run(self, argv):
+        args = docopt(self.__doc__, argv=argv)
+        args = validate(args)
+        i = open_index(args)
+        i.lock()
+        path = args.get('--path')
+        try:
+            i.remove(path=path)
+            i.save()
+        finally:
+            i.release()
+
+
 def open_index(args):
     i = Index()
     format = args.get('--format')
@@ -94,73 +152,16 @@ def run(args):
     finally:
         i.release()
 
-class AddCommand(object):
-    """Add files
+def validate(args):
+    if not args.get('--input') or args.get('--input') =='stdin':
+        args['--input'] = sys.stdin
+    if '--output' in args.keys():
+        if args.get('--output') == 'stdout':
+            args['--output'] = sys.stdout
+        else:
+            args['--output'] = open(args['--output'],'w+')
+    return args
 
-    Usage:
-       idxtools add [-h] -i INDEX_FILE -f FORMAT_FILE -m FILE_INFO
-
-    Options:
-      -h --help  show this help message and exit
-      -i INPUT_FILE, --input INPUT_FILE       the index file
-      -f FORMAT_FILE, --format FORMAT_FILE    format file
-      -m METADATA, --metadata METADATA       information related to the file (eg. path, type, size, md5...)
-
-    """
-
-    def run(self, argv):
-        args = docopt(self.__doc__, argv=argv)
-        i = Index()
-        if args.get('--format'):
-            try:
-                format = open(args.get('--format'),'r')
-                i.format = json.load(format)
-            except:
-                i.format = json.loads(args.get('--format'))
-        i.open(args.get('--input'))
-        i.lock()
-        infos = args.get("--metadata").split(',')
-        kwargs = {}
-        for info in infos:
-            m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
-            kwargs[m.group('key')] = m.group('value')
-        try:
-            i.insert(**kwargs)
-            i.save()
-        finally:
-            i.release()
-
-class RemoveCommand(object):
-    """Remove files
-
-    Usage:
-       idxtools rm [-h] -i INDEX_FILE -f FORMAT_FILE -p FILE_PATH
-
-    Options:
-      -h --help  show this help message and exit
-      -i INPUT_FILE, --input INPUT_FILE       the index file
-      -f FORMAT_FILE, --format FORMAT_FILE    format file
-      -p FILE_PATH, --path FILE_PATH          path of the file to remove
-
-    """
-
-    def run(self, argv):
-        args = docopt(self.__doc__, argv=argv)
-        i = Index()
-        if args.get('--format'):
-            try:
-                format = open(args.get('--format'),'r')
-                i.format = json.load(format)
-            except:
-                i.format = json.loads(args.get('--format'))
-        i.open(args.get('--input'))
-        i.lock()
-        path = args.get('--path')
-        try:
-            i.remove(path=path)
-            i.save()
-        finally:
-            i.release()
 
 def main():
     import warnings
@@ -176,13 +177,5 @@ def main():
         if args.get('<command>') == 'rm':
             c = RemoveCommand().run(argv)
             sys.exit(0)
-
-    if args.get('--input')=='stdin':
-        args['--input'] = sys.stdin
-    if args.get('--output') == 'stdout':
-        args['--output'] = sys.stdout
-    else:
-        args['--output'] = open(args['--output'],'w+')
+    args = validate(args)
     run(args)
-
-
