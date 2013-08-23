@@ -182,7 +182,7 @@ class Index(object):
     """A class to access information stored into 'index files'.
     """
 
-    def __init__(self, path=None, datasets={}, format={}):
+    def __init__(self, path=None, datasets=None, format=None):
         """Creates an instance of an Index
 
         :param path: the path to the index file
@@ -204,9 +204,9 @@ class Index(object):
             path = os.path.abspath(path)
         self.path = path
 
-        self.datasets = datasets
+        self.datasets = datasets or {}
         self._lock = None
-        self.format = format
+        self.format = format or {}
         self._lookup = {}
 
     def open(self, path=None):
@@ -252,12 +252,12 @@ class Index(object):
         file_type, dialect = Index.guess_type(index_file)
         index_file.seek(0)
         if dialect:
-            self.load_table(index_file, dialect)
+            self._load_table(index_file, dialect)
         else:
-            self.load_index(index_file)
+            self._load_index(index_file)
 
 
-    def load_index(self, index_file):
+    def _load_index(self, index_file):
         """Load a file complying with the index file format.
 
         :param index_file: a :class:`file` object pointing to the input file
@@ -268,7 +268,7 @@ class Index(object):
 
             dataset = self.insert(**tags)
 
-    def load_table(self, index_file, dialect=None):
+    def _load_table(self, index_file, dialect=None):
         """Import entries from a SV file. The sv file must have an header line with the name of the attributes.
 
         :param index_file: a :class:`file` object pointing to the input file
