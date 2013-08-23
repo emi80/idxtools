@@ -6,7 +6,7 @@ def test_create_empty_dataset():
     dataset = Dataset()
 
 def test_create_dataset():
-    info = {'labExpId': '1', 'sex':'M', 'age':'65', 'readType':'2x76'}
+    info = {'id': '1', 'sex':'M', 'age':'65'}
     dataset = Dataset(**info)
     assert dataset.id == '1'
     assert dataset.sex == 'M'
