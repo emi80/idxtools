@@ -124,7 +124,7 @@ class Dataset(object):
                 del self._files[type]
 
 
-    def export(self, types=[]):
+    def export(self, types=[], tags=[]):
         """Export a :class:Dataset object to a list of dictionaries (one for each file).
 
         :keyword types: the list of file types to be exported. If set only the file types
@@ -132,14 +132,18 @@ class Dataset(object):
 
         """
         out = []
-        if not self._files:
-             return [self._metadata]
+        #if meta:
+        #    return [dict([(k,v) for k,v in self._metadata.items() if k in meta])]
+        if not tags:
+            tags = self._metadata.keys() + ['type'] + self._files.values()[0].values()[0].keys()
         if not types:
             types = self._files.keys()
+        if not self._files:
+             return [dict([(k,v) for k,v in self._metadata.items() if k in tags])]
         for type in types:
             for path,info in getattr(self,type).items():
-                tags = dict(self._metadata.items() + {'type':type}.items() + info.items())
-                out.append(tags)
+                data = dict([(k,v) for k,v in self._metadata.items() + {'type':type}.items() + info.items() if k in tags])
+                out.append(data)
         return out
 
     def get_tags(self, tags=[], exclude=[]):
@@ -327,7 +331,7 @@ class Index(object):
             for line in self.export(map=None):
                 index.write("%s%s" % (line, os.linesep))
 
-    def export(self, absolute=False, type='index', **kwargs):
+    def export(self, absolute=False, type='index', tags=[], **kwargs):
         """Export the index file information. ``kwargs`` contains the format information.
 
         :keyword absolute: specify if absolute paths should be used. Default: false
@@ -345,6 +349,8 @@ class Index(object):
         map = kwargs.pop('map',None)
         colsep = kwargs.pop('colsep','\t')
         fileinfo = kwargs.pop('fileinfo',[])
+        if tags:
+            type='tab'
         if map:
             for k,v in map.items():
                 if v: map[v] = k
@@ -358,7 +364,7 @@ class Index(object):
 
         out = []
         for dataset in self.datasets.values():
-            expd = dataset.export()
+            expd = dataset.export(tags=tags)
             for d in expd:
                 line = dict()
                 for k,v in d.items():
@@ -378,10 +384,17 @@ class Index(object):
                 if type=='tab':
                     if not header:
                         header = line.keys()
-                        out.append(colsep.join(header))
-                    if len(line.values()) != len(header):
-                        raise ValueError('Found lines with different number of fields. Please check your input file.')
+                        #out.append(colsep.join(header))
+                    #if len(line.values()) != len(header):
+                    #    raise ValueError('Found lines with different number of fields. Please check your input file.')
                     out.append(colsep.join(line.values()))
+        if type=='tab':
+            out = list(set(out))
+            if tags:
+                out.sort()
+            else:
+                out = [colsep.join(header)] + out
+
         return out
 
     def _create_lookup(self):
@@ -401,6 +414,8 @@ class Index(object):
                 for k,v in d._metadata.items():
                     if k in self.format.get('fileinfo'):
                         continue
+                    if k not in self._lookup.keys():
+                        self._lookup[k] = {}
                     if not self._lookup[k].get(v):
                         self._lookup[k][v] = []
                     self._lookup[k][v].append(d.id)
@@ -460,16 +475,20 @@ class Index(object):
                         continue
                 if not k in self._lookup.keys():
                     raise ValueError("The attribute %r is not present in the index" % k)
-                op = "".join([x for x in list(v) if x in oplist])
-                while op in ['', '=','!']:
-                    op = '%s=' % op
-                val = "".join([x for x in list(v) if x not in oplist])
+                if type(v) == list:
+                    op = ' in '
+                    val = v
+                else:
+                    op = "".join([x for x in list(v) if x in oplist])
+                    while op in ['', '=','!']:
+                        op = '%s=' % op
+                    val = "".join([x for x in list(v) if x not in oplist])
                 try:
-                    val = int(val)
-                    query = "[id for k,v in self._lookup[%r].items() if int(k)%s%r for id in v]" % (k,op,val)
+                   val = int(val)
+                   query = "[id for k,v in self._lookup[%r].items() if int(k)%s%r for id in v]" % (k,op,val)
                 except:
-                    val = str(val)
-                    query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
+                   val = str(val)
+                   query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
 
                 setlist.append(set(eval(query)))
 

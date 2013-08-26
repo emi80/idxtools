@@ -2,15 +2,16 @@
 """Load index files
 
 Usage:
-   idxtools [-h] [-a] [-m] [-c] [-i INPUT_FILE] [-o OUTPUT_FILE]
+   idxtools [-h] [-a] [-m] [-c] [-t TAGS] [-i INPUT_FILE] [-o OUTPUT_FILE]
             [-f FORMAT_FILE] [-s QUERY_STRING]...
             [<command> [<args>...]]
 
 Options:
-  -h --help                                 Show this help message and exit
-  -a --absolute-path                        Specify if absolute path should be returned
-  -m --map-keys                             Specify if mapping information for key should be used for output
+  -h --help                                Show this help message and exit
+  -a --absolute-path                       Specify if absolute path should be returned
+  -m --map-keys                            Specify if mapping information for key should be used for output
   -c --count                               Return the number of files/datasets
+  -t TAGS                                  Output only the selected tags
   -i INPUT_FILE, --input INPUT_FILE        The input file. [default: stdin]
   -o OUTPUT_FILE, --output OUTPUT_FILE     The output file. [default: stdout]
   -f FORMAT_FILE, --format FORMAT_FILE     Index format specifications in JSON format
@@ -115,18 +116,25 @@ def run(args):
     if args.get('--map-keys'):
         map_keys = True
 
+    tags=[]
+    if args.get("-t"):
+        tags = args.get("-t").split(',')
+
     i = open_index(args)
     i.lock()
 
     try:
         indices = []
         if args.get('--select'):
+            list_sep='+'
             for arg in args.get('--select'):
                 queries = arg.split(',')
                 kwargs = {}
                 for q in queries:
                     m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
                     kwargs[m.group('key')] = m.group('value')
+                    if list_sep in kwargs[m.group('key')]:
+                        kwargs[m.group('key')] = m.group('value').split(list_sep)
                 indices.append(i.select(absolute=absolute, **kwargs))
         else:
             indices.append(i)
@@ -137,7 +145,7 @@ def run(args):
                     args.get('--output').write("%s%s" % (index.size,os.linesep))
                     return
                 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-                command = "index.export(absolute=absolute"
+                command = "index.export(tags=tags,absolute=absolute"
                 if not map_keys:
                     command = "%s,map=None" % command
                 command = "%s)" % command
