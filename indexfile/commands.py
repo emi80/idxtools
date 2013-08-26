@@ -2,7 +2,7 @@
 """Load index files
 
 Usage:
-   idxtools [-h] [-a] [-m] [-c] [-t TAGS] [-i INPUT_FILE] [-o OUTPUT_FILE]
+   idxtools [-h] [-a] [-m] [-c] [-e] [-t TAGS] [-i INPUT_FILE] [-o OUTPUT_FILE]
             [-f FORMAT_FILE] [-s QUERY_STRING]...
             [<command> [<args>...]]
 
@@ -11,6 +11,7 @@ Options:
   -a --absolute-path                       Specify if absolute path should be returned
   -m --map-keys                            Specify if mapping information for key should be used for output
   -c --count                               Return the number of files/datasets
+  -e --exact                               Specifies whether to perform exact match for searches
   -t TAGS                                  Output only the selected tags
   -i INPUT_FILE, --input INPUT_FILE        The input file. [default: stdin]
   -o OUTPUT_FILE, --output OUTPUT_FILE     The output file. [default: stdout]
@@ -110,11 +111,14 @@ def run(args):
     import re
     absolute = False
     map_keys = False
+    exact = False
 
     if args.get('--absolute-path'):
         absolute = True
     if args.get('--map-keys'):
         map_keys = True
+    if args.get('--exact'):
+        exact = True
 
     tags=[]
     if args.get("-t"):
@@ -126,7 +130,7 @@ def run(args):
     try:
         indices = []
         if args.get('--select'):
-            list_sep='+'
+            list_sep=':'
             for arg in args.get('--select'):
                 queries = arg.split(',')
                 kwargs = {}
@@ -135,7 +139,7 @@ def run(args):
                     kwargs[m.group('key')] = m.group('value')
                     if list_sep in kwargs[m.group('key')]:
                         kwargs[m.group('key')] = m.group('value').split(list_sep)
-                indices.append(i.select(absolute=absolute, **kwargs))
+                indices.append(i.select(absolute=absolute, exact=exact, **kwargs))
         else:
             indices.append(i)
 

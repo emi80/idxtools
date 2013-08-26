@@ -135,7 +135,9 @@ class Dataset(object):
         #if meta:
         #    return [dict([(k,v) for k,v in self._metadata.items() if k in meta])]
         if not tags:
-            tags = self._metadata.keys() + ['type'] + self._files.values()[0].values()[0].keys()
+            tags = self._metadata.keys() + ['type']
+            if self._files:
+                tags += self._files.values()[0].values()[0].keys()
         if not types:
             types = self._files.keys()
         if not self._files:
@@ -437,7 +439,7 @@ class Index(object):
 
             warnings.warn('Lookup table created successfully.')
 
-    def select(self, id=None, oplist=['>','=','<', '!'], absolute=False, **kwargs):
+    def select(self, id=None, oplist=['>','=','<', '!'], absolute=False, exact=False, **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes to be looked for.
 
         :keyword id: the id to select
@@ -452,11 +454,15 @@ class Index(object):
         if not id and not kwargs:
             return self
 
+        #if id:
+        #    meta = True
+        #    if type(id) == str:
+        #        id = [id]
+        #    setlist.append(set(id))
+
         if id:
-            meta = True
-            if type(id) == str:
-                id = [id]
-            setlist.append(set(id))
+            meta=True
+            kwargs['id'] = id
 
         if kwargs:
             if set(kwargs.keys()).difference(set(self.format.get('fileinfo'))):
@@ -487,8 +493,12 @@ class Index(object):
                    val = int(val)
                    query = "[id for k,v in self._lookup[%r].items() if int(k)%s%r for id in v]" % (k,op,val)
                 except:
-                   val = str(val)
-                   query = "[id for k,v in self._lookup[%r].items() if k%s%r for id in v]" % (k,op,val)
+                   if exact or type(val) == list:
+                       search = "k%s%r" % (op,val)
+                   else:
+                       val = str(val)
+                       search = 're.match(%r,k)' % val
+                   query = "[id for k,v in self._lookup[%r].items() if %s for id in v]" % (k,search)
 
                 setlist.append(set(eval(query)))
 
@@ -503,7 +513,7 @@ class Index(object):
             i = filelist
 
         if finfo and meta:
-            i = i.select(None,oplist,absolute,**finfo)
+            i = i.select(None,oplist,absolute,exact,**finfo)
 
         return i
 
