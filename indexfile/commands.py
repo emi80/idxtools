@@ -2,20 +2,21 @@
 """Load index files
 
 Usage:
-   idxtools [-h] [-a] [-m] [-c] [-e] [-t TAGS] [-i INPUT_FILE] [-o OUTPUT_FILE]
+   idxtools [-hacem] [-t TAGS] [-i INPUT_FILE] [-o OUTPUT_FILE]
             [-f FORMAT_FILE] [-s QUERY_STRING]...
             [<command> [<args>...]]
 
 Options:
   -h --help                                Show this help message and exit
   -a --absolute-path                       Specify if absolute path should be returned
-  -m --map-keys                            Specify if mapping information for key should be used for output
   -c --count                               Return the number of files/datasets
   -e --exact                               Specifies whether to perform exact match for searches
-  -t TAGS, --tags TAGS                      Output only the selected tags in tabular format (no header)
-  -i INPUT_FILE, --input INPUT_FILE        The input file. [default: stdin]
+  -m --map-keys                            Specify if mapping information for key should be used for output
+  -t TAGS, --tags TAGS                     Output only the selected tags in tabular format (no header)
+  -i INPUT_FILE, --input INPUT_FILE        The input index file. [default: stdin]
   -o OUTPUT_FILE, --output OUTPUT_FILE     The output file. [default: stdout]
-  -f FORMAT_FILE, --format FORMAT_FILE     Index format specifications in JSON format
+  -f FORMAT, --format FORMAT               Index format specifications in JSON format.
+                                           Can be a file or a string.
   -s QUERY_STRING, --select QUERY_STRING   Select datasets using query strings.
                                            Examples of valid strings are: sex=M and sex=M,lab=CRG
 
@@ -29,13 +30,15 @@ class AddCommand(object):
     """Add files
 
     Usage:
-       idxtools add [-h] [-i INDEX_FILE] [-f FORMAT_FILE] -m FILE_INFO
+       idxtools add [-hu] [-i INDEX_FILE] [-f FORMAT_FILE] -m FILE_INFO
 
     Options:
-      -h --help  show this help message and exit
-      -i INPUT_FILE, --input INPUT_FILE       the index file
-      -f FORMAT_FILE, --format FORMAT_FILE    format file
-      -m METADATA, --metadata METADATA       information related to the file (eg. path, type, size, md5...)
+      -h --help                           Show this help message and exit
+      -u --update                         Update information for an existing dataset
+      -i INPUT_FILE, --input INPUT_FILE   The input index file. [default: stdin]
+      -f FORMAT, --format FORMAT          Index format specifications in JSON format.
+                                          Can be a file or a string.
+      -m METADATA, --metadata METADATA    Information related to the file (eg. path, type, size, md5...)
 
     """
 
@@ -45,12 +48,13 @@ class AddCommand(object):
         i = open_index(args)
         i.lock()
         infos = args.get("--metadata").split(',')
+        update = args.get("--update")
         kwargs = {}
         for info in infos:
             m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
             kwargs[m.group('key')] = m.group('value')
         try:
-            i.insert(**kwargs)
+            i.insert(update=update, **kwargs)
             i.save()
         finally:
             i.release()
@@ -63,10 +67,11 @@ class RemoveCommand(object):
        idxtools rm [-h] [-i INDEX_FILE] [-f FORMAT_FILE] -p FILE_PATH
 
     Options:
-      -h --help  show this help message and exit
-      -i INPUT_FILE, --input INPUT_FILE       the index file
-      -f FORMAT_FILE, --format FORMAT_FILE    format file
-      -p FILE_PATH, --path FILE_PATH          path of the file to remove
+      -h --help                           Show this help message and exit
+      -i INPUT_FILE, --input INPUT_FILE   The input index file. [deafult: stdin]
+      -f FORMAT, --format FORMAT          Index format specifications in JSON format.
+                                          Can be a file or a string.
+      -p FILE_PATH, --path FILE_PATH      The path of the file to be removed
 
     """
 

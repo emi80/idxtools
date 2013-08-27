@@ -289,7 +289,7 @@ class Index(object):
             tags = Index.map_keys(line, **self.format)
             dataset = self.insert(**tags)
 
-    def insert(self, **kwargs):
+    def insert(self, update=False, **kwargs):
         """Add a dataset to the index. Keyword arguments contains the dataset attributes.
         """
         meta = kwargs
@@ -299,6 +299,12 @@ class Index(object):
 
         dataset = self.datasets.get(d.id)
 
+        if dataset and update:
+             warnings.warn('Updating existing dataset %s' % dataset.id)
+             for k,v in meta.items():
+                 if getattr(dataset, k):
+                     dataset.__setattr__(k,v)
+
         if not dataset:
             self.datasets[d.id] = d
             dataset = self.datasets.get(d.id)
@@ -307,7 +313,7 @@ class Index(object):
 
         if kwargs.get('path') and kwargs.get('type'):
             warnings.warn('Adding %s to dataset' % kwargs.get('path'))
-            dataset.add_file(update=True, **kwargs)
+            dataset.add_file(update=update, **kwargs)
 
         return self.datasets[d.id]
 
