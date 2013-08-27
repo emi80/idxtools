@@ -3,7 +3,7 @@
 
 Usage:
    idxtools [-hacem] [-t TAGS] [-i INPUT_FILE] [-o OUTPUT_FILE]
-            [-f FORMAT_FILE] [-s QUERY_STRING]...
+            [-f FORMAT] [-s QUERY_STRING]...
             [<command> [<args>...]]
 
 Options:
@@ -30,7 +30,7 @@ class AddCommand(object):
     """Add files
 
     Usage:
-       idxtools add [-hu] [-i INDEX_FILE] [-f FORMAT_FILE] -m FILE_INFO
+       idxtools add [-hu] [-i INDEX_FILE] [-f FORMAT] -m FILE_INFO
 
     Options:
       -h --help                           Show this help message and exit
@@ -64,7 +64,7 @@ class RemoveCommand(object):
     """Remove files
 
     Usage:
-       idxtools rm [-h] [-i INDEX_FILE] [-f FORMAT_FILE] -p FILE_PATH
+       idxtools rm [-h] [-i INDEX_FILE] [-f FORMAT] -p FILE_PATH
 
     Options:
       -h --help                           Show this help message and exit
