@@ -117,6 +117,7 @@ def run(args):
     absolute = False
     map_keys = False
     exact = False
+    type='index'
 
     if args.get('--absolute-path'):
         absolute = True
@@ -127,6 +128,7 @@ def run(args):
 
     tags=[]
     if args.get("--tags"):
+        type = 'tab'
         tags = args.get("--tags").split(',')
 
     i = open_index(args)
@@ -154,7 +156,7 @@ def run(args):
                     args.get('--output').write("%s%s" % (index.size,os.linesep))
                     return
                 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-                command = "index.export(tags=tags,absolute=absolute"
+                command = "index.export(type=%r,tags=tags,absolute=absolute" % type
                 if not map_keys:
                     command = "%s,map=None" % command
                 command = "%s)" % command

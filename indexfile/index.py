@@ -358,8 +358,7 @@ class Index(object):
         map = kwargs.pop('map',None)
         colsep = kwargs.pop('colsep','\t')
         fileinfo = kwargs.pop('fileinfo',[])
-        if tags:
-            type='tab'
+
         if map:
             for k,v in map.items():
                 if v: map[v] = k
