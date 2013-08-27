@@ -413,7 +413,9 @@ class Index(object):
         """Create the index lookup table for querying the index by attribute values.
 
         """
+
         if self.datasets:
+
             warnings.warn('Creating lookup table...')
 
             self._lookup = {}
@@ -443,7 +445,12 @@ class Index(object):
                                 if not self._lookup[k].get(v):
                                     self._lookup[k][v] = []
                                 if k == 'path':
-                                    self._lookup[k][v].append(dict(set(d._metadata.items() + infos.items())))
+                                    self._lookup[k][v].append(path)
+                                    if not self._lookup.get('info'):
+                                        self._lookup['info'] = {}
+                                    if not self._lookup['info'].get(v):
+                                        self._lookup['info'][v] = []
+                                    self._lookup['info'][v].append(dict(set(d._metadata.items() + infos.items())))
                                 else:
                                     self._lookup[k][v].append(path)
 
@@ -464,14 +471,7 @@ class Index(object):
         if not id and not kwargs:
             return self
 
-        #if id:
-        #    meta = True
-        #    if type(id) == str:
-        #        id = [id]
-        #    setlist.append(set(id))
-
         if id:
-            meta=True
             kwargs['id'] = id
 
         if kwargs:
@@ -512,7 +512,7 @@ class Index(object):
 
                 setlist.append(set(eval(query)))
 
-        if meta or 'path' in kwargs.keys():
+        if meta:
             datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist) if self.datasets.get(x)])
             i = Index(datasets=datasets, format=self.format, path=self.path)
             i._create_lookup()
@@ -522,10 +522,9 @@ class Index(object):
                 filelist = [os.path.join(os.path.dirname(self.path),x) if not os.path.isabs(x) and self.path else x for x in filelist]
             i = Index(format=self.format, path=self.path)
             for f in filelist:
-                for info in self._lookup['path'].get(f):
+                for info in self._lookup['info'].get(f):
                     i.insert(**info)
             i._create_lookup()
-            #i = filelist
 
         if finfo and meta:
             i = i.select(None,oplist,absolute,exact,**finfo)
