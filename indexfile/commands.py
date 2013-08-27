@@ -2,7 +2,7 @@
 """Load index files
 
 Usage:
-   idxtools [-hacem] [-t TAGS] [-i INPUT_FILE] [-o OUTPUT_FILE]
+   idxtools [-hacem] [--header] [-t TAGS] [-i INPUT_FILE] [-o OUTPUT_FILE]
             [-f FORMAT] [-s QUERY_STRING]...
             [<command> [<args>...]]
 
@@ -12,6 +12,7 @@ Options:
   -c --count                               Return the number of files/datasets
   -e --exact                               Specifies whether to perform exact match for searches
   -m --map-keys                            Specify if mapping information for key should be used for output
+  --header                                 Output header when selecting tags
   -t TAGS, --tags TAGS                     Output only the selected tags in tabular format (no header)
   -i INPUT_FILE, --input INPUT_FILE        The input index file. [default: stdin]
   -o OUTPUT_FILE, --output OUTPUT_FILE     The output file. [default: stdout]
@@ -119,12 +120,10 @@ def run(args):
     exact = False
     type='index'
 
-    if args.get('--absolute-path'):
-        absolute = True
-    if args.get('--map-keys'):
-        map_keys = True
-    if args.get('--exact'):
-        exact = True
+    absolute = args.get('--absolute-path')
+    map_keys = args.get('--map-keys')
+    exact = args.get('--exact')
+    header = args.get("--header")
 
     tags=[]
     if args.get("--tags"):
@@ -156,7 +155,7 @@ def run(args):
                     args.get('--output').write("%s%s" % (index.size,os.linesep))
                     return
                 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-                command = "index.export(type=%r,tags=tags,absolute=absolute" % type
+                command = "index.export(header=%s,type=%r,tags=tags,absolute=absolute" % (header,type)
                 if not map_keys:
                     command = "%s,map=None" % command
                 command = "%s)" % command

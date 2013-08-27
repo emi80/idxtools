@@ -340,7 +340,7 @@ class Index(object):
             for line in self.export(map=None):
                 index.write("%s%s" % (line, os.linesep))
 
-    def export(self, absolute=False, type='index', tags=[], **kwargs):
+    def export(self, absolute=False, type='index', tags=[], header=False, **kwargs):
         """Export the index file information. ``kwargs`` contains the format information.
 
         :keyword absolute: specify if absolute paths should be used. Default: false
@@ -368,7 +368,7 @@ class Index(object):
         path = map.get('path','path')
 
         if type=='tab':
-            header = []
+            headline = []
 
         out = []
         for dataset in self.datasets.values():
@@ -390,9 +390,11 @@ class Index(object):
                 if type=='json':
                     out.append(json.dumps(line))
                 if type=='tab':
-                    if not header:
-                        header = line.keys()
-                    if not tags and len(line.values()) != len(header):
+                    if header and not headline:
+                        headline = line.keys()
+                        if tags:
+                            headline=tags
+                    if not tags and len(line.values()) != len(headline):
                         raise ValueError('Found lines with different number of fields. Please check your input file.')
                     vals = line.values()
                     if tags:
@@ -403,8 +405,8 @@ class Index(object):
             out = list(set(out))
             if tags:
                 out.sort()
-            else:
-                out = [colsep.join(header)] + out
+            if header:
+                out = [colsep.join(headline)] + out
 
         return out
 
