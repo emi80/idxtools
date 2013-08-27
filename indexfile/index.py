@@ -17,7 +17,8 @@ warnings.formatwarning = warning_on_one_line
 
 def to_tags(kw_sep=' ', sep='=', trail=';', quote=None, **kwargs):
     taglist=[]
-    for k,v in kwargs.items():
+    #for k,v in kwargs.items():
+    for k,v in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
         v = str(v)
         if quote:
             if quote=='value' or quote=='both':
@@ -128,7 +129,7 @@ class Dataset(object):
         """Export a :class:Dataset object to a list of dictionaries (one for each file).
 
         :keyword types: the list of file types to be exported. If set only the file types
-                        in the list are exported. Defalut: [] (all types exported).
+                        in the list are exported. Default: [] (all types exported).
 
         """
         out = []
@@ -386,11 +387,11 @@ class Index(object):
                 if type=='tab':
                     if not header:
                         header = line.keys()
-                    if len(line.values()) != len(header):
+                    if not tags and len(line.values()) != len(header):
                         raise ValueError('Found lines with different number of fields. Please check your input file.')
                     vals = line.values()
                     if tags:
-                        vals = [ line.get(l) if l != 'id' else line.get(id) for l in tags ]
+                        vals = [ line.get(l,'NA') if l != 'id' else line.get(id) for l in tags ]
                     out.append(colsep.join(vals))
 
         if type=='tab':
@@ -436,7 +437,7 @@ class Index(object):
                                 if not self._lookup[k].get(v):
                                     self._lookup[k][v] = []
                                 if k == 'path':
-                                    self._lookup[k][v].append(d.id)
+                                    self._lookup[k][v].append(dict(set(d._metadata.items() + infos.items())))
                                 else:
                                     self._lookup[k][v].append(path)
 
@@ -513,7 +514,12 @@ class Index(object):
             filelist = [x for x in set.intersection(*setlist) if "/" in x]
             if absolute:
                 filelist = [os.path.join(os.path.dirname(self.path),x) if not os.path.isabs(x) and self.path else x for x in filelist]
-            i = filelist
+            i = Index(format=self.format, path=self.path)
+            for f in filelist:
+                for info in self._lookup['path'].get(f):
+                    i.insert(**info)
+            i._create_lookup()
+            #i = filelist
 
         if finfo and meta:
             i = i.select(None,oplist,absolute,exact,**finfo)
