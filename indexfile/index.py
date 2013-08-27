@@ -386,10 +386,13 @@ class Index(object):
                 if type=='tab':
                     if not header:
                         header = line.keys()
-                        #out.append(colsep.join(header))
-                    #if len(line.values()) != len(header):
-                    #    raise ValueError('Found lines with different number of fields. Please check your input file.')
-                    out.append(colsep.join(line.values()))
+                    if len(line.values()) != len(header):
+                        raise ValueError('Found lines with different number of fields. Please check your input file.')
+                    vals = line.values()
+                    if tags:
+                        vals = [ line.get(l) if l != 'id' else line.get(id) for l in tags ]
+                    out.append(colsep.join(vals))
+
         if type=='tab':
             out = list(set(out))
             if tags:
