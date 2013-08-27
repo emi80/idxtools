@@ -12,7 +12,7 @@ Options:
   -m --map-keys                            Specify if mapping information for key should be used for output
   -c --count                               Return the number of files/datasets
   -e --exact                               Specifies whether to perform exact match for searches
-  -t TAGS                                  Output only the selected tags
+  -t TAGS, --tags TAGS                      Output only the selected tags in tabular format (no header)
   -i INPUT_FILE, --input INPUT_FILE        The input file. [default: stdin]
   -o OUTPUT_FILE, --output OUTPUT_FILE     The output file. [default: stdout]
   -f FORMAT_FILE, --format FORMAT_FILE     Index format specifications in JSON format
@@ -121,8 +121,8 @@ def run(args):
         exact = True
 
     tags=[]
-    if args.get("-t"):
-        tags = args.get("-t").split(',')
+    if args.get("--tags"):
+        tags = args.get("--tags").split(',')
 
     i = open_index(args)
     i.lock()
@@ -145,7 +145,7 @@ def run(args):
 
         for index in indices:
             if isinstance(index,Index):
-                if args.get('--count'):
+                if args.get('--count') and not args.get('--tags'):
                     args.get('--output').write("%s%s" % (index.size,os.linesep))
                     return
                 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -153,13 +153,11 @@ def run(args):
                 if not map_keys:
                     command = "%s,map=None" % command
                 command = "%s)" % command
-                for line in eval(command):
-                    args.get('--output').write('%s%s' % (line,os.linesep))
-            else:
-                if  args.get('--count'):
-                    args.get('--output').write("%s%s" % (len(index),os.linesep))
+                indexp = eval(command)
+                if args.get('--count'):
+                    args.get('--output').write("%s%s" % (len(indexp),os.linesep))
                     return
-                for line in index:
+                for line in indexp:
                     args.get('--output').write('%s%s' % (line,os.linesep))
     finally:
         i.release()
