@@ -289,13 +289,14 @@ class Index(object):
             tags = Index.map_keys(line, **self.format)
             dataset = self.insert(**tags)
 
-    def insert(self, update=False, **kwargs):
+    def insert(self, update=False, d=None, **kwargs):
         """Add a dataset to the index. Keyword arguments contains the dataset attributes.
         """
         meta = kwargs
         if self.format.get('fileinfo'):
             meta = dict([(k,v) for k,v in kwargs.items() if k not in self.format.get('fileinfo')])
-        d = Dataset(**meta)
+        if not d:
+            d = Dataset(**meta)
 
         dataset = self.datasets.get(d.id)
 
