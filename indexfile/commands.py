@@ -126,9 +126,10 @@ def run(args):
     header = args.get("--header")
 
     tags=[]
-    if args.get("--tags"):
+    if args.get('--tags'):
         type = 'tab'
-        tags = args.get("--tags").split(',')
+        if args.get('--tags') != 'all':
+            tags = args.get("--tags").split(',')
 
     i = open_index(args)
     i.lock()
