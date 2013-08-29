@@ -385,7 +385,7 @@ class Index(object):
                         k = id
                     if k == 'path' and absolute:
                         if self.path and not os.path.isabs(v):
-                            v = os.path.join(os.path.dirname(self.path),v)
+                            v = os.path.join(os.path.dirname(self.path), os.path.normpath(v))
                     if map:
                         k = map.get(k)
                     if k:
