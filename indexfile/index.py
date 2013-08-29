@@ -133,12 +133,11 @@ class Dataset(object):
 
         """
         out = []
-        #if meta:
-        #    return [dict([(k,v) for k,v in self._metadata.items() if k in meta])]
         if not tags:
             tags = self._metadata.keys() + ['type']
             if self._files:
-                tags += self._files.values()[0].values()[0].keys()
+                tags += [ k for infos in self._files.values() for info in infos.values() for k in info.keys()]
+            tags = list(set(tags))
         if not types:
             types = self._files.keys()
         if not self._files:
@@ -215,6 +214,7 @@ class Index(object):
         self._lock = None
         self.format = format or {}
         self._lookup = {}
+        self._alltags = []
 
     def open(self, path=None):
         """Open a file and load/import data into the index
@@ -368,10 +368,14 @@ class Index(object):
 
         path = map.get('path','path')
 
-        if type=='tab':
-            headline = []
-
         out = []
+
+        if type=='tab':
+            if not self._alltags:
+                self._create_lookup()
+            headline =  self._alltags
+            if tags:
+                headline = tags
         for dataset in self.datasets.values():
             expd = dataset.export(tags=tags)
             for d in expd:
@@ -391,15 +395,9 @@ class Index(object):
                 if type=='json':
                     out.append(json.dumps(line))
                 if type=='tab':
-                    if header and not headline:
-                        headline = line.keys()
-                        if tags:
-                            headline=tags
-                    if not tags and len(line.values()) != len(headline):
-                        raise ValueError('Found lines with different number of fields. Please check your input file.')
                     vals = line.values()
-                    if tags:
-                        vals = [ line.get(l,'NA') if l != 'id' else line.get(id) for l in tags ]
+                    if tags or len(line.values()) != len(headline):
+                        vals = [ line.get(l,'NA') if l != 'id' else line.get(id) for l in headline ]
                     out.append(colsep.join(vals))
 
         if type=='tab':
@@ -423,9 +421,9 @@ class Index(object):
             self._lookup = {}
             if not self.format.get('fileinfo'):
                 self.format['fileinfo'] = []
-            keys = set(self.datasets.values()[0]._metadata.keys()).union(set(self.format.get('fileinfo')))
-            for k in keys:
-                self._lookup[k] = {}
+            #keys = set(self.datasets.values()[0]._metadata.keys()).union(set(self.format.get('fileinfo')))
+            #for k in keys:
+            #    self._lookup[k] = {}
             for d in self.datasets.values():
                 for k,v in d._metadata.items():
                     if k in self.format.get('fileinfo'):
@@ -443,18 +441,22 @@ class Index(object):
                     self._lookup['type'][key].extend(info.keys())
                     for path,infos in info.items():
                         for k,v in infos.items():
+                            if k not in self._lookup.keys():
+                                self._lookup[k] = {}
                             if k in self.format.get('fileinfo'):
                                 if not self._lookup[k].get(v):
                                     self._lookup[k][v] = []
                                 if k == 'path':
                                     self._lookup[k][v].append(path)
-                                    if not self._lookup.get('info'):
-                                        self._lookup['info'] = {}
-                                    if not self._lookup['info'].get(v):
-                                        self._lookup['info'][v] = []
-                                    self._lookup['info'][v].append(dict(set(d._metadata.items() + infos.items())))
+                                    if not self._lookup.get('_info'):
+                                        self._lookup['_info'] = {}
+                                    if not self._lookup['_info'].get(v):
+                                        self._lookup['_info'][v] = []
+                                    self._lookup['_info'][v].append(dict(set(d._metadata.items() + infos.items())))
                                 else:
                                     self._lookup[k][v].append(path)
+
+            self._alltags = [i for i in self._lookup.keys() if not i.startswith('_')]
 
             warnings.warn('Lookup table created successfully.')
 
@@ -524,7 +526,7 @@ class Index(object):
                 filelist = [os.path.join(os.path.dirname(self.path),x) if not os.path.isabs(x) and self.path else x for x in filelist]
             i = Index(format=self.format, path=self.path)
             for f in filelist:
-                for info in self._lookup['info'].get(f):
+                for info in self._lookup['_info'].get(f):
                     i.insert(**info)
             i._create_lookup()
 
