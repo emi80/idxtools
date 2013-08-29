@@ -478,7 +478,7 @@ class Index(object):
             return self
 
         if id:
-            kwargs['id'] = id
+            kwargs[self.format.get('id','id')] = id
 
         if kwargs:
             if set(kwargs.keys()).difference(set(self.format.get('fileinfo'))):
