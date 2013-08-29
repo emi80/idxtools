@@ -428,6 +428,8 @@ class Index(object):
                 for k,v in d._metadata.items():
                     if k in self.format.get('fileinfo'):
                         continue
+                    if k == 'id':
+                        k = self.format.get('id','id')
                     if k not in self._lookup.keys():
                         self._lookup[k] = {}
                     if not self._lookup[k].get(v):
@@ -441,9 +443,9 @@ class Index(object):
                     self._lookup['type'][key].extend(info.keys())
                     for path,infos in info.items():
                         for k,v in infos.items():
-                            if k not in self._lookup.keys():
-                                self._lookup[k] = {}
                             if k in self.format.get('fileinfo'):
+                                if k not in self._lookup.keys():
+                                    self._lookup[k] = {}
                                 if not self._lookup[k].get(v):
                                     self._lookup[k][v] = []
                                 if k == 'path':
