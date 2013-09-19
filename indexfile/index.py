@@ -5,7 +5,6 @@ The module provide classes to perform operations on index files.
 """
 import re
 import os
-import json
 import sys
 import warnings
 
@@ -238,6 +237,9 @@ class Index(object):
         :param str: the input string. It can be a path to a file or a valid json string.
 
         """
+
+        import simplejson as json
+
         try:
             format = open(str,'r')
             self.format = json.load(format)
@@ -321,13 +323,13 @@ class Index(object):
     def remove(self, **kwargs):
         """Remove dataset(s) from the index given a search query.
         """
-        datasets = self.select(**kwargs).datasets
+        datasets = self.select(**kwargs).datasets.keys()
         if datasets:
-            for d in datasets.values():
+            for k in datasets:
                 if 'path' in kwargs:
-                    d.rm_file(path=kwargs.get('path'))
+                    self.datasets.get(k).rm_file(path=kwargs.get('path'))
                 else:
-                    del d
+                    del self.datasets['k']
 
 
     def save(self, path=None):
@@ -348,7 +350,7 @@ class Index(object):
         :keyword type: specify the export type. Values: ['index','tab','json']. Default: 'index'
 
         """
-        import json
+        import simplejson as json
 
         if self.format:
             if not kwargs:

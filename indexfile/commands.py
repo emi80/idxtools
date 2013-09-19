@@ -90,6 +90,8 @@ class RemoveCommand(object):
 
 
 def open_index(args):
+    import simplejson as json
+
     i = Index()
     format = args.get('--format')
     index = args.get('--input')
@@ -112,7 +114,6 @@ def open_index(args):
     return i
 
 def run(args):
-    import json
     import signal
     import re
     absolute = False
