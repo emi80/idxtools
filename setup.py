@@ -5,9 +5,9 @@ from setuptools import setup
 import indexfile
 
 setup(
-    name='IndexFile',
+    name='indexfile',
     version=indexfile.__version__,
-    description='Index Files API',
+    description='Indexfile API and tools',
     author='Emilio Palumbo',
     url='https://',
     license="GNU General Public License (GPL)",
