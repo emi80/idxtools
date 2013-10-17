@@ -1,5 +1,5 @@
-"""The IndexFile Package
+"""The indexfile package
 
 """
 
-__version__ = "0.9-alpha"
+__version__ = "0.1"

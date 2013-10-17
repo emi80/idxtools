@@ -182,10 +182,11 @@ def validate(args):
 
 
 def main():
+    import indexfile
     import warnings
     warnings.simplefilter('ignore')
 
-    args = docopt(__doc__, version='IndexFile 0.9-alpha',options_first=True)
+    args = docopt(__doc__, version="idxtools v%s" % indexfile.__version__,options_first=True)
 
     if args.get('<command>'):
         argv = [args.get('<command>')] + args.get('<args>')
