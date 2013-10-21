@@ -7,6 +7,23 @@ import re
 import os
 import sys
 import warnings
+from copy import deepcopy
+
+# default format
+
+__format__ = {
+    "colsep": "\t",
+    "fileinfo": [
+        "path",
+        "size",
+        "md5",
+        "type",
+        "view"
+    ],
+    "kw_sep": " ",
+    "sep": "=",
+    "trail": ";"
+}
 
 # utils methods
 
@@ -211,7 +228,7 @@ class Index(object):
 
         self.datasets = datasets or {}
         self._lock = None
-        self.format = format or {}
+        self.format = format or deepcopy(__format__)
         self._lookup = {}
         self._alltags = []
 
