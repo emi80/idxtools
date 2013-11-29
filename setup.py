@@ -29,7 +29,7 @@ setup(
                       "clint==0.3.1"],
     entry_points={
         'console_scripts': [
-            'idxtools = indexfile.cli.indexfile:main',
+            'idxtools = indexfile.cli.indexfile_main:main',
         ]
     },
 )
