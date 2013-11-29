@@ -27,8 +27,9 @@ def main():
   import warnings
   warnings.simplefilter('ignore')
   name = indexfile.__name__
+  version = indexfile.__version__
 
-  args = docopt(__doc__ % (name,name), version="idxtools v%s" % indexfile.__version__,options_first=True)
+  args = docopt(__doc__ % (name,name), version="%s v%s" % (name, version), options_first=True)
 
   argv = [args['<command>']] + args['<args>']
   if args['<command>'] in 'show add remove'.split():
@@ -36,9 +37,11 @@ def main():
       sys.argv = argv
       runpy.run_module("indexfile.cli.indexfile_%s" % args['<command>'], run_name="__main__")
   elif args['<command>'] in ['help', None]:
-      exit(call(['python', 'indexfile_main.py', '--help']))
+      docopt(__doc__ % (name,name), version="%s v%s" %
+        (name,version), argv=['--help'])
   else:
-      exit("%r is not an indexfile command. See 'git help'." % args['<command>'])
+      exit("%r is not an indexfile command. See '%s help'." %
+        (args['<command>'],name))
 
 if __name__ == '__main__':
   main()
