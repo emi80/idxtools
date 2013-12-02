@@ -1,5 +1,5 @@
 """
-Usage: %s add [options] -m <meta_data>
+Usage: %s show [options] [-m <meta_data>]
 
 Options:
 
@@ -77,4 +77,5 @@ def run(args):
         i.release()
 
 if __name__ == '__main__':
-    print docopt(__doc__ % indexfile.__name__)
+    args = docopt(__doc__ % indexfile.__name__)
+    run(args)

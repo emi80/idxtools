@@ -34,6 +34,8 @@ def main():
   argv = [args['<command>']] + args['<args>']
   if args['<command>'] in 'show add remove'.split():
       import runpy
+      if len(argv) == 1 and args['<command>'] != "show":
+        argv.append('--help')
       sys.argv = argv
       runpy.run_module("indexfile.cli.indexfile_%s" % args['<command>'], run_name="__main__")
   elif args['<command>'] in ['help', None]:
