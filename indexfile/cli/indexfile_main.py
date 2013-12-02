@@ -33,6 +33,8 @@ def main():
 
     args = docopt(__doc__ % (name,name), version="%s v%s" % (name, version), options_first=True)
 
+    args = validate(args)
+
     index = open_index(args)
 
     argv = [args['<command>']] + args['<args>']
