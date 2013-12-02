@@ -22,9 +22,9 @@ from indexfile.cli import *
 def run(args, index):
     import signal
     import re
-    absolute = False
-    map_keys = False
-    exact = False
+    #absolute = False
+    #map_keys = False
+    #exact = False
     type='index'
 
     args = validate(args)
@@ -46,25 +46,24 @@ def run(args, index):
         indices = []
         if args.get('--select'):
             list_sep=':'
-            for arg in args.get('--select'):
-                queries = arg.split(',')
+            query_sep=','
+            for q in args.get('--select').split(query_sep):
                 kwargs = {}
-                for q in queries:
-                    m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
-                    kwargs[m.group('key')] = m.group('value')
-                    if list_sep in kwargs[m.group('key')]:
-                        kwargs[m.group('key')] = m.group('value').split(list_sep)
+                m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
+                kwargs[m.group('key')] = m.group('value')
+                if list_sep in kwargs[m.group('key')]:
+                    kwargs[m.group('key')] = m.group('value').split(list_sep)
                 indices.append(index.select(absolute=absolute, exact=exact, **kwargs))
         else:
             indices.append(index)
 
-        for index in indices:
-            if isinstance(index,Index):
+        for i in indices:
+            if isinstance(i,Index):
                 if args.get('--count') and not args.get('--tags'):
-                    args.get('--output').write("%s%s" % (index.size,os.linesep))
+                    args.get('--output').write("%s%s" % (i.size,os.linesep))
                     return
                 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-                command = "index.export(header=%s,type=%r,tags=tags,absolute=absolute" % (header,type)
+                command = "i.export(header=%s,type=%r,tags=tags,absolute=absolute" % (header,type)
                 if not map_keys:
                     command = "%s,map=None" % command
                 command = "%s)" % command
