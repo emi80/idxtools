@@ -1,5 +1,5 @@
 """
-Usage: %s remove [options] -p FILE_PATH
+Usage: %s_remove [options] -p FILE_PATH
 
 Options:
 
@@ -7,7 +7,7 @@ Options:
 
 """
 from docopt import docopt
-import indexfile
+from indexfile.cli import *
 
 def run(args, index):
     args = validate(args)

@@ -1,5 +1,5 @@
 """
-Usage: %s add [options] -m <metadata>
+Usage: %s_add [options] -m <metadata>
 
 Options:
 
@@ -9,7 +9,7 @@ Options:
 """
 
 from docopt import docopt
-import indexfile
+from indexfile.cli import *
 
 def run(args, index):
     args = validate(args)
