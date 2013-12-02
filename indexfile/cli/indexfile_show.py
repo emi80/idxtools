@@ -53,9 +53,9 @@ def run(argsi, index):
                     kwargs[m.group('key')] = m.group('value')
                     if list_sep in kwargs[m.group('key')]:
                         kwargs[m.group('key')] = m.group('value').split(list_sep)
-                indices.append(i.select(absolute=absolute, exact=exact, **kwargs))
+                indices.append(index.select(absolute=absolute, exact=exact, **kwargs))
         else:
-            indices.append(i)
+            indices.append(index)
 
         for index in indices:
             if isinstance(index,Index):
@@ -74,7 +74,7 @@ def run(argsi, index):
                 for line in indexp:
                     args.get('--output').write('%s%s' % (line,os.linesep))
     finally:
-        i.release()
+        index.release()
 
 if __name__ == '__main__':
     args = docopt(__doc__)
