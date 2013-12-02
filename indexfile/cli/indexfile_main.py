@@ -22,7 +22,7 @@ The main commands are:
 import sys
 from subprocess import call
 from docopt import docopt
-from itertools import chain
+from indexfile.cli import *
 
 def main():
     import indexfile
@@ -33,13 +33,16 @@ def main():
 
     args = docopt(__doc__ % (name,name), version="%s v%s" % (name, version), options_first=True)
 
-    argv = [args['<command>']] + list(chain.from_iterable([(k,v) for k,v in args.iteritems() if k.startswith('--')])) + args['<args>']
+    index = open_index(args)
+
+    argv = [args['<command>']] + args['<args>']
     if args['<command>'] in 'show add remove'.split():
         import runpy
         if len(argv) == 1 and args['<command>'] != "show":
             argv.append('--help')
         sys.argv = argv
-        runpy.run_module("indexfile.cli.indexfile_%s" % args['<command>'], run_name="__main__")
+        runpy.run_module("indexfile.cli.indexfile_%s" % args['<command>'], run_name="__main__",
+          init_globals={'index':index})
     elif args['<command>'] in ['help', None]:
         docopt(__doc__ % (name,name), version="%s v%s" %
         (name,version), argv=['--help'])

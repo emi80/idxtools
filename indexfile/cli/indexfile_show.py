@@ -20,7 +20,7 @@ import indexfile
 from docopt import docopt
 from indexfile.cli import *
 
-def run(args):
+def run(argsi, index):
     import signal
     import re
     absolute = False
@@ -39,8 +39,7 @@ def run(args):
         if args.get('--tags') != 'all':
             tags = args.get("--tags").split(',')
 
-    i = open_index(args)
-    i.lock()
+    index.lock()
 
     try:
         indices = []
@@ -79,4 +78,4 @@ def run(args):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    run(args)
+    run(args, index)
