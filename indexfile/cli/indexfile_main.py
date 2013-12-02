@@ -43,6 +43,7 @@ def main():
         if len(argv) == 1 and args['<command>'] != "show":
             argv.append('--help')
         sys.argv = argv
+        print argv
         runpy.run_module("indexfile.cli.indexfile_%s" % args['<command>'], run_name="__main__",
           init_globals={'index':index})
     elif args['<command>'] in ['help', None]:

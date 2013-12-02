@@ -20,13 +20,15 @@ import indexfile
 from docopt import docopt
 from indexfile.cli import *
 
-def run(argsi, index):
+def run(args, index):
     import signal
     import re
     absolute = False
     map_keys = False
     exact = False
     type='index'
+
+    args = validate(args)
 
     absolute = args.get('--absolute-path')
     map_keys = args.get('--map-keys')
