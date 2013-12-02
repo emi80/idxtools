@@ -16,7 +16,6 @@ Options:
   --header               Output header when selecting tags
 """
 
-import indexfile
 from docopt import docopt
 from indexfile.cli import *
 
