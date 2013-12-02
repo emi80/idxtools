@@ -1,5 +1,5 @@
 """
-Usage: %s show [options] [-m <meta_data>]
+Usage: indexfile_show [options] [-m <meta_data>]
 
 Options:
 
@@ -18,6 +18,7 @@ Options:
 
 from docopt import docopt
 import indexfile
+from indexfile.cli import *
 
 def run(args):
     import signal
@@ -77,5 +78,5 @@ def run(args):
         i.release()
 
 if __name__ == '__main__':
-    args = docopt(__doc__ % indexfile.__name__)
+    args = docopt(__doc__)
     run(args)

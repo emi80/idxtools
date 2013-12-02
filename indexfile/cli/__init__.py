@@ -1,6 +1,7 @@
 """
 Command line interface to the IndexFile API
 """
+from indexfile.index import *
 
 def open_index(args):
     import simplejson as json

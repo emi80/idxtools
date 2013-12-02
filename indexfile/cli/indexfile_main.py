@@ -14,8 +14,9 @@ Options:
 
 The main commands are:
 
-   add        Add file contents to the index
-   remove     Remove files from the index
+  show       Show the index
+  add        Add file contents to the index
+  remove     Remove files from the index
 
 """
 import sys
