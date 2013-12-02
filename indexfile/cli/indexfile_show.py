@@ -47,8 +47,8 @@ def run(args, index):
         if args.get('--select'):
             list_sep=':'
             query_sep=','
+            kwargs = {}
             for q in args.get('--select').split(query_sep):
-                kwargs = {}
                 m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
                 kwargs[m.group('key')] = m.group('value')
                 if list_sep in kwargs[m.group('key')]:
