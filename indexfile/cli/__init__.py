@@ -2,6 +2,7 @@
 Command line interface to the IndexFile API
 """
 from indexfile.index import *
+import os
 
 def open_index(args):
     import simplejson as json

@@ -16,8 +16,8 @@ Options:
   --header               Output header when selecting tags
 """
 
-from docopt import docopt
 import indexfile
+from docopt import docopt
 from indexfile.cli import *
 
 def run(args):

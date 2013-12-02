@@ -24,27 +24,27 @@ from subprocess import call
 from docopt import docopt
 
 def main():
-  import indexfile
-  import warnings
-  warnings.simplefilter('ignore')
-  name = indexfile.__name__
-  version = indexfile.__version__
+    import indexfile
+    import warnings
+    warnings.simplefilter('ignore')
+    name = indexfile.__name__
+    version = indexfile.__version__
 
-  args = docopt(__doc__ % (name,name), version="%s v%s" % (name, version), options_first=True)
+    args = docopt(__doc__ % (name,name), version="%s v%s" % (name, version), options_first=True)
 
-  argv = [args['<command>']] + args['<args>']
-  if args['<command>'] in 'show add remove'.split():
-      import runpy
-      if len(argv) == 1 and args['<command>'] != "show":
-        argv.append('--help')
-      sys.argv = argv
-      runpy.run_module("indexfile.cli.indexfile_%s" % args['<command>'], run_name="__main__")
-  elif args['<command>'] in ['help', None]:
-      docopt(__doc__ % (name,name), version="%s v%s" %
+    argv = [args['<command>']] + [args[k] for k in args if k.startswith('--')] + args['<args>']
+    if args['<command>'] in 'show add remove'.split():
+        import runpy
+        if len(argv) == 1 and args['<command>'] != "show":
+            argv.append('--help')
+        sys.argv = argv
+        runpy.run_module("indexfile.cli.indexfile_%s" % args['<command>'], run_name="__main__")
+    elif args['<command>'] in ['help', None]:
+        docopt(__doc__ % (name,name), version="%s v%s" %
         (name,version), argv=['--help'])
-  else:
-      exit("%r is not an indexfile command. See '%s help'." %
+    else:
+        exit("%r is not an indexfile command. See '%s help'." %
         (args['<command>'],name))
 
 if __name__ == '__main__':
-  main()
+    main()
