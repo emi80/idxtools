@@ -7,6 +7,8 @@ import os
 def open_index(args):
     import simplejson as json
 
+    args = validate(args)
+
     i = Index()
     format = args.get('--format')
     index = args.get('--input')
