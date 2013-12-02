@@ -9,17 +9,17 @@ Options:
 from docopt import docopt
 import indexfile
 
-def run(self, argv):
-    args = docopt(self.__doc__, argv=argv)
+def run(args, index):
     args = validate(args)
-    i = open_index(args)
-    i.lock()
+
+    index.lock()
     path = args.get('--path')
     try:
-        i.remove(path=path)
-        i.save()
+        index.remove(path=path)
+        index.save()
     finally:
-        i.release()
+        index.release()
 
 if __name__ == '__main__':
-    print docopt(__doc__ % indexfile.__name__)
+    args = docopt(__doc__)
+    run(args, index)
