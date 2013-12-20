@@ -11,7 +11,7 @@ from copy import deepcopy
 
 # default format
 
-__format__ = {
+_format = {
     "colsep": "\t",
     "fileinfo": [
         "path",
@@ -228,7 +228,7 @@ class Index(object):
 
         self.datasets = datasets or {}
         self._lock = None
-        self.format = format or deepcopy(__format__)
+        self.format = format or deepcopy(_format)
         self._lookup = {}
         self._alltags = []
 
@@ -258,7 +258,7 @@ class Index(object):
         import simplejson as json
 
         if not str:
-            str = self.__format__
+            return
         try:
             format = open(str,'r')
             self.format = json.load(format)
