@@ -257,6 +257,9 @@ class Index(object):
 
         import simplejson as json
 
+        if not str:
+            str = self.__format__
+
         try:
             format = open(str,'r')
             self.format = json.load(format)
