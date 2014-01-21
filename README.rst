@@ -1,5 +1,7 @@
-Introduction
-============
+Idxtools
+========
+.. image:: https://badge.fury.io/py/idxtools.png
+    :target: http://badge.fury.io/py/idxtools
 
 Idxtools provides some command line tools and an API to perform operations on index files.
 
