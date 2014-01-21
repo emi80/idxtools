@@ -26,7 +26,10 @@ setup(
         'Topic :: Scientific/Engineering :: Bio-Informatics',
     ],
     install_requires=["argparse==1.2.1",
-                      "clint==0.3.1"],
+                      "clint==0.3.1",
+                      "docopt==0.6.1",
+                      "simplejson==3.3.2",
+                      "lockfile==0.9.1"],
     entry_points={
         'console_scripts': [
             '%s = indexfile.cli.indexfile_main:main' % indexfile.__name__,
