@@ -258,7 +258,8 @@ class Index(object):
         import simplejson as json
 
         if not str:
-            return
+            str = self._format
+
         try:
             format = open(str,'r')
             self.format = json.load(format)
@@ -601,6 +602,10 @@ class Index(object):
         :keyword delimiters: the allowed fields delimiters
 
         """
+        columns = file.readline().split("\t")
+        if len(columns) == 2 and ';' in columns[1]:
+            return "idx", None
+
         import csv
 
         if not csv.Sniffer().has_header(file.readline()):

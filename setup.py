@@ -5,7 +5,7 @@ from setuptools import setup
 import indexfile
 
 setup(
-    name='indexfile',
+    name=indexfile.__name__,
     version=indexfile.__version__,
     description='Indexfile API and tools',
     author='Emilio Palumbo',
@@ -14,7 +14,7 @@ setup(
     long_description='''A set of function to import, manage, export index files data.
 ''',
     platforms=['lx64'],
-    packages=['indexfile'],
+    packages=['indexfile','indexfile.cli'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -29,7 +29,7 @@ setup(
                       "clint==0.3.1"],
     entry_points={
         'console_scripts': [
-            'idxtools = indexfile.commands:main',
+            '%s = indexfile.cli.indexfile_main:main' % indexfile.__name__,
         ]
     },
 )
