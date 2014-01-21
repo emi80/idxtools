@@ -9,10 +9,9 @@ setup(
     version=indexfile.__version__,
     description='Indexfile API and tools',
     author='Emilio Palumbo',
-    url='https://',
+    url='https://github.com/emi80/idxtools',
     license="GNU General Public License (GPL)",
-    long_description='''A set of function to import, manage, export index files data.
-''',
+    long_description=open('README.rst').read(),
     platforms=['lx64'],
     packages=['indexfile','indexfile.cli'],
     classifiers=[
