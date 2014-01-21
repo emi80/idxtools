@@ -19,7 +19,7 @@ Installation
 
 The package can be installed either using pip::
 
-    pip install idxtools
+    pip install idxtools --pre
 
 or from source::
 

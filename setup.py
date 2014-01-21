@@ -1,7 +1,10 @@
-from distribute_setup import use_setuptools
-use_setuptools()
+try:
+    from setuptools import setup, Extension
+except:
+    from distribute_setup import use_setuptools
+    use_setuptools()
+    from setuptools import setup, Extension
 
-from setuptools import setup
 import indexfile
 
 setup(
