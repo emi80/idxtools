@@ -1,7 +1,7 @@
 Introduction
 ============
 
-This package provides a set of classes and methods to perform operations on index files.
+Idxtools provides some command line tools and an API to perform operations on index files.
 
 Index files format
 ------------------
@@ -14,3 +14,15 @@ with ``attribute_list`` as a semicolon separated list of ``key`` = ``value`` str
 
     /path/to/file	size=100; id=1; class=MyClass; type=MyType
 
+Installation
+============
+
+The package can be installed either using pip::
+
+    pip install idxtools
+
+or from source::
+
+    git clone https://github.com/emi80/idxtools.git
+    cd idxtools
+    python setup.py install
