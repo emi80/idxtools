@@ -1,11 +1,10 @@
 """
-Usage: %s_add [options] -m <metadata>
+Add new file to the index using the provided file metadata (eg. path, type, size, md5...)
+
+Usage: %s_add [options] <metadata>...
 
 Options:
-
-  -u --update                  Update information for an existing dataset
-  -m, --metadata <metadata>    Information related to the file (eg. path, type,
-                               size, md5...)
+  -u --update  Update information for an existing dataset
 """
 
 from docopt import docopt
@@ -15,13 +14,13 @@ def run(args, index):
     args = validate(args)
 
     index.lock()
-    infos = args.get("--metadata").split(',')
-    update = args.get("--update")
-    kwargs = {}
-    for info in infos:
-        m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
-        kwargs[m.group('key')] = m.group('value')
     try:
+        infos = args.get("<metadata>")
+        update = args.get("--update")
+        kwargs = {}
+        for info in infos:
+            m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
+            kwargs[m.group('key')] = m.group('value')
         index.insert(update=update, **kwargs)
         index.save()
     finally:
