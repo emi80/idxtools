@@ -3,4 +3,4 @@
 """
 
 __name__ = "idxtools"
-__version__ = "0.9-alpha.1"
+__version__ = "0.9b1"
