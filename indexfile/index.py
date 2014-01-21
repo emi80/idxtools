@@ -599,6 +599,10 @@ class Index(object):
         :keyword delimiters: the allowed fields delimiters
 
         """
+        columns = file.readline().split("\t")
+        if len(columns) == 2 and ';' in columns[1]:
+            return "idx", None
+
         import csv
 
         if not csv.Sniffer().has_header(file.readline()):
