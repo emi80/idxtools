@@ -118,8 +118,8 @@ class Dataset(object):
 
     def rm_file(self, **kwargs):
         """Remove a file form the dataset files dictionary. ``kwargs`` contains
-        the file information. 'path' and 'type' argument are mandatory in order
-        to add the file.
+        the file information. The 'path' argument is mandatory in order
+        to delete the file.
 
         """
 
@@ -340,16 +340,19 @@ class Index(object):
 
         return self.datasets[d.id]
 
-    def remove(self, **kwargs):
+    def remove(self, clear=False, **kwargs):
         """Remove dataset(s) from the index given a search query.
         """
         datasets = self.select(**kwargs).datasets.keys()
         if datasets:
             for k in datasets:
+                d = self.datasets.get(k)
                 if 'path' in kwargs:
-                    self.datasets.get(k).rm_file(path=kwargs.get('path'))
+                    d.rm_file(path=kwargs.get('path'))
+                    if not d._files and clear:
+                        del self.datasets[k]
                 else:
-                    del self.datasets['k']
+                    del self.datasets[k]
 
 
     def save(self, path=None):
