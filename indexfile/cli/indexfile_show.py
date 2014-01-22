@@ -1,5 +1,8 @@
 """
-Usage: indexfile_show [options] [-m <meta_data>]
+Usage: indexfile_show [options] [<query>]...
+
+Select datasets using query strings. Examples of valid strings are: 'sex=M' and 'lab=CRG'.
+Multiple fields in a query are joind with an 'AND'.
 
 Options:
 
@@ -11,8 +14,6 @@ Options:
   -t, --tags <tags>      Output only the selected tags in tabular format (no
                          header)
   -o, --output <output>  The output file. [default: stdout]
-  -s, --select <query>   Select datasets using query strings. Examples of valid
-                         strings are: sex=M and sex=M,lab=CRG
   --header               Output header when selecting tags
 """
 
@@ -49,11 +50,11 @@ def run(args, index):
 
     try:
         indices = []
-        if args.get('--select'):
+        query = args.get('<query>')
+        if query:
             list_sep=':'
-            query_sep=','
             kwargs = {}
-            for q in args.get('--select').split(query_sep):
+            for q in query:
                 m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
                 kwargs[m.group('key')] = m.group('value')
                 if list_sep in kwargs[m.group('key')]:
