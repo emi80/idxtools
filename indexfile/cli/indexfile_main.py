@@ -26,14 +26,16 @@ from indexfile.cli import *
 
 def main():
     import indexfile
-    import warnings
-    warnings.simplefilter('ignore')
+    import logging
     name = indexfile.__name__
     version = indexfile.__version__
+    log = indexfile.getLogger(__name__)
 
     args = docopt(__doc__ % (name,name), version="%s v%s" % (name, version), options_first=True)
 
     args = validate(args)
+
+    indexfile.setLogLevel(args.get('--loglevel'))
 
     index = open_index(args)
 
