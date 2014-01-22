@@ -40,6 +40,11 @@ def run(args, index):
         if args.get('--tags') != 'all':
             tags = args.get("--tags").split(',')
 
+
+    def handler(signum, frame):
+        index.release()
+        exit()
+
     index.lock()
 
     try:
@@ -62,7 +67,7 @@ def run(args, index):
                 if args.get('--count') and not args.get('--tags'):
                     args.get('--output').write("%s%s" % (i.size,os.linesep))
                     return
-                signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+                signal.signal(signal.SIGPIPE, handler)
                 command = "i.export(header=%s,type=%r,tags=tags,absolute=absolute" % (header,type)
                 if not map_keys:
                     command = "%s,map=None" % command
