@@ -553,7 +553,8 @@ class Index(object):
                                         self._lookup['_info'] = {}
                                     if not self._lookup['_info'].get(v):
                                         self._lookup['_info'][v] = []
-                                    self._lookup['_info'][v].append(dict(set(d._metadata.items() + infos.items())))
+                                    metadata = [(i[0],','.join(i[1])) if type(i[1]) == list else i for i in d._metadata.items()]
+                                    self._lookup['_info'][v].append(dict(set(metadata + infos.items())))
                                 else:
                                     self._lookup[k][v].append(path)
 
