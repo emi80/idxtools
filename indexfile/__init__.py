@@ -5,7 +5,7 @@
 import logging
 
 __name__ = "idxtools"
-__version__ = "0.9"
+__version__ = "0.9.1"
 _log_level = 30
 
 
@@ -23,7 +23,7 @@ log.propagate = False
 setLogLevel(_log_level)
 
 ch = logging.StreamHandler()
-fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s', '%m/%d/%Y %H:%M:%S')
 ch.setFormatter(fmt)
 log.addHandler(ch)
 
