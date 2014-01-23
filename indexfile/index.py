@@ -413,8 +413,12 @@ class Index(object):
                     if not d._files and clear:
                         del self.datasets[k]
                 else:
-                    del self.datasets[k]
-                log.debug('%s removed' % d)
+                    if 'id' in kwargs:
+                        log.debug('Remove whole %s' % d)
+                        del self.datasets[k]
+                    else:
+                        log.debug('Nothing to remove for %s' % kwargs)
+
 
 
     def save(self, path=None):

@@ -16,7 +16,11 @@ def run(args, index):
     paths = args.get('<path>')
     try:
         for path in paths:
-            index.remove(path=path, clear=args.get('--clear'))
+            if '=' in path:
+                kw = dict([path.split('=')])
+                index.remove(**kw)
+            else:
+                index.remove(path=path, clear=args.get('--clear'))
             index.save()
     finally:
         index.release()
