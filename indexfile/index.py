@@ -27,20 +27,28 @@ _format = {
 
 # utils methods
 
-def to_tags(kw_sep=' ', sep='=', trail=';', quote=None, **kwargs):
+def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
     taglist=[]
     #for k,v in kwargs.items():
     for k,v in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
-        v = str(v)
-        if quote:
-            if quote=='value' or quote=='both':
-                if '\"' not in v: v = '\"%s\"' % v
-            if quote=='key' or quote=='both':
-                if '\"' not in k: k = '\"%s\"' % k
-        if ' ' in v:
-            if '\"' not in v: v = '\"%s\"' % v
+        if type(v) == list:
+            v = rep_sep.join([quote_kw(k,val,quote)[1] for val in v])
+        else:
+            v = str(v)
+            k,v = quote_kw(k,v,quote)
         taglist.append('%s%s%s%s' % (k, sep, v, trail))
     return kw_sep.join(taglist)
+
+def quote_kw(k, v, quote):
+    if quote:
+       if quote=='value' or quote=='both':
+           if '\"' not in v: v = '\"%s\"' % v
+       if k and (quote=='key' or quote=='both'):
+           if '\"' not in k: k = '\"%s\"' % k
+    if ' ' in v:
+       if '\"' not in v: v = '\"%s\"' % v
+    return (k, v)
+
 
 class dotdict(dict):
     def __init__(self, d={}):
@@ -187,6 +195,20 @@ class Dataset(object):
         data = dict([i for i in self._metadata.iteritems() if i[0] in tags])
         return to_tags(**data)
 
+    def merge(self, datasets, sep=','):
+        """Merge metadata of this dataset with the ones from another dataset
+
+        :param datasets: A list of datasets to be merged with the current dataset
+        """
+        id = sep.join([self.id] + [d.id for d in datasets])
+        meta = {}
+        for k in set(self._metadata.keys() + [j for d1 in datasets for j in d1._metadata.keys()]):
+            vals = [self._metadata.get(k)] + [d._metadata.get(k) for d in datasets]
+            meta[k] = vals if len(set(vals))>1 else vals[0]
+        meta['id'] = id
+        d = Dataset(**meta)
+        return d
+
     def __getattr__(self, name):
         if name in self.__dict__['_attributes'].keys():
             return self.__dict__['_attributes'][name](self)
@@ -329,6 +351,19 @@ class Index(object):
             tags = Index.map_keys(line, **self.format)
             dataset = self.insert(**tags)
 
+    def find_replicates(self, **kwargs):
+        """Try to find replicates in the index using a dataset id made from the concatenation of multiple dataset ids
+        """
+        if not kwargs.get('id'):
+            return None
+        ids = kwargs.get('id').split(',')
+        datasets = dict([(k, self.datasets[k]) for k in ids if k in self.datasets])
+        if not datasets:
+            return []
+        if len(datasets) != len(ids):
+            raise ValueError('Some of the ids for the replicate do not exist. Please check the dataset ids')
+        return [datasets[k] for k in sorted(datasets.keys())]
+
     def insert(self, update=False, d=None, **kwargs):
         """Add a dataset to the index. Keyword arguments contains the dataset attributes.
         """
@@ -348,6 +383,11 @@ class Index(object):
                      dataset.__setattr__(k,v)
 
         if not dataset:
+            if ',' in d.id:
+                log.info('Gather replicates info for %s' % d.id)
+                reps = self.find_replicates(**kwargs)
+                if reps:
+                    d = reps[0].merge(reps[1:])
             self.datasets[d.id] = d
             dataset = self.datasets.get(d.id)
         else:
@@ -357,7 +397,7 @@ class Index(object):
             log.debug('Add %s to dataset' % kwargs.get('path'))
             dataset.add_file(update=update, **kwargs)
 
-        return self.datasets[d.id]
+        return dataset
 
     def remove(self, clear=False, **kwargs):
         """Remove dataset(s) from the index given a search query.
@@ -488,6 +528,8 @@ class Index(object):
                         k = self.format.get('id','id')
                     if k not in self._lookup.keys():
                         self._lookup[k] = {}
+                    if type(v) == list:
+                        v = ','.join(v)
                     if not self._lookup[k].get(v):
                         self._lookup[k][v] = []
                     self._lookup[k][v].append(d.id)
