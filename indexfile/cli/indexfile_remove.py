@@ -1,9 +1,9 @@
 """
-Usage: %s_remove [options] -p FILE_PATH
+Usage: %s_remove [options] <path>... [--clear]
 
 Options:
 
-  -p, --path <file_path>    The path of the file to be removed
+  --clear                   Clear all metadata when <file_path> is the last file of the dataset [default: false]
 
 """
 from docopt import docopt
@@ -13,10 +13,15 @@ def run(args, index):
     args = validate(args)
 
     index.lock()
-    path = args.get('--path')
+    paths = args.get('<path>')
     try:
-        index.remove(path=path)
-        index.save()
+        for path in paths:
+            if '=' in path:
+                kw = dict([path.split('=')])
+                index.remove(**kw)
+            else:
+                index.remove(path=path, clear=args.get('--clear'))
+            index.save()
     finally:
         index.release()
 

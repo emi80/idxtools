@@ -1,5 +1,8 @@
 """
-Usage: indexfile_show [options] [-m <meta_data>]
+Usage: indexfile_show [options] [<query>]...
+
+Select datasets using query strings. Examples of valid strings are: 'sex=M' and 'lab=CRG'.
+Multiple fields in a query are joind with an 'AND'.
 
 Options:
 
@@ -11,8 +14,6 @@ Options:
   -t, --tags <tags>      Output only the selected tags in tabular format (no
                          header)
   -o, --output <output>  The output file. [default: stdout]
-  -s, --select <query>   Select datasets using query strings. Examples of valid
-                         strings are: sex=M and sex=M,lab=CRG
   --header               Output header when selecting tags
 """
 
@@ -40,15 +41,20 @@ def run(args, index):
         if args.get('--tags') != 'all':
             tags = args.get("--tags").split(',')
 
+
+    def handler(signum, frame):
+        index.release()
+        exit()
+
     index.lock()
 
     try:
         indices = []
-        if args.get('--select'):
+        query = args.get('<query>')
+        if query:
             list_sep=':'
-            query_sep=','
             kwargs = {}
-            for q in args.get('--select').split(query_sep):
+            for q in query:
                 m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
                 kwargs[m.group('key')] = m.group('value')
                 if list_sep in kwargs[m.group('key')]:
@@ -62,7 +68,7 @@ def run(args, index):
                 if args.get('--count') and not args.get('--tags'):
                     args.get('--output').write("%s%s" % (i.size,os.linesep))
                     return
-                signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+                signal.signal(signal.SIGPIPE, handler)
                 command = "i.export(header=%s,type=%r,tags=tags,absolute=absolute" % (header,type)
                 if not map_keys:
                     command = "%s,map=None" % command
