@@ -280,7 +280,8 @@ class Index(object):
             self.path = os.path.abspath(path)
         if type(path) == file:
             self._open_file(path)
-            self.path = os.path.abspath(path.name)
+            if not path is sys.stdin:
+                self.path = os.path.abspath(path.name)
 
     def set_format(self, str):
         """Set index format from json string or file
@@ -424,15 +425,17 @@ class Index(object):
     def save(self, path=None):
         """Save changes to the index file
         """
-        if not path:
+        if not path and self.path:
             log.debug('Use path from the Index instance')
             path = self.path
+            index = open(path,'w+')
+        elif not self.path:
+            index = sys.stdout
         if path != self.path:
             self.path = os.path.abspath(path)
         log.debug('Save %s' % path)
-        with open(path,'w+') as index:
-            for line in self.export(map=None):
-                index.write("%s%s" % (line, os.linesep))
+        for line in self.export(map=None):
+            index.write("%s%s" % (line, os.linesep))
 
     def export(self, absolute=False, type='index', tags=[], header=False, **kwargs):
         """Export the index file information. ``kwargs`` contains the format information.
@@ -662,6 +665,10 @@ class Index(object):
         """
         if self._lock is not None:
             log.debug('Indexfile already locked')
+            return False
+
+        if not self.path:
+            log.debug('Index has no path')
             return False
 
         from lockfile import LockFile
