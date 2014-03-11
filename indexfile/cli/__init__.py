@@ -21,7 +21,9 @@ def open_index(args):
         except:
             i.format = json.loads(format)
 
-    if index is sys.stdin and os.environ.get('IDX_FILE'):
+    if index is sys.stdin and index.isatty():
+        if not os.environ.get('IDX_FILE'):
+            raise ValueError("No index file specified")
         index = os.environ.get('IDX_FILE')
 
     i.open(index)
