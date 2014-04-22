@@ -1,0 +1,40 @@
+{
+  "colsep": "\t", 
+  "fileinfo": [
+    "path", 
+    "size", 
+    "md5", 
+    "type",
+    "view",
+    "submittedDataVersion"
+  ], 
+  "id": "labExpId",
+  "kw_sep": " ", 
+  "map": {
+      "cell": "cell",
+      "tissue": "tissue",
+      "Description": "desc",
+      "developmental_point": "age",
+      "LIBRARY_ID": "labExpId",
+      "RNA": "rnaSpec",
+      "replicate": "replicate",
+      "RNA_quantity": "rnaQuantity",
+      "library_Qubit": "libQubit",
+      "library_Bioanalyser": "libBio",
+      "max_peak": "maxPeak",
+      "barcode": "barcode",
+      "sequence": "adaptor",
+      "pool_ID": "poolId",
+      "sequenced": "sequenced",
+      "n_sequences": "nReads",
+      "experiment_coverage": "expCoverage",
+      "readType": "readType",
+      "readStrand": "readStrand",
+      "rnaExtract": "rnaExtract",
+      "organism": "organism",
+      "localization": "localization",
+      "dataType": "dataType"
+  }, 
+  "sep": "=", 
+  "trail": ";"
+}
