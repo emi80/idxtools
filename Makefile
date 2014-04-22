@@ -1,3 +1,5 @@
+.PHONY: test
+
 all:
 	python setup.py build
 
@@ -6,5 +8,5 @@ devel:
 
 test:
 	@echo -n "Running pytest"
-	@py.test -q test_index.py
+	@py.test -q test
 	@echo "All tests ran successfully"
