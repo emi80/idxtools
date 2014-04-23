@@ -6,43 +6,50 @@ The module provide classes to perform operations on index files.
 import re
 import os
 import sys
-import logging
 from copy import deepcopy
 
-# utils methods
 
+# utils methods
 def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
-    taglist=[]
+    """Convert a dictionary to a string in index file format"""
+    taglist = []
     #for k,v in kwargs.items():
-    for k,v in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
-        if type(v) == list:
-            v = rep_sep.join([quote_kw(k,val,quote)[1] for val in v])
+    for key, val in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
+        if type(val) == list:
+            val = rep_sep.join([
+                quote_kw(key, value, quote)[1] for value in val])
         else:
-            v = str(v)
-            k,v = quote_kw(k,v,quote)
-        taglist.append('%s%s%s%s' % (k, sep, v, trail))
+            val = str(val)
+            key, val = quote_kw(key, val, quote)
+        taglist.append('%s%s%s%s' % (key, sep, val, trail))
     return kw_sep.join(taglist)
 
-def quote_kw(k, v, quote):
+
+def quote_kw(key, val, quote):
+    """Add or remove quotes to a string"""
     if quote:
-       if quote=='value' or quote=='both':
-           if '\"' not in v: v = '\"%s\"' % v
-       if k and (quote=='key' or quote=='both'):
-           if '\"' not in k: k = '\"%s\"' % k
-    if ' ' in v:
-       if '\"' not in v: v = '\"%s\"' % v
-    return (k, v)
+        if quote == 'value' or quote == 'both':
+            if '\"' not in val:
+                val = '\"%s\"' % val
+        if key and (quote == 'key' or quote == 'both'):
+            if '\"' not in key:
+                key = '\"%s\"' % key
+    if ' ' in val and '\"' not in val:
+        val = '\"%s\"' % val
+    return (key, val)
 
 
-class dotdict(dict):
-    def __init__(self, d={}):
-        for k,v in d.items():
-            if hasattr(v, 'keys'):
-                v = dotdict(v)
-            self[k] = v
+class DotDict(dict):
+    """Extends python dictionary allowing attribute access"""
+    def __init__(self, **kwargs):
+        for key, val in kwargs.items():
+            if hasattr(val, 'keys'):
+                val = DotDict(val)
+            self[key] = val
 
     def __getattr__(self, name):
         return self.get(name)
+
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
@@ -50,7 +57,11 @@ class dotdict(dict):
 
 # setup logger
 import indexfile
+# Disable warning about invalid constant name
+# pylint: disable=C0103
 log = indexfile.getLogger(__name__)
+# pylint: enable=C0103
+
 
 class Dataset(object):
     """A class that represent dataset in the index file.
@@ -65,7 +76,7 @@ class Dataset(object):
 
         """
         self.__dict__['_metadata'] = {}
-        self.__dict__['_files'] = dotdict()
+        self.__dict__['_files'] = DotDict()
         self.__dict__['_attributes'] = {}
 
         if not fileinfo:
@@ -73,13 +84,13 @@ class Dataset(object):
 
         is_file = False
 
-        for k,v in kwargs.items():
-            if k in fileinfo:
+        for key, val in kwargs.items():
+            if key in fileinfo:
                 is_file = True
                 continue
-            if not v or v == '':
-                v = 'NA'
-            self.__setattr__(k,v)
+            if not val or val == '':
+                val = 'NA'
+            self.__setattr__(key, val)
 
         if is_file:
             self.add_file(**kwargs)
@@ -91,7 +102,7 @@ class Dataset(object):
 
         """
 
-        path =  kwargs.get('path')
+        path = kwargs.get('path')
         file_type = kwargs.get('type')
 
         if not fileinfo:
@@ -107,28 +118,28 @@ class Dataset(object):
             kwargs['type'] = file_type
 
         if not self._files.get(file_type):
-            log.debug('Create file type dictionary for %s' % file_type)
-            self._files[file_type] = dotdict()
+            log.debug('Create file type dictionary for %s', file_type)
+            self._files[file_type] = DotDict()
 
         if path in self._files.get(file_type).keys():
             if not update:
-                log.debug("Skip existing %s entry" % path)
+                log.debug("Skip existing %s entry", path)
                 return
-            log.debug("Update %s entry" % path)
+            log.debug("Update %s entry", path)
 
         if (not path in self._files.get(file_type).keys()) or update:
-            log.debug('Create entry for %s' % path)
-            self._files.get(file_type)[path] = dotdict()
+            log.debug('Create entry for %s', path)
+            self._files.get(file_type)[path] = DotDict()
 
-        f = self._files.get(file_type).get(path)
+        info = self._files.get(file_type).get(path)
 
-        for k,v in kwargs.items():
-            if k == 'path' or k not in fileinfo:
+        for key, val in kwargs.items():
+            if key == 'path' or key not in fileinfo:
                 continue
-            if not v or v == '':
-                log.debug('Replace missing value with NA for %s' % k)
-                v = 'NA'
-            f[k] = v
+            if not val or val == '':
+                log.debug('Replace missing value with NA for %s', key)
+                val = 'NA'
+            info[key] = val
 
     def rm_file(self, **kwargs):
         """Remove a file form the dataset files dictionary. ``kwargs`` contains
@@ -140,54 +151,73 @@ class Dataset(object):
         path = kwargs.get('path')
         type = kwargs.get('type')
 
-        if not path:
-            log.debug('Skip %s - not found' % path)
+        if not path and not type:
+            log.debug('No file path and type specified')
             return
 
         if not type:
-            for k,v in self._files.items():
-                if path in v:
-                    type = k
-                    log.debug('Found file type entry for %s' % type)
+            for key, val in self._files.items():
+                if path in val:
+                    type = key
+                    log.debug('Found file type entry for %s', path)
                     break
-        if type:
-            log.debug('Delete entry for %s' % path)
+            else:
+                log.debug('No file type entry found for %s', path)
+                return
+            log.debug('Delete entry for %s', path)
             del self._files.get(type)[path]
             if not self._files.get(type):
-                log.debug('Delete file type entry for %s' % type)
+                log.debug('Delete file type entry for %s', type)
                 del self._files[type]
+        else:
+            log.debug('Delete all %r entries', type)
+            del self._files[type]
 
+    def export(self, types=None, tags=None):
+        """Export a :class:Dataset object to a list of dictionaries (one for
+        each file).
 
-    def export(self, types=[], tags=[]):
-        """Export a :class:Dataset object to a list of dictionaries (one for each file).
+        :keyword types: the list of file types to be exported. If set only the
+        file types in the list are exported. Default: None (all types
+        exported).
 
-        :keyword types: the list of file types to be exported. If set only the file types
-                        in the list are exported. Default: [] (all types exported).
-
+        :keyword tags: the list of tags to be exported. If set only the
+        sepcified tags will be put on output. Default: Nene (all tags exported)
         """
         out = []
         if not tags:
-            tags = self._metadata.keys() + ['type']
+            tags = self._metadata.keys() + ['path','type']
             if self._files:
-                tags += [ k for infos in self._files.values() for info in infos.values() for k in info.keys()]
+                tags += [k for infos in self._files.values() for info in infos.values() for k in info.keys()]
             tags = list(set(tags))
         if not types:
             types = self._files.keys()
         if not self._files:
             log.debug('No files found in the index. Write metadata index')
-            return [dict([(k,v) for k,v in self._metadata.items() if k in tags])]
-        for type in types:
-            log.debug('Write index')
-            for path,info in getattr(self,type).items():
-                data = dict([(k,v) for k,v in self._metadata.items() + {'type':type}.items() + info.items() if k in tags])
+            return [dict([
+                (k, v) for k, v in self._metadata.items() if k in tags])]
+        for ftype in types:
+            log.debug('Export type %r', ftype)
+            for path, info in getattr(self, ftype).items():
+                data = dict([
+                    (k, v) for k, v in self._metadata.items()
+                    + {'path': path, 'type': ftype}.items()
+                    + info.items() if k in tags])
                 out.append(data)
         return out
 
-    def get_tags(self, tags=[], exclude=[]):
-        """Concatenate specified tags. The tag are formatted according to the index file format
+    def get_meta_tags(self):
+        """Return all metadata tag names"""
+        return self._metadata.keys()
 
-        :keyword tags: list of keys to be included into output. Default: [] (all tags returned).
-        :keyword exclude: list of keys to be excluded from output. Default: [] (all keys included).
+    def get_tags(self, tags=None, exclude=None):
+        """Concatenate specified tags. The tag are formatted according to the
+        index file format
+
+        :keyword tags: list of keys to be included into output. Default: None
+        (all tags returned).
+        :keyword exclude: list of keys to be excluded from output. Default:
+        None (all keys included).
 
         """
         if not tags:
@@ -199,14 +229,17 @@ class Dataset(object):
     def merge(self, datasets, sep=','):
         """Merge metadata of this dataset with the ones from another dataset
 
-        :param datasets: A list of datasets to be merged with the current dataset
+        :param datasets: A list of datasets to be merged with the current
+        dataset
         """
-        id = sep.join([self.id] + [d.id for d in datasets])
+        dsid = sep.join([self.id] + [d.id for d in datasets])
         meta = {}
-        for k in set(self._metadata.keys() + [j for d1 in datasets for j in d1._metadata.keys()]):
-            vals = [self._metadata.get(k)] + [d._metadata.get(k) for d in datasets]
-            meta[k] = vals if len(set(vals))>1 else vals[0]
-        meta['id'] = id
+        for k in set(self._metadata.keys() + [
+                j for d1 in datasets for j in d1.get_meta_tags()]):
+            vals = [self._metadata.get(k)] + [
+                getattr(d, k) for d in datasets]
+            meta[k] = vals if len(set(vals)) > 1 else vals[0]
+        meta['id'] = dsid
         d = Dataset(**meta)
         return d
 
@@ -217,7 +250,8 @@ class Dataset(object):
             return self._metadata.get(name)
         if name in self._files.keys():
             return self._files.get(name)
-        raise AttributeError('%r object has no attribute %r' % (self.__class__.__name__,name))
+        raise AttributeError('%r object has no attribute %r' % (
+            self.__class__.__name__, name))
 
     def __setattr__(self, name, value):
         if name != '__dict__':
@@ -230,7 +264,16 @@ class Dataset(object):
         return self.get_tags()
 
     def __iter__(self):
-        return iter([self])
+        """
+        Iterates over all files in a dataset. Returns a tuple containing the
+        path and a dictionary with the file information.
+        """
+        for files in self._files.values():
+            for path, info in files.items():
+                yield (path, info)
+
+    def __len__(self):
+        return len(self._files)
 
 
 class Index(object):
@@ -272,9 +315,9 @@ class Index(object):
 
         """
         if not path:
-            log.debug('Use path from Index instance: %s' % self.path)
+            log.debug('Use path from Index instance: %s', self.path)
             path = self.path
-        log.debug('Open %s' % path)
+        log.debug('Open %s', path)
         if type(path) == str:
             with open(os.path.abspath(path), 'r') as index_file:
                 self._open_file(index_file)
