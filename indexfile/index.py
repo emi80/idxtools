@@ -22,7 +22,7 @@ def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
             val = str(val)
             key, val = quote_kw(key, val, quote)
         taglist.append('%s%s%s%s' % (key, sep, val, trail))
-    return kw_sep.join(taglist)
+    return kw_sep.join(sorted(taglist))
 
 
 def quote_kw(key, val, quote):
