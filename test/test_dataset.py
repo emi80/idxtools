@@ -277,6 +277,7 @@ def test_get_tags_all():
     string = dataset.get_tags()
     assert string == "age=65; id=1; sex=M;"
 
+
 def test_get_tags_all_w_quotes():
     """Concatenate all metadata tags from dataset"""
     info = {'id': '1', 'sex': 'M', 'age': 65, 'desc': 'A test dataset'}
