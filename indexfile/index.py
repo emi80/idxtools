@@ -192,6 +192,12 @@ class Dataset(object):
             tags = list(set(tags))
         if not types:
             types = self._files.keys()
+        if type(types) == str:
+            types = [types]
+        if type(tags) == str:
+            tags = [tags]
+        if 'id' not in tags:
+            tags.append('id')
         if not self._files:
             log.debug('No files found in the index. Write metadata index')
             return [dict([
@@ -222,6 +228,13 @@ class Dataset(object):
         """
         if not tags:
             tags = self._metadata.keys()
+        if exclude is None:
+            exclude = []
+        if type(tags) == str:
+            tags = [tags]
+        if type(exclude) == str:
+            exclude = [exclude]
+
         tags = list(set(tags).difference(set(exclude)))
         data = dict([i for i in self._metadata.iteritems() if i[0] in tags])
         return to_tags(**data)
