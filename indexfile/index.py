@@ -9,22 +9,6 @@ import sys
 import logging
 from copy import deepcopy
 
-# default format
-
-_format = {
-    "colsep": "\t",
-    "fileinfo": [
-        "path",
-        "size",
-        "md5",
-        "type",
-        "view"
-    ],
-    "kw_sep": " ",
-    "sep": "=",
-    "trail": ";"
-}
-
 # utils methods
 
 def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
@@ -75,7 +59,7 @@ class Dataset(object):
     information as long as file information.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, fileinfo=None, **kwargs):
         """Create an instance of a Dataset. ``kwargs`` contains
         the dataset attributes.
 
@@ -84,12 +68,23 @@ class Dataset(object):
         self.__dict__['_files'] = dotdict()
         self.__dict__['_attributes'] = {}
 
+        if not fileinfo:
+            fileinfo = indexfile.default_format.get('fileinfo')
+
+        is_file = False
+
         for k,v in kwargs.items():
+            if k in fileinfo:
+                is_file = True
+                continue
             if not v or v == '':
                 v = 'NA'
             self.__setattr__(k,v)
 
-    def add_file(self, update=False, **kwargs):
+        if is_file:
+            self.add_file(**kwargs)
+
+    def add_file(self, update=False, fileinfo=None, **kwargs):
         """Add a file to the dataset files dictionary. ``kwargs`` contains
         the file information. 'path' and 'type' argument are mandatory in order
         to add the file.
@@ -99,6 +94,9 @@ class Dataset(object):
         path =  kwargs.get('path')
         file_type = kwargs.get('type')
 
+        if not fileinfo:
+            fileinfo = indexfile.default_format.get('fileinfo')
+
         if not path:
             log.debug('No path specified. Add metadata entry')
             path = '.'
@@ -106,6 +104,7 @@ class Dataset(object):
         if not file_type:
             log.debug('Get file type from file extension')
             file_type = os.path.splitext(path)[1].strip('.')
+            kwargs['type'] = file_type
 
         if not self._files.get(file_type):
             log.debug('Create file type dictionary for %s' % file_type)
@@ -124,6 +123,8 @@ class Dataset(object):
         f = self._files.get(file_type).get(path)
 
         for k,v in kwargs.items():
+            if k == 'path' or k not in fileinfo:
+                continue
             if not v or v == '':
                 log.debug('Replace missing value with NA for %s' % k)
                 v = 'NA'
@@ -223,7 +224,7 @@ class Dataset(object):
             self.__dict__['_metadata'][name] = value
 
     def __repr__(self):
-        return "Dataset: %s" % (self.id)
+        return "(Dataset %s)" % (self.id)
 
     def __str__(self):
         return self.get_tags()
@@ -260,7 +261,7 @@ class Index(object):
 
         self.datasets = datasets or {}
         self._lock = None
-        self.format = format or deepcopy(_format)
+        self.format = format or deepcopy(indexfile.default_format)
         self._lookup = {}
         self._alltags = []
 
@@ -541,29 +542,29 @@ class Index(object):
                         self._lookup[k][v] = []
                     self._lookup[k][v].append(d.id)
                 log.debug('Create entries for files')
+                self._lookup['type'] = {}
+                self._lookup['path'] = {}
+                self._lookup['_info'] = {}
                 for key,info in [x for x in d._files.items()]:
-                    if not self._lookup.get('type'):
-                        self._lookup['type'] = {}
                     if not self._lookup['type'].get(key):
                         self._lookup['type'][key] = []
                     self._lookup['type'][key].extend(info.keys())
                     for path,infos in info.items():
+                        if not self._lookup['path'].get(path):
+                            self._lookup['path'][path] = []
+                        self._lookup['path'][path].append(path)
+                        if not self._lookup['_info'].get(path):
+                            self._lookup['_info'][path] = []
+                        metadata = [(i[0],','.join(i[1])) if type(i[1]) == list else i for i in d._metadata.items()]
+                        self._lookup['_info'][path].append(dict(set(metadata + infos.items())))
                         for k,v in infos.items():
                             if k in self.format.get('fileinfo'):
                                 if k not in self._lookup.keys():
                                     self._lookup[k] = {}
                                 if not self._lookup[k].get(v):
                                     self._lookup[k][v] = []
-                                if k == 'path':
-                                    self._lookup[k][v].append(path)
-                                    if not self._lookup.get('_info'):
-                                        self._lookup['_info'] = {}
-                                    if not self._lookup['_info'].get(v):
-                                        self._lookup['_info'][v] = []
-                                    metadata = [(i[0],','.join(i[1])) if type(i[1]) == list else i for i in d._metadata.items()]
-                                    self._lookup['_info'][v].append(dict(set(metadata + infos.items())))
-                                else:
-                                    self._lookup[k][v].append(path)
+                                self._lookup[k][v].append(path)
+
 
             self._alltags = [i for i in self._lookup.keys() if not i.startswith('_')]
 
