@@ -245,6 +245,8 @@ class Dataset(object):
         :param datasets: A list of datasets to be merged with the current
         dataset
         """
+        if type(datasets) != list and hasattr(datasets, 'id'):
+            datasets = [datasets]
         dsid = sep.join([self.id] + [d.id for d in datasets])
         meta = {}
         for k in set(self._metadata.keys() + [
