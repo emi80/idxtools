@@ -261,9 +261,9 @@ class Index(object):
 
         :param path: the path to the index file
         :keyword datasets: a list containing all the entries as dictionaries.
-        Default: [].
+        Default: None.
         :keyword format: a dictionary containing the format and mapping
-        information. Default: {}.
+        information. Default: None.
 
         The format information can be expressed with a dictionary as follows:
 
