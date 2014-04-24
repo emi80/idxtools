@@ -492,9 +492,11 @@ class Index(object):
             kwargs = dict(self.format.items() + kwargs.items())
 
         dsid = kwargs.pop('id')
-        idxmap = kwargs.pop('map', {})
+        idxmap = kwargs.pop('map', None)
         colsep = kwargs.pop('colsep', '\t')
         #fileinfo = kwargs.pop('fileinfo', [])
+
+        path = 'path'
 
         if idxmap:
             log.debug('Use correspondence table for keywords')
@@ -502,7 +504,7 @@ class Index(object):
                 if val:
                     idxmap[val] = key
 
-        path = idxmap.get('path', 'path')
+            path = idxmap.get('path', 'path')
 
         out = []
 
