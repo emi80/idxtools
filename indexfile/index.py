@@ -216,6 +216,10 @@ class Dataset(object):
         """Return all metadata tag names"""
         return self._metadata.keys()
 
+    def get_meta_items(self):
+        """Return all metadata tag key value pairs"""
+        return self._metadata.items()
+
     def get_tags(self, tags=None, exclude=None):
         """Concatenate specified tags. The tag are formatted according to the
         index file format
@@ -299,8 +303,10 @@ class Index(object):
         """Creates an instance of an Index
 
         :param path: the path to the index file
-        :keyword datasets: a list containing all the entries as dictionaries. Default: [].
-        :keyword format: a dictionary containing the format and mapping information. Default: {}.
+        :keyword datasets: a list containing all the entries as dictionaries.
+        Default: [].
+        :keyword format: a dictionary containing the format and mapping
+        information. Default: {}.
 
         The format information can be expressed with a dictionary as follows:
 
@@ -330,6 +336,8 @@ class Index(object):
 
         """
         if not path:
+            if not self.path:
+                raise AttributeError('No path sepcified')
             log.debug('Use path from Index instance: %s', self.path)
             path = self.path
         log.debug('Open %s', path)
@@ -339,52 +347,56 @@ class Index(object):
             self.path = os.path.abspath(path)
         if type(path) == file:
             self._open_file(path)
-            if not path is sys.stdin:
+            if path is not sys.stdin:
                 self.path = os.path.abspath(path.name)
 
-    def set_format(self, str):
+    def set_format(self, input_format):
         """Set index format from json string or file
 
-        :param str: the input string. It can be a path to a file or a valid json string.
+        :param str: the input string. It can be a path to a file or a valid
+        json string.
 
         """
 
         import simplejson as json
 
-        if not str:
-            log.debug('Use format from Index instance')
-            str = self._format
+        if not input_format:
+            log.debug('Use default indexfile format')
+            input_format = indexfile.default_format
 
-        log.debug('Load format %s' % str)
+        log.debug('Load format %s', input_format)
         try:
-            format = open(str,'r')
-            self.format = json.load(format)
+            format_file = open(input_format, 'r')
+            self.format = json.load(format_file)
+        # Disable pylint message about no exception type specifies
+        # pylint: disable=W0702
         except:
-            self.format = json.loads(str)
-
+            self.format = json.loads(input_format)
+        # pylint: enable=W0702
 
     def _open_file(self, index_file):
+        """Open index file"""
+
         if self.datasets:
             log.debug("Overwritie exisitng data")
             del self.datasets
             self.datasets = {}
         if index_file == sys.stdin:
             import tempfile
-            log.debug('Create temporary file for %s' % index_file)
+            log.debug('Create temporary file for %s', index_file)
             index_file = tempfile.TemporaryFile()
             for line in sys.stdin:
                 index_file.write("%s" % line)
             index_file.seek(0)
         log.debug('Guess file format')
-        file_type, dialect = Index.guess_type(index_file)
+        dummy_file_type, dialect = Index.guess_type(index_file)
         index_file.seek(0)
         if dialect:
-            log.debug('Load table file with %s' % dialect)
+            log.debug('Load table file with %s', dialect)
             self._load_table(index_file, dialect)
         else:
             log.debug('Load indexfile')
             self._load_index(index_file)
-
 
     def _load_index(self, index_file):
         """Load a file complying with the index file format.
@@ -398,10 +410,12 @@ class Index(object):
             dataset = self.insert(**tags)
 
     def _load_table(self, index_file, dialect=None):
-        """Import entries from a SV file. The sv file must have an header line with the name of the attributes.
+        """Import entries from a SV file. The sv file must have an header line
+        with the name of the attributes.
 
         :param index_file: a :class:`file` object pointing to the input file
-        :keyword dialect: a :class:`csv.dialect` containg the input file format information
+        :keyword dialect: a :class:`csv.dialect` containg the input file
+        format information
 
         """
         import csv
@@ -412,49 +426,57 @@ class Index(object):
             dataset = self.insert(**tags)
 
     def find_replicates(self, **kwargs):
-        """Try to find replicates in the index using a dataset id made from the concatenation of multiple dataset ids
+        """Try to find replicates in the index using a dataset id made from
+        the concatenation of multiple dataset ids
         """
         if not kwargs.get('id'):
             return None
         ids = kwargs.get('id').split(',')
-        datasets = dict([(k, self.datasets[k]) for k in ids if k in self.datasets])
+        datasets = dict([
+            (k, self.datasets[k]) for k in ids if k in self.datasets])
         if not datasets:
             return []
         if len(datasets) != len(ids):
-            raise ValueError('Some of the ids for the replicate do not exist. Please check the dataset ids')
+            raise ValueError('Some of the ids for the replicate do not exist. \
+                Please check the dataset ids')
         return [datasets[k] for k in sorted(datasets.keys())]
 
-    def insert(self, update=False, d=None, **kwargs):
-        """Add a dataset to the index. Keyword arguments contains the dataset attributes.
+    def insert(self, update=False, dataset=None, **kwargs):
+        """Add a dataset to the index. Keyword arguments contains the dataset
+        attributes.
+
+        :keyword update: specifies whether existing values has to be updated
+        :keyword dataset: the :class:`Dataset` to be inserted into the index
         """
         meta = kwargs
         if self.format.get('fileinfo'):
             log.debug('Use file specific keywords from the format')
-            meta = dict([(k,v) for k,v in kwargs.items() if k not in self.format.get('fileinfo')])
-        if not d:
-            d = Dataset(**meta)
-
-        dataset = self.datasets.get(d.id)
-
-        if dataset and update:
-             log.debug('Update existing dataset %s' % dataset.id)
-             for k,v in meta.items():
-                 if getattr(dataset, k):
-                     dataset.__setattr__(k,v)
-
+            meta = dict([(k, v) for k, v in kwargs.items()
+                        if k not in self.format.get('fileinfo')])
         if not dataset:
-            if ',' in d.id:
-                log.info('Gather replicates info for %s' % d.id)
+            dataset = Dataset(**meta)
+
+        existing_dataset = self.datasets.get(dataset.id)
+
+        if existing_dataset and update:
+            log.debug('Update existing dataset %s', existing_dataset.id)
+            for key, val in meta.items():
+                if getattr(existing_dataset, key):
+                    existing_dataset.__setattr__(key, val)
+
+        if not existing_dataset:
+            if ',' in dataset.id:
+                log.info('Gather replicates info for %s', dataset.id)
                 reps = self.find_replicates(**kwargs)
                 if reps:
-                    d = reps[0].merge(reps[1:])
-            self.datasets[d.id] = d
-            dataset = self.datasets.get(d.id)
+                    dataset = reps[0].merge(reps[1:])
+            self.datasets[dataset.id] = dataset
+            dataset = self.datasets.get(dataset.id)
         else:
-            log.debug('Use existing dataset %s' % dataset.id)
+            log.debug('Use existing dataset %s', dataset.id)
 
         if kwargs.get('path') and kwargs.get('type'):
-            log.debug('Add %s to dataset' % kwargs.get('path'))
+            log.debug('Add %s to dataset', kwargs.get('path'))
             dataset.add_file(update=update, **kwargs)
 
         return dataset
@@ -464,22 +486,20 @@ class Index(object):
         """
         datasets = self.select(**kwargs).datasets.keys()
         if datasets:
-            log.debug('Remove datasets %s' % datasets)
+            log.debug('Remove datasets %s', datasets)
             for k in datasets:
-                d = self.datasets.get(k)
+                dataset = self.datasets.get(k)
                 if 'path' in kwargs:
-                    log.debug('Remove %s' % kwargs.get('path'))
-                    d.rm_file(path=kwargs.get('path'))
-                    if not d._files and clear:
+                    log.debug('Remove %s', kwargs.get('path'))
+                    dataset.rm_file(path=kwargs.get('path'))
+                    if len(dataset) == 0 and clear:
                         del self.datasets[k]
                 else:
                     if 'id' in kwargs:
-                        log.debug('Remove whole %s' % d)
+                        log.debug('Remove whole %s', dataset)
                         del self.datasets[k]
                     else:
-                        log.debug('Nothing to remove for %s' % kwargs)
-
-
+                        log.debug('Nothing to remove for %s', kwargs)
 
     def save(self, path=None):
         """Save changes to the index file
@@ -487,21 +507,24 @@ class Index(object):
         if not path and self.path:
             log.debug('Use path from the Index instance')
             path = self.path
-            index = open(path,'w+')
+            index = open(path, 'w+')
         elif not self.path:
             index = sys.stdout
         if path != self.path:
             self.path = os.path.abspath(path)
-        log.debug('Save %s' % path)
+        log.debug('Save %s', path)
         for line in self.export(map=None):
             index.write("%s%s" % (line, os.linesep))
 
-    def export(self, absolute=False, type='index', tags=[], header=False, **kwargs):
-        """Export the index file information. ``kwargs`` contains the format information.
+    def export(self, absolute=False, type='index', tags=None, header=False,
+               **kwargs):
+        """Export the index file information. ``kwargs`` contains the format
+        information.
 
-        :keyword absolute: specify if absolute paths should be used. Default: false
-        :keyword type: specify the export type. Values: ['index','tab','json']. Default: 'index'
-
+        :keyword absolute: specify if absolute paths should be used. Default:
+        false
+        :keyword type: specify the export type. Values:
+        ['index','tab','json']. Default: 'index'
         """
         import simplejson as json
 
@@ -511,56 +534,59 @@ class Index(object):
                 kwargs = {}
             kwargs = dict(self.format.items() + kwargs.items())
 
-        id = kwargs.pop('id',None)
-        map = kwargs.pop('map',None)
-        colsep = kwargs.pop('colsep','\t')
-        fileinfo = kwargs.pop('fileinfo',[])
+        dsid = kwargs.pop('id')
+        idxmap = kwargs.pop('map', {})
+        colsep = kwargs.pop('colsep', '\t')
+        #fileinfo = kwargs.pop('fileinfo', [])
 
-        if map:
+        if idxmap:
             log.debug('Use correspondence table for keywords')
-            for k,v in map.items():
-                if v: map[v] = k
-        else:
-            map = {}
+            for key, val in idxmap.items():
+                if val:
+                    idxmap[val] = key
 
-        path = map.get('path','path')
+        path = idxmap.get('path', 'path')
 
         out = []
 
-        if type=='tab':
-            log.debug('Create header for %s export format' % type)
+        if type == 'tab':
+            log.debug('Create header for %s export format', type)
             if not self._alltags:
                 self._create_lookup()
-            headline =  self._alltags
+            headline = self._alltags
             if tags:
                 headline = tags
         for dataset in self.datasets.values():
             expd = dataset.export(tags=tags)
-            for d in expd:
+            for dic in expd:
                 line = dict()
-                for k,v in d.items():
-                    if k == 'id' and id:
-                        k = id
+                for k, val in dic.items():
+                    if k == 'id' and dsid:
+                        k = dsid
                     if k == 'path' and absolute:
-                        if self.path and not os.path.isabs(v):
-                            v = os.path.join(os.path.dirname(self.path), os.path.normpath(v))
-                    if map:
-                        k = map.get(k)
+                        if self.path and not os.path.isabs(val):
+                            val = os.path.join(os.path.dirname(self.path),
+                                               os.path.normpath(val))
+                    if idxmap:
+                        k = idxmap.get(k)
                     if k:
-                        line[k] = v
-                log.debug('Create output for %s format' % type)
-                if type=='index':
-                    out.append(colsep.join([line.pop(path,'.'),to_tags(**dict(line.items()+kwargs.items()))]))
-                if type=='json':
+                        line[k] = val
+                log.debug('Create output for %s format', type)
+                if type == 'index':
+                    out.append(colsep.join([line.pop(path, '.'),
+                                            to_tags(**dict(line.items() +
+                                                           kwargs.items()))]))
+                if type == 'json':
                     out.append(json.dumps(line))
-                if type=='tab':
+                if type == 'tab':
                     vals = line.values()
                     if tags or len(line.values()) != len(headline):
-                        vals = [ line.get(l,'NA') if l != 'id' else line.get(id) for l in headline ]
+                        vals = [line.get(l, 'NA') if l != 'id'
+                                else line.get(id) for l in headline]
                     out.append(colsep.join(vals))
 
-        if type=='tab':
-            log.debug('Adjust output for %s export format' % type)
+        if type == 'tab':
+            log.debug('Adjust output for %s export format', type)
             out = list(set(out))
             if tags:
                 out.sort()
@@ -570,8 +596,8 @@ class Index(object):
         return out
 
     def _create_lookup(self):
-        """Create the index lookup table for querying the index by attribute values.
-
+        """Create the index lookup table for querying the index by attribute
+        values.
         """
 
         if self.datasets:
@@ -580,59 +606,67 @@ class Index(object):
 
             self._lookup = {}
             if not self.format.get('fileinfo'):
-                log.debug('No information about file specific keywords available')
+                log.debug('''No information about file specific keywords
+                           available''')
                 self.format['fileinfo'] = []
-            #keys = set(self.datasets.values()[0]._metadata.keys()).union(set(self.format.get('fileinfo')))
+            # keys = set(self.datasets.values()[0]._metadata.keys()).union(
+            #     set(self.format.get('fileinfo')))
             #for k in keys:
             #    self._lookup[k] = {}
-            for d in self.datasets.values():
+            for dataset in self.datasets.values():
                 log.debug('Create entries for metadata')
-                for k,v in d._metadata.items():
+                for k, val in dataset.get_meta_items():
                     if k in self.format.get('fileinfo'):
                         continue
                     if k == 'id':
-                        k = self.format.get('id','id')
+                        k = self.format.get('id', 'id')
                     if k not in self._lookup.keys():
                         self._lookup[k] = {}
-                    if type(v) == list:
-                        v = ','.join(v)
-                    if not self._lookup[k].get(v):
-                        self._lookup[k][v] = []
-                    self._lookup[k][v].append(d.id)
+                    if type(val) == list:
+                        val = ','.join(val)
+                    if not self._lookup[k].get(val):
+                        self._lookup[k][val] = []
+                    self._lookup[k][val].append(dataset.id)
                 log.debug('Create entries for files')
                 self._lookup['type'] = {}
                 self._lookup['path'] = {}
                 self._lookup['_info'] = {}
-                for key,info in [x for x in d._files.items()]:
+                for key, info in [x for x in dataset._files.items()]:
                     if not self._lookup['type'].get(key):
                         self._lookup['type'][key] = []
                     self._lookup['type'][key].extend(info.keys())
-                    for path,infos in info.items():
+                    for path, infos in info.items():
                         if not self._lookup['path'].get(path):
                             self._lookup['path'][path] = []
                         self._lookup['path'][path].append(path)
                         if not self._lookup['_info'].get(path):
                             self._lookup['_info'][path] = []
-                        metadata = [(i[0],','.join(i[1])) if type(i[1]) == list else i for i in d._metadata.items()]
-                        self._lookup['_info'][path].append(dict(set(metadata + infos.items())))
-                        for k,v in infos.items():
+                        metadata = [(i[0], ','.join(i[1]))
+                                    if type(i[1]) == list
+                                    else i for i in dataset.get_meta_items()]
+                        self._lookup['_info'][path].append(dict(set(metadata
+                                                           + infos.items())))
+                        for k, val in infos.items():
                             if k in self.format.get('fileinfo'):
                                 if k not in self._lookup.keys():
                                     self._lookup[k] = {}
-                                if not self._lookup[k].get(v):
-                                    self._lookup[k][v] = []
-                                self._lookup[k][v].append(path)
+                                if not self._lookup[k].get(val):
+                                    self._lookup[k][val] = []
+                                self._lookup[k][val].append(path)
 
-
-            self._alltags = [i for i in self._lookup.keys() if not i.startswith('_')]
+            self._alltags = [i for i in self._lookup.keys()
+                             if not i.startswith('_')]
 
             log.debug('Lookup table created')
 
-    def select(self, id=None, oplist=['>','=','<', '!'], absolute=False, exact=False, **kwargs):
-        """Select datasets from indexfile. ``kwargs`` contains the attributes to be looked for.
+    def select(self, id=None, oplist=['>', '=', '<', '!'], absolute=False,
+               exact=False, **kwargs):
+        """Select datasets from indexfile. ``kwargs`` contains the attributes
+        to be looked for.
 
         :keyword id: the id to select
-        :keyword absolute: specify if absolute paths should be used. Default: false
+        :keyword absolute: specify if absolute paths should be used. Default:
+        false
 
         """
 
@@ -645,11 +679,11 @@ class Index(object):
             return self
 
         if id:
-            log.debug('Query by id=%s' % id)
-            kwargs[self.format.get('id','id')] = id
+            log.debug('Query by id=%s', id)
+            kwargs[self.format.get('id', 'id')] = id
 
         if kwargs:
-            log.debug('Query by %s' % kwargs)
+            log.debug('Query by %s', kwargs)
             if set(kwargs.keys()).difference(set(self.format.get('fileinfo'))):
                 meta = True
             if not self.datasets:
@@ -659,42 +693,47 @@ class Index(object):
                     return []
             if not self._lookup:
                 self._create_lookup()
-            for k,v in kwargs.items():
+            for k, val in kwargs.items():
                 if meta:
                     log.debug('Metadata query')
                     if k in self.format.get('fileinfo'):
-                        finfo[k] = v
+                        finfo[k] = val
                         continue
                 log.debug('File query')
                 if not k in self._lookup.keys():
-                    raise ValueError("The attribute %r is not present in the index" % k)
-                if type(v) == list:
-                    op = ' in '
-                    val = v
+                    raise ValueError('''The attribute %r is not present in the
+                                     index''' % k)
+                if type(val) == list:
+                    operator = ' in '
+                    value = val
                 else:
-                    op = "".join([x for x in list(v) if x in oplist])
-                    while op in ['', '=','!']:
-                        op = '%s=' % op
-                    val = "".join([x for x in list(v) if x not in oplist])
+                    operator = "".join([x for x in list(val) if x in oplist])
+                    while operator in ['', '=', '!']:
+                        operator = '%s=' % operator
+                    value = "".join([x for x in list(val) if x not in oplist])
                 try:
-                   val = int(val)
-                   log.debug('Query integer value %d for %s' % (val,k))
-                   query = "[id for k,v in self._lookup[%r].items() if int(k)%s%r for id in v]" % (k,op,val)
+                    value = int(value)
+                    log.debug('Query integer value %d for %s', value, k)
+                    query = '''[id for k, v in self._lookup[%r].items() if
+                            int(k) %s%r for id in v]''' % (k, operator, value)
                 except:
-                   log.debug('Query string value %s for %s' % (val,k))
-                   if exact or type(val) == list:
-                       log.debug('Look for exact values')
-                       search = "k%s%r" % (op,val)
-                   else:
-                       val = str(val)
-                       search = 're.match(%r,k)' % val
-                   query = "[id for k,v in self._lookup[%r].items() if %s for id in v]" % (k,search)
+                    log.debug('Query string value %s for %s', value, k)
+                    if exact or type(value) == list:
+                        log.debug('Look for exact values')
+                        search = "k%s%r" % (operator, value)
+                    else:
+                        value = str(value)
+                        search = 're.match(%r, k)' % value
+                    query = '''[id for k, v in self._lookup[%r].items() if %s
+                            for id in v]''' % (k, search)
 
                 setlist.append(set(eval(query)))
 
         if meta:
             log.debug('Metadata query')
-            datasets = dict([(x,self.datasets.get(x)) for x in set.intersection(*setlist) if self.datasets.get(x)])
+            datasets = dict([(x, self.datasets.get(x)) for x in
+                            set.intersection(*setlist)
+                            if self.datasets.get(x)])
             i = Index(datasets=datasets, format=self.format, path=self.path)
             i._create_lookup()
         else:
@@ -702,20 +741,21 @@ class Index(object):
             filelist = [x for x in set.intersection(*setlist) if "/" in x]
             if absolute:
                 log.debug('Use absolute path')
-                filelist = [os.path.join(os.path.dirname(self.path),x) if not os.path.isabs(x) and self.path else x for x in filelist]
+                filelist = [os.path.join(os.path.dirname(self.path), x)
+                            if not os.path.isabs(x) and self.path
+                            else x for x in filelist]
             i = Index(format=self.format, path=self.path)
-            for f in filelist:
-                for info in self._lookup['_info'].get(f):
+            for afile in filelist:
+                for info in self._lookup['_info'].get(afile):
                     i.insert(**info)
             i._create_lookup()
 
         if finfo and meta:
-            i = i.select(None,oplist,absolute,exact,**finfo)
+            i = i.select(None, oplist, absolute, exact, **finfo)
 
         return i
 
-    @property
-    def size(self):
+    def __len__(self):
         return len(self.datasets)
 
     def lock(self):
@@ -738,11 +778,11 @@ class Index(object):
 
         self._lock = LockFile(self.path)
         try:
-            log.debug('Lock indexfile %s' % self.path)
+            log.debug('Lock indexfile %s', self.path)
             self._lock.acquire()
             return True
-        except Exception, e:
-            raise StoreException("Locking index file failed: %s" % str(e))
+        except Exception, exc:
+            raise StoreException("Locking index file failed: %s" % str(exc))
 
     def release(self):
         """Release a lock on this index file
@@ -751,13 +791,13 @@ class Index(object):
         if self._lock is None:
             log.debug('No lock to release')
             return False
-        log.debug('Release lock %s' % self._lock)
+        log.debug('Release lock %s', self._lock)
         self._lock.release()
         self._lock = None
         return True
 
     @classmethod
-    def guess_type(cls, file, trail=';', delimiters=None):
+    def guess_type(cls, input_file, trail=';', delimiters=None):
         """Guess type of an input file for importing data into the index.
 
         :param file: the input file
@@ -765,37 +805,38 @@ class Index(object):
         :keyword delimiters: the allowed fields delimiters
 
         """
-        columns = file.readline().split("\t")
+        columns = input_file.readline().split("\t")
         if len(columns) == 2 and ';' in columns[1]:
             return "idx", None
 
         import csv
 
-        if not csv.Sniffer().has_header(file.readline()):
-            raise ValueError('Metadata file must have a header')
-        file.seek(0)
+        if not csv.Sniffer().has_header(input_file.readline()):
+            raise ValueError('Metadata input_file must have a header')
+        input_file.seek(0)
 
-        dialect = csv.Sniffer().sniff(file.readline(), delimiters=delimiters)
-        file.seek(0)
+        dialect = csv.Sniffer().sniff(input_file.readline(),
+                                      delimiters=delimiters)
+        input_file.seek(0)
 
         if dialect.delimiter == ',':
-            log.debug('Csv file detected')
+            log.debug('Csv input_file detected')
             return 'csv', dialect
 
-        reader = csv.DictReader(file, dialect=dialect)
+        reader = csv.DictReader(input_file, dialect=dialect)
 
-        if len(reader.fieldnames)<2:
-            raise ValueError('Not enough columns in metadata file')
+        if len(reader.fieldnames) < 2:
+            raise ValueError('Not enough columns in metadata input_file')
 
         if trail in reader.fieldnames[1]:
             log.debug('Indexfile detected')
             return 'index', None
 
-        log.debug('Tsv file detected')
+        log.debug('Tsv input_file detected')
         return 'tsv', dialect
 
     @classmethod
-    def parse_line(cls, str, **kwargs):
+    def parse_line(cls, line, **kwargs):
         """Parse an index file line and returns a tuple with
         the path to the file referred by the line (if any) and a
         dictionary with the parsed key/value pairs. ``kwargs`` is
@@ -804,27 +845,28 @@ class Index(object):
         :param str: the line to parse
 
         """
-        file = None
-        tags = str
+        file_path = None
+        tags = line
 
-        sep = kwargs.get('sep','=')
-        trail = kwargs.get('trail',';')
-        id = kwargs.get('id')
+        sep = kwargs.get('sep', '=')
+        trail = kwargs.get('trail', ';')
+        dsid = kwargs.get('id')
 
         expr = '^(?P<file>.+)\t(?P<tags>.+)$'
-        match = re.match(expr, str)
+        match = re.match(expr, line)
         if match:
-            log.debug('Matched indexile line %s' % str)
-            file = match.group('file')
+            log.debug('Matched indexile line %s', line)
+            file_path = match.group('file')
             tags = match.group('tags')
 
         tagsd = {}
-        expr = '(?P<key>[^ ]+)%s\"?(?P<value>[^%s\"]*)\"?%s' % (sep, trail, trail)
+        expr = '(?P<key>[^ ]+)%s\"?(?P<value>[^%s\"]*)\"?%s' % (
+            sep, trail, trail)
         for match in re.finditer(expr, tags):
             key = match.group('key')
-            log.debug('Matched keyword %s' % key)
-            if key == id:
-                log.debug('Map id keyword %s' % key)
+            log.debug('Matched keyword %s', key)
+            if key == dsid:
+                log.debug('Map id keyword %s', key)
                 key = 'id'
             tagsd[key] = match.group('value')
 
@@ -832,9 +874,9 @@ class Index(object):
             log.debug('No keywords matched')
             if os.path.isfile(os.path.abspath(tags)):
                 log.debug('Second column is a file')
-                file = os.path.abspath(tags)
+                file_path = os.path.abspath(tags)
 
-        tagsd['path'] = file
+        tagsd['path'] = file_path
 
         return tagsd
 
@@ -851,28 +893,26 @@ class Index(object):
             log.debug('No data to map')
             return {}
 
-        id = kwargs.get('id')
-        map = kwargs.get('map',{})
+        dsid = kwargs.get('id')
+        idxmap = kwargs.get('map', {})
 
         out = {}
-        if map:
+        if idxmap:
             log.debug('Mappings present')
-            for k,v in map.items():
-                if not v:
-                    map.pop(k)
+            for k, val in idxmap.items():
+                if not val:
+                    idxmap.pop(k)
                     continue
-                map[v] = k
+                idxmap[val] = k
 
         log.debug('Create output dictionary')
-        for k,v in obj.items():
+        for k, val in obj.items():
             key = k
             if map:
-                log.debug('Map %s to %s' % (key, map.get(key)))
-                key = map.get(k)
+                log.debug('Map %s to %s', key, idxmap.get(key))
+                key = idxmap.get(k)
             if key:
-                if key == id:
+                if key == dsid:
                     key = "id"
-                out[key] = v
+                out[key] = val
         return out
-
-
