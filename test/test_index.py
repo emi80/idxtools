@@ -1,5 +1,6 @@
 """Unit test for the Index class"""
 import pytest
+import indexfile
 from indexfile.index import Index
 
 
@@ -7,7 +8,60 @@ def test_create_empty():
     """Create empty index"""
     i = Index()
     assert i is not None
+    assert i.format == indexfile.default_format
     assert len(i) == 0
+
+
+def test_create_empty_w_format():
+    """Create empty index with custom format"""
+    form = {
+        "id": "labExpId",
+        "colsep": "\t",
+        "fileinfo": [
+            "path",
+            "size",
+            "md5"
+        ],
+        "kw_sep": " ",
+        "sep": "=",
+        "trail": ";"
+    }
+    i = Index(format=form)
+    assert i is not None
+    assert i.format != indexfile.default_format
+    assert len(i) == 0
+
+
+def test_set_format_string():
+    """Test set format with JSON string"""
+    form = '''{
+        "id": "labExpId",
+        "colsep": "\\t",
+        "fileinfo": [
+            "path",
+            "size",
+            "md5"
+        ],
+        "kw_sep": " ",
+        "sep": "=",
+        "trail": ";"
+    }'''
+    i = Index()
+    assert i is not None
+    assert i.format == indexfile.default_format
+    i.set_format(form)
+    assert i.format
+    assert i.format != indexfile.default_format
+
+
+def test_set_format_file():
+    """Test set format with file path"""
+    i = Index()
+    assert i is not None
+    assert i.format == indexfile.default_format
+    i.set_format('test/data/format.json')
+    assert i.format
+    assert i.format != indexfile.default_format
 
 
 def test_open_empty():
@@ -29,6 +83,26 @@ def test_load_existing():
     assert i is not None
     i.set_format('test/data/format.json')
     i.open()
+    assert len(i) == 36
+
+
+def test_open_string():
+    """Test open with string parameter"""
+    i = Index()
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open('test/data/index.txt')
+    assert len(i) == 36
+
+
+def test_open_file():
+    """Test open with file parameter"""
+    i = Index()
+    assert i is not None
+    i.set_format('test/data/format.json')
+    f = open('test/data/index.txt','r')
+    i.open(f)
+    f.close()
     assert len(i) == 36
 
 
