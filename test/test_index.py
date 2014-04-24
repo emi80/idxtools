@@ -106,6 +106,43 @@ def test_open_file():
     assert len(i) == 36
 
 
+def test_export():
+    """Test export"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export()
+    assert len(exp) == 36
+
+
+def test_export_no_map():
+    """Test export"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    i.export(map=None)
+
+
+def test_export_no_map_tab_tags():
+    """Test export"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    i.export(map=None, type='tab', tags=['id', 'path'])
+
+
+def test_export_no_map_tab_all_tags():
+    """Test export"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    i.export(map=None, type='tab')
+
+
 def test_replicates():
     """Test merged datasets"""
     i = Index('test/data/index.txt')
