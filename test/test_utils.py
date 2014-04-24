@@ -1,6 +1,6 @@
 """Test utility methods"""
 
-import indexfile.utils as u
+from indexfile import utils as u
 
 
 def test_to_tags():
