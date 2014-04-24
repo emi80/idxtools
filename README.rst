@@ -2,6 +2,9 @@ Idxtools
 ========
 .. image:: https://badge.fury.io/py/idxtools.png
     :target: http://badge.fury.io/py/idxtools
+    
+.. image:: https://api.travis-ci.org/emi80/idxtools.svg?branch=develop
+    :target: https://travis-ci.org/emi80/idxtools
 
 Idxtools provides some command line tools and an API to perform operations on index files.
 
