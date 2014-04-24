@@ -5,7 +5,21 @@ except:
     use_setuptools()
     from setuptools import setup, Extension
 
+from setuptools.command.test import test as TestCommand
+import sys
 import indexfile
+
+class PyTest(TestCommand):
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = ['test']
+        self.test_suite = True
+
+    def run_tests(self):
+        #import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
 
 setup(
     name=indexfile.__name__,
@@ -37,4 +51,6 @@ setup(
             '%s = indexfile.cli.indexfile_main:main' % indexfile.__name__,
         ]
     },
+    tests_require=['pytest'],
+    cmdclass = {'test': PyTest},
 )
