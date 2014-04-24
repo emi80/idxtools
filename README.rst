@@ -5,6 +5,11 @@ Idxtools
     
 .. image:: https://api.travis-ci.org/emi80/idxtools.svg?branch=develop
     :target: https://travis-ci.org/emi80/idxtools
+    
+
+.. image:: https://coveralls.io/repos/emi80/idxtools/badge.png
+  :target: https://coveralls.io/r/emi80/idxtools
+
 
 Idxtools provides some command line tools and an API to perform operations on index files.
 
