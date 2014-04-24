@@ -542,7 +542,6 @@ class Index(object):
                     if tags or len(line.values()) != len(headline):
                         vals = [line.get(l, 'NA') if l != 'id'
                                 else line.get(dsid) for l in headline]
-                    print vals
                     out.append(colsep.join(vals))
 
         if type == 'tab':
