@@ -326,3 +326,17 @@ def test_merge():
     assert merged.sex == ['M', 'F']
     assert merged.age == [65, 61]
     assert merged.desc == ['First test dataset', 'Second test dataset']
+
+
+def test_get_tags_on_merged():
+    """Merge metadata from two or more datasets"""
+    info1 = {'id': '1', 'sex': 'M', 'age': 65, 'desc': 'First test dataset'}
+    info2 = {'id': '2', 'sex': 'F', 'age': 61, 'desc': 'Second test dataset'}
+     # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset1 = Dataset(**info1)
+    dataset2 = Dataset(**info2)
+    # pylint: enable=W0142
+    merged = dataset1.merge(dataset2)
+    string = merged.get_tags()
+    assert string == '''age=65,61; desc="First test dataset","Second test dataset"; id=1,2; sex=M,F;'''
