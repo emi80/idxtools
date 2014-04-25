@@ -156,8 +156,18 @@ def test_export_ol_no_map_tab_tags():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export(map=None, export_type='tab', tags=['id', 'path'])
-    print exp[0]
     assert exp[0] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
+
+def test_export_ol_no_map_tab_tags_header():
+    """Test export"""
+    i = Index('test/data/index_oneline.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['id', 'path'],
+                   header=True)
+    assert exp[0] == 'id\tpath'
+    assert exp[1] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
 
 
 def test_export_ol_no_map_tab_all():
@@ -168,6 +178,17 @@ def test_export_ol_no_map_tab_all():
     i.open()
     exp = i.export(map=None, export_type='tab')
     assert exp[0] == '''"5.8 ng/uL (30 nM) 08/04/2013"\tcell\tACTGAT(A)\tdmel\tL3\tAR025\t2x75D\taWL3.2\t2\tanterior\t297\tlongPolyA\twing\t2\t100\tMATE1_SENSE\t37478754\trnaSeq\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tgtf\tTranscriptFB554'''
+
+
+def test_export_ol_no_map_tab_all_header():
+    """Test export"""
+    i = Index('test/data/index_oneline.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', header=True)
+    assert exp[0] == 'maxPeak\treadType\ttissue\tlibBio\tcell\tdataType\treplicate\tnReads\ttype\tlocalization\tadaptor\tlabExpId\tbarcode\trnaExtract\tpath\tage\trnaQuantity\treadStrand\tpoolId\torganism\tview'
+    assert exp[1] == '''"5.8 ng/uL (30 nM) 08/04/2013"\tcell\tACTGAT(A)\tdmel\tL3\tAR025\t2x75D\taWL3.2\t2\tanterior\t297\tlongPolyA\twing\t2\t100\tMATE1_SENSE\t37478754\trnaSeq\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tgtf\tTranscriptFB554'''
 
 
 def test_replicates():
