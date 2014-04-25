@@ -474,8 +474,8 @@ class Index(object):
         for line in self.export(map=None):
             index.write("%s%s" % (line, os.linesep))
 
-    def export(self, absolute=False, export_type='index', tags=None, header=False,
-               **kwargs):
+    def export(self, absolute=False, export_type='index', tags=None,
+               header=False, **kwargs):
         """Export the index file information. ``kwargs`` contains the format
         information.
 
@@ -528,10 +528,10 @@ class Index(object):
                             val = os.path.join(os.path.dirname(self.path),
                                                os.path.normpath(val))
                     if idxmap:
-                        k = idxmap.get(k)
+                        k = idxmap.get(k,k)
                     if k:
                         line[k] = val
-                log.debug('Create output for %s format', type)
+                log.debug('Create output for %s format', export_type)
                 if export_type == 'index':
                     out.append(colsep.join([line.pop(path, '.'),
                                             to_tags(**dict(line.items() +
@@ -543,13 +543,14 @@ class Index(object):
                     if tags or len(line.values()) != len(headline):
                         vals = [line.get(l, 'NA') if l != 'id'
                                 else line.get(dsid) for l in headline]
-                    for val in vals:
+                    for i, val in enumerate(vals):
                         if type(val) == list:
-                            val = self.format.get('rep_sep', ",").join(val)
-                    out.append(colsep.join(vals))
+                            val = quote_tags(val)
+                            vals[i] = self.format.get('rep_sep', ",").join(val)
+                    out.append(colsep.join(quote_tags(vals)))
 
-        if type == 'tab':
-            log.debug('Adjust output for %s export format', type)
+        if export_type == 'tab':
+            log.debug('Adjust output for %s export format', export_type)
             out = list(set(out))
             if tags:
                 out.sort()

@@ -113,7 +113,19 @@ def test_export():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export()
+    assert type(exp) == list
     assert len(exp) == 36
+    assert 'LIBRARY_ID' in exp[0]
+
+
+def test_export_oneline():
+    """Test export one known line"""
+    i = Index('test/data/index_oneline.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export()
+    assert exp[0] == '''aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tLIBRARY_ID=aWL3.2; RNA_quantity=100; barcode=AR025; cell=anterior; dataType=rnaSeq; developmental_point=L3; fileinfo=path,size,md5,type,view,submittedDataVersion; library_Bioanalyser="5.8 ng/uL (30 nM) 08/04/2013"; localization=cell; max_peak=297; n_sequences=37478754; organism=dmel; pool_ID=2; readStrand=MATE1_SENSE; readType=2x75D; replicate=2; rnaExtract=longPolyA; sequence=ACTGAT(A); tissue=wing; type=gtf; view=TranscriptFB554;'''
 
 
 def test_export_no_map():
@@ -122,25 +134,40 @@ def test_export_no_map():
     assert i is not None
     i.set_format('test/data/format.json')
     i.open()
-    i.export(map=None)
+    exp = i.export(map=None)
+    assert len(exp) == 36
+    assert 'labExpId' in exp[0]
 
 
-def test_export_no_map_tab_tags():
-    """Test export"""
-    i = Index('test/data/index.txt')
+def test_export_oneline_no_map():
+    """Test export one known line"""
+    i = Index('test/data/index_oneline.txt')
     assert i is not None
     i.set_format('test/data/format.json')
     i.open()
-    i.export(map=None, type='tab', tags=['id', 'path'])
+    exp = i.export(map=None)
+    assert exp[0] == '''aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tadaptor=ACTGAT(A); age=L3; barcode=AR025; cell=anterior; dataType=rnaSeq; fileinfo=path,size,md5,type,view,submittedDataVersion; labExpId=aWL3.2; libBio="5.8 ng/uL (30 nM) 08/04/2013"; localization=cell; maxPeak=297; nReads=37478754; organism=dmel; poolId=2; readStrand=MATE1_SENSE; readType=2x75D; replicate=2; rnaExtract=longPolyA; rnaQuantity=100; tissue=wing; type=gtf; view=TranscriptFB554;'''
 
 
-def test_export_no_map_tab_all_tags():
+def test_export_ol_no_map_tab_tags():
     """Test export"""
-    i = Index('test/data/index.txt')
+    i = Index('test/data/index_oneline.txt')
     assert i is not None
     i.set_format('test/data/format.json')
     i.open()
-    i.export(map=None, type='tab')
+    exp = i.export(map=None, export_type='tab', tags=['id', 'path'])
+    print exp[0]
+    assert exp[0] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
+
+
+def test_export_ol_no_map_tab_all():
+    """Test export"""
+    i = Index('test/data/index_oneline.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab')
+    assert exp[0] == '''"5.8 ng/uL (30 nM) 08/04/2013"\tcell\tACTGAT(A)\tdmel\tL3\tAR025\t2x75D\taWL3.2\t2\tanterior\t297\tlongPolyA\twing\t2\t100\tMATE1_SENSE\t37478754\trnaSeq\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tgtf\tTranscriptFB554'''
 
 
 def test_replicates():

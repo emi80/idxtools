@@ -69,7 +69,7 @@ def run(args, index):
                     args.get('--output').write("%s%s" % (i.size,os.linesep))
                     return
                 signal.signal(signal.SIGPIPE, handler)
-                command = "i.export(header=%s,type=%r,tags=tags,absolute=absolute" % (header,type)
+                command = "i.export(header=%s,export_type=%r,tags=tags,absolute=absolute" % (header,type)
                 if not map_keys:
                     command = "%s,map=None" % command
                 command = "%s)" % command
