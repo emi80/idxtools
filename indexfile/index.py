@@ -167,9 +167,6 @@ class Dataset(object):
                 data = dict([(k, v) for k, v in self._metadata.items()
                             + {'path': path, 'type': ftype}.items()
                             + info.items() if k in tags])
-                for k, val in data.items():
-                    if type(val) == list:
-                        data[k] = ','.join(v)
                 out.append(data)
         return out
 
@@ -477,7 +474,7 @@ class Index(object):
         for line in self.export(map=None):
             index.write("%s%s" % (line, os.linesep))
 
-    def export(self, absolute=False, type='index', tags=None, header=False,
+    def export(self, absolute=False, export_type='index', tags=None, header=False,
                **kwargs):
         """Export the index file information. ``kwargs`` contains the format
         information.
@@ -512,7 +509,7 @@ class Index(object):
 
         out = []
 
-        if type == 'tab':
+        if export_type == 'tab':
             log.debug('Create header for %s export format', type)
             if not self._alltags:
                 self._create_lookup()
@@ -535,17 +532,20 @@ class Index(object):
                     if k:
                         line[k] = val
                 log.debug('Create output for %s format', type)
-                if type == 'index':
+                if export_type == 'index':
                     out.append(colsep.join([line.pop(path, '.'),
                                             to_tags(**dict(line.items() +
                                                            kwargs.items()))]))
-                if type == 'json':
+                if export_type == 'json':
                     out.append(json.dumps(line))
-                if type == 'tab':
+                if export_type == 'tab':
                     vals = line.values()
                     if tags or len(line.values()) != len(headline):
                         vals = [line.get(l, 'NA') if l != 'id'
                                 else line.get(dsid) for l in headline]
+                    for val in vals:
+                        if type(val) == list:
+                            val = self.format.get('rep_sep', ",").join(val)
                     out.append(colsep.join(vals))
 
         if type == 'tab':

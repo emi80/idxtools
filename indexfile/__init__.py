@@ -20,6 +20,7 @@ default_format = {
         "view"
     ],
     "kw_sep": " ",
+    "rep_sep": ",",
     "sep": "=",
     "trail": ";"
 }

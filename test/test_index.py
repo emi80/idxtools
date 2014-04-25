@@ -134,13 +134,13 @@ def test_export_no_map_tab_tags():
     i.export(map=None, type='tab', tags=['id', 'path'])
 
 
-# def test_export_no_map_tab_all_tags():
-#     """Test export"""
-#     i = Index('test/data/index.txt')
-#     assert i is not None
-#     i.set_format('test/data/format.json')
-#     i.open()
-#     i.export(map=None, type='tab')
+def test_export_no_map_tab_all_tags():
+    """Test export"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    i.export(map=None, type='tab')
 
 
 def test_replicates():
