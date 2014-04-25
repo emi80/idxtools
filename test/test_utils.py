@@ -13,11 +13,22 @@ def test_to_tags():
     assert out == "id=1; path=test.txt; type=txt; view=text;"
 
 
+def test_to_tags_rep():
+    """Convert dictionary to indexfile string"""
+    info = {'id': ['1', '2'], 'path': ['test1.txt', 'test2.txt'],
+            'view': ['text', 'text'], 'type': ['txt', 'txt']}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    out = u.to_tags(**info)
+    # pylint: enable=W0142
+    assert out == '''id=1,2; path=test1.txt,test2.txt; type=txt,txt; view=text,text;'''
+
+
 def test_quote_key():
     """Test quote key"""
     key = "Long key with space"
     val = "1"
-    qkey, qval = u.quote_kw(key, val, 'key')
+    qkey, qval = u.quote_tags([key, val])
     assert qkey == '"Long key with space"'
     assert qval == "1"
 
@@ -26,7 +37,7 @@ def test_quote_val():
     """Test quote value"""
     key = "1"
     val = "Long value with space"
-    qkey, qval = u.quote_kw(key, val, 'value')
+    qkey, qval = u.quote_tags([key, val])
     assert qkey == "1"
     assert qval == '"Long value with space"'
 
@@ -35,30 +46,9 @@ def test_quote_int():
     """Test quote integer value"""
     key = 1
     val = 10
-    qkey, qval = u.quote_kw(key, val, 'both')
+    qkey, qval = u.quote_tags([key, val], force=True)
     assert qkey == '"1"'
     assert qval == '"10"'
-
-
-def test_quote_both():
-    """Test quote both"""
-    key = "Long key with space"
-    val = "Long value with space"
-    qkey, qval = u.quote_kw(key, val, 'both')
-    assert qkey == '"Long key with space"'
-    assert qval == '"Long value with space"'
-
-
-def test_quote_auto():
-    """Test auto quote"""
-    key = "Long key with space"
-    val = "Long value with space"
-    qkey, qval = u.quote_kw(key, val, 'key')
-    assert qkey == '"Long key with space"'
-    assert qval == '"Long value with space"'
-    qkey, qval = u.quote_kw(key, val, 'val')
-    assert qkey == '"Long key with space"'
-    assert qval == '"Long value with space"'
 
 
 def test_dot_dict_setitem():

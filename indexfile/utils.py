@@ -7,28 +7,25 @@ def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
     for key, val in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
         if type(val) == list:
             val = rep_sep.join([
-                quote_kw(key, value, quote)[1] for value in val])
+                quote_tags([key, value])[1] for value in val])
         else:
             val = str(val)
-            key, val = quote_kw(key, val, quote)
+            key, val = quote_tags([key, val])
         taglist.append('%s%s%s%s' % (key, sep, val, trail))
     return kw_sep.join(sorted(taglist))
 
 
-def quote_kw(key, val, quote):
-    """Add or remove quotes to a string"""
-    if ' ' in key and '\"' not in key:
-        key = '\"%s\"' % key
-    if ' ' in val and '\"' not in val:
-        val = '\"%s\"' % val
-    if quote:
-        if quote == 'value' or quote == 'both':
-            if '\"' not in val:
-                val = '\"%s\"' % val
-        if key and (quote == 'key' or quote == 'both'):
-            if '\"' not in key:
-                key = '\"%s\"' % key
-    return (key, val)
+def quote_tags(strings, force=False):
+    """Quotes string/s"""
+    out = []
+    if type(strings) == str:
+        strings = [strings]
+    for item in strings:
+        item = str(item)
+        if force or ' ' in item and '\"' not in item:
+            item = ('\"%s\"' % item)
+        out.append(item)
+    return out
 
 
 class DotDict(dict):
