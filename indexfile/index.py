@@ -74,15 +74,19 @@ class Dataset(object):
             file_type = os.path.splitext(path)[1].strip('.')
             kwargs['type'] = file_type
 
-        if not self._files.get(file_type):
-            log.debug('Create file type dictionary for %s', file_type)
-            self._files[file_type] = DotDict()
+        existing_type = self.find_file(path)
 
-        if path in self._files.get(file_type).keys():
+        if existing_type:
             if not update:
                 log.debug("Skip existing %s entry", path)
                 return
             log.debug("Update %s entry", path)
+            if file_type != existing_type:
+                self.rm_file(path=path)
+
+        if not self._files.get(file_type):
+            log.debug('Create file type dictionary for %s', file_type)
+            self._files[file_type] = DotDict()
 
         if (not path in self._files.get(file_type).keys()) or update:
             log.debug('Create entry for %s', path)
@@ -97,6 +101,15 @@ class Dataset(object):
                 log.debug('Replace missing value with NA for %s', key)
                 val = 'NA'
             info[key] = val
+
+
+    def find_file(self, path):
+        """Look for sepcified file inot the dataset"""
+        for ftype, files in self._files.items():
+            if path in files.keys():
+                return ftype
+        return None
+
 
     def rm_file(self, **kwargs):
         """Remove a file form the dataset files dictionary. ``kwargs`` contains
@@ -421,6 +434,7 @@ class Index(object):
             for key, val in meta.items():
                 if getattr(existing_dataset, key):
                     existing_dataset.__setattr__(key, val)
+            dataset = existing_dataset
 
         if not existing_dataset:
             if ',' in dataset.id:

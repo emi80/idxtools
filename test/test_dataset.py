@@ -117,6 +117,32 @@ def test_add_file_update():
     assert dataset.txt.get('test.txt').get('view') == 'Text'
 
 
+def test_add_file_update_type():
+    """Add file to existing dataset"""
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    fileinfo = {'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    newfileinfo = {'path': 'test.txt', 'type': 'text', 'view': 'Text'}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    dataset.add_file(**fileinfo)
+    dataset.add_file(**newfileinfo)
+    # pylint: enable=W0142
+    assert dataset.txt.get('test.txt').get('view') == 'text'
+    assert not hasattr(dataset,'text')
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset.add_file(update=True, **newfileinfo)
+    # pylint: enable=W0142
+    assert len(dataset) == 1
+    assert not hasattr(dataset,'txt')
+    assert dataset.text is not None
+    assert len(dataset.text) == 1
+    assert dataset.text.get('test.txt') is not None
+    assert dataset.text.get('test.txt').get('type') == 'text'
+    assert dataset.text.get('test.txt').get('view') == 'Text'
+
+
 def test_iter():
     """Iterates over all files in dataset"""
     info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}

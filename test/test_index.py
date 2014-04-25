@@ -106,6 +106,46 @@ def test_open_file():
     assert len(i) == 36
 
 
+def test_insert():
+    """Test insertion into the index"""
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    assert len(i.datasets) == 1
+    dataset = i.datasets.get('1')
+    assert dataset is not None
+    assert len(dataset) == 1
+    assert hasattr(dataset, 'id')
+    assert hasattr(dataset, 'age')
+    assert hasattr(dataset, 'txt')
+    assert dataset.id == '1'
+    assert dataset.age == 65
+    assert dataset.txt.get('test.txt') is not None
+    assert len(dataset.txt.get('test.txt')) == 1
+    assert hasattr(dataset.txt.get('test.txt'), 'type')
+    assert dataset.txt.get('test.txt').type == 'txt'
+
+
+def test_insert_update():
+    """Test insertion into the index"""
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    i.insert(id='1', age=70, path='test.txt', type='text', update=True)
+    assert len(i.datasets) == 1
+    dataset = i.datasets.get('1')
+    assert dataset is not None
+    assert len(dataset) == 1
+    assert hasattr(dataset, 'id')
+    assert hasattr(dataset, 'age')
+    assert not hasattr(dataset, 'txt')
+    assert hasattr(dataset, 'text')
+    assert dataset.id == '1'
+    assert dataset.age == 70
+    assert len(dataset.text.get('test.txt')) == 1
+    assert hasattr(dataset.text.get('test.txt'), 'type')
+    assert dataset.text.get('test.txt').type == 'text'
+
+
+
 def test_export():
     """Test export"""
     i = Index('test/data/index.txt')
