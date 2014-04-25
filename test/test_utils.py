@@ -31,6 +31,15 @@ def test_quote_val():
     assert qval == '"Long value with space"'
 
 
+def test_quote_int():
+    """Test quote integer value"""
+    key = 1
+    val = 10
+    qkey, qval = u.quote_kw(key, val, 'both')
+    assert qkey == '"1"'
+    assert qval == '"10"'
+
+
 def test_quote_both():
     """Test quote both"""
     key = "Long key with space"

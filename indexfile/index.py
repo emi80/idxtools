@@ -143,9 +143,11 @@ class Dataset(object):
         """
         out = []
         if not tags:
-            tags = self._metadata.keys() + ['path','type']
+            tags = self._metadata.keys() + ['path', 'type']
             if self._files:
-                tags += [k for infos in self._files.values() for info in infos.values() for k in info.keys()]
+                tags += [k for infos in self._files.values()
+                         for info in infos.values()
+                         for k in info.keys()]
             tags = list(set(tags))
         if not types:
             types = self._files.keys()
@@ -157,15 +159,17 @@ class Dataset(object):
             tags.append('id')
         if not self._files:
             log.debug('No files found in the index. Write metadata index')
-            return [dict([
-                (k, v) for k, v in self._metadata.items() if k in tags])]
+            return [dict([(k, v) for k, v in self._metadata.items()
+                    if k in tags])]
         for ftype in types:
             log.debug('Export type %r', ftype)
             for path, info in getattr(self, ftype).items():
-                data = dict([
-                    (k, v) for k, v in self._metadata.items()
-                    + {'path': path, 'type': ftype}.items()
-                    + info.items() if k in tags])
+                data = dict([(k, v) for k, v in self._metadata.items()
+                            + {'path': path, 'type': ftype}.items()
+                            + info.items() if k in tags])
+                for k, val in data.items():
+                    if type(val) == list:
+                        data[k] = ','.join(v)
                 out.append(data)
         return out
 
