@@ -66,8 +66,8 @@ class Dataset(object):
             fileinfo = indexfile.default_format.get('fileinfo')
 
         if not path:
-            log.debug('No path specified. Add metadata entry')
-            path = '.'
+            log.debug('No path specified. Skipping')
+            return
 
         if not file_type:
             log.debug('Get file type from file extension')

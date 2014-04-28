@@ -73,6 +73,19 @@ def test_create_dataset_w_path_type():
     assert dataset.txt.get('test.txt').get('view') == 'text'
 
 
+def test_create_dataset_w_na():
+    """Create dataset with file path"""
+    info = {'id': '1', 'age': 65, 'sex': ''}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    assert len(dataset) == 0
+    assert dataset.id == '1'
+    assert dataset.age == 65
+    assert dataset.sex == 'NA'
+
+
 def test_add_file():
     """Add file to existing dataset"""
     info = {'id': '1', 'sex': 'M', 'age': 65}
@@ -141,6 +154,23 @@ def test_add_file_update_type():
     assert dataset.text.get('test.txt') is not None
     assert dataset.text.get('test.txt').get('type') == 'text'
     assert dataset.text.get('test.txt').get('view') == 'Text'
+
+
+def test_add_file_no_path():
+    """Add file with no path"""
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    fileinfo = {'type': 'txt', 'view': 'text'}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset.add_file(**fileinfo)
+    # pylint: enable=W0142
+    print dataset._files
+    assert len(dataset) == 0
+    assert not hasattr(dataset, 'txt')
 
 
 def test_multiple_files():
