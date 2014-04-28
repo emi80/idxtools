@@ -429,11 +429,12 @@ class Index(object):
 
         existing_dataset = self.datasets.get(dataset.id)
 
-        if existing_dataset and update:
-            log.debug('Update existing dataset %s', existing_dataset.id)
-            for key, val in meta.items():
-                if getattr(existing_dataset, key):
-                    existing_dataset.__setattr__(key, val)
+        if existing_dataset:
+            if update:
+                log.debug('Update existing dataset %s', existing_dataset.id)
+                for key, val in meta.items():
+                    if getattr(existing_dataset, key):
+                        existing_dataset.__setattr__(key, val)
             dataset = existing_dataset
 
         if not existing_dataset:
