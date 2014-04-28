@@ -168,8 +168,8 @@ class Dataset(object):
             types = [types]
         if type(tags) == str:
             tags = [tags]
-        if 'id' not in tags:
-            tags.append('id')
+        # if 'id' not in tags:
+        #     tags.append('id')
         if not self._files:
             log.debug('No files found in the index. Write metadata index')
             return [dict([(k, v) for k, v in self._metadata.items()
