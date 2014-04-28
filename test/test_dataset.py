@@ -143,8 +143,7 @@ def test_add_file_update_type():
     assert dataset.text.get('test.txt').get('view') == 'Text'
 
 
-def test_iter():
-    """Iterates over all files in dataset"""
+def test_multiple_files():
     info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
     # Disable warning about * magic
     # pylint: disable=W0142
@@ -157,6 +156,19 @@ def test_iter():
     assert dataset.jpg
     assert len(dataset.txt) == 2
     assert len(dataset.jpg) == 2
+    assert len(dataset) == 4
+
+
+def test_iter():
+    """Iterates over all files in dataset"""
+    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    dataset.add_file(path='test1.txt', type='txt', view='text')
+    dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
+    dataset.add_file(path='test1.jpg', type='jpg', view='jpeg')
     i = 0
     for path, info in dataset:
         assert path
@@ -286,10 +298,29 @@ def test_export_tag():
     assert exp
     assert len(exp) == 2
     for dic in exp:
-        assert len(dic) == 3
+        assert len(dic) == 2
         assert dic.get('path') is not None
         assert dic.get('view') is not None
-        assert dic.get('id') is not None
+        assert dic.get('id') is None
+        assert dic.get('type') is None
+
+
+def test_export_one_tag():
+    """Export files from dataset"""
+    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
+    exp = dataset.export(tags='path')
+    assert exp
+    assert len(exp) == 2
+    for dic in exp:
+        assert len(dic) == 1
+        assert dic.get('path') is not None
+        assert dic.get('view') is None
+        assert dic.get('id') is None
         assert dic.get('type') is None
 
 
