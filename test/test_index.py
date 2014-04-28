@@ -239,6 +239,18 @@ def test_export_no_map():
     assert 'labExpId' in exp[0]
 
 
+def test_export_no_map_tab_tags_no_miss():
+    """Test export without missing values"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['id', 'path'],
+                   hide_missing=True)
+    assert len(exp) == 200
+    assert exp[0] == 'EL3.1\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig'
+
+
 def test_export_oneline_no_map():
     """Test export one known line"""
     i = Index('test/data/index_oneline.txt')

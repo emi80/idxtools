@@ -490,7 +490,7 @@ class Index(object):
             index.write("%s%s" % (line, os.linesep))
 
     def export(self, absolute=False, export_type='index', tags=None,
-               header=False, **kwargs):
+               header=False, hide_missing=False, **kwargs):
         """Export the index file information. ``kwargs`` contains the format
         information.
 
@@ -559,10 +559,13 @@ class Index(object):
                         vals = [line.get(l, 'NA') if l != 'id'
                                 else line.get(dsid) for l in headline]
                     for i, val in enumerate(vals):
+                        if hide_missing and val == "NA":
+                            break
                         if type(val) == list:
                             val = quote_tags(val)
                             vals[i] = self.format.get('rep_sep', ",").join(val)
-                    out.append(colsep.join(quote_tags(vals)))
+                    else:
+                        out.append(colsep.join(quote_tags(vals)))
 
         if export_type == 'tab':
             log.debug('Adjust output for %s export format', export_type)
