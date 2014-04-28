@@ -145,6 +145,66 @@ def test_insert_update():
     assert dataset.text.get('test.txt').type == 'text'
 
 
+def test_select_simple_dataset():
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    selected = i.select(id='1')
+    assert selected.datasets == i.datasets
+    dataset = selected.datasets.get('1')
+    assert dataset is not None
+    assert dataset.id == '1'
+    assert dataset.age == 65
+    assert len(dataset) == 1
+
+
+def test_select_dataset():
+    i = Index()
+    i.insert(id='1', age=65, path='test1.txt', type='txt')
+    i.insert(id='2', age=63, path='test2.txt', type='txt')
+    i.insert(id='3', age=70, path='test3.jpg', type='jpg')
+    selected = i.select(id='2')
+    assert selected.datasets != i.datasets
+    dataset = selected.datasets.get('2')
+    assert dataset is not None
+    assert dataset.id == '2'
+    assert dataset.age == 63
+    assert len(dataset) == 1
+    assert dataset.txt is not None
+
+
+def test_select_path():
+    i = Index()
+    i.insert(id='1', age=65, path='test1.txt', type='txt')
+    i.insert(id='2', age=63, path='test2.txt', type='txt')
+    i.insert(id='3', age=70, path='test3.jpg', type='jpg')
+    selected = i.select(path='test3.jpg')
+    assert selected.datasets != i.datasets
+    dataset = selected.datasets.get('3')
+    assert dataset is not None
+    assert dataset.id == '2'
+    assert dataset.age == 63
+    assert len(dataset) == 1
+    assert dataset.txt is not None
+
+
+def test_remove_dataset():
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    i.remove(id='1')
+    assert len(i.datasets) == 0
+
+
+# def test_remove_file():
+#     i = Index()
+#     i.insert(id='1', age=65, path='test.txt', type='txt')
+#     i.insert(id='1', path='test1.txt', type='txt')
+#     assert len(i.datasets) == 1
+#     dataset = i.datasets.get('1')
+#     assert len(dataset) == 2
+#     i.remove(path='test.txt')
+#     assert len(i.datasets) == 1
+#     assert len(i.datasets.get('1')) == 1
+
 
 def test_export():
     """Test export"""
@@ -154,7 +214,7 @@ def test_export():
     i.open()
     exp = i.export()
     assert type(exp) == list
-    assert len(exp) == 36
+    assert len(exp) == 216
     assert 'LIBRARY_ID' in exp[0]
 
 
@@ -175,7 +235,7 @@ def test_export_no_map():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export(map=None)
-    assert len(exp) == 36
+    assert len(exp) == 216
     assert 'labExpId' in exp[0]
 
 
@@ -197,6 +257,17 @@ def test_export_ol_no_map_tab_tags():
     i.open()
     exp = i.export(map=None, export_type='tab', tags=['id', 'path'])
     assert exp[0] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
+
+
+def test_export_ol_no_map_tab_path():
+    """Test export"""
+    i = Index('test/data/index_oneline.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['path'])
+    assert exp[0] == 'aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
+
 
 def test_export_ol_no_map_tab_tags_header():
     """Test export"""
