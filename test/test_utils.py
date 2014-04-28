@@ -51,6 +51,13 @@ def test_quote_int():
     assert qval == '"10"'
 
 
+def test_quote_single():
+    """Test quote integer value"""
+    string = "Long string with spaces"
+    [qstring] = u.quote_tags(string)
+    assert qstring == '"Long string with spaces"'
+
+
 def test_dot_dict_setitem():
     """Test DotDict"""
     dic = u.DotDict()
