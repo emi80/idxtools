@@ -181,10 +181,10 @@ def test_select_path():
     assert selected.datasets != i.datasets
     dataset = selected.datasets.get('3')
     assert dataset is not None
-    assert dataset.id == '2'
-    assert dataset.age == 63
+    assert dataset.id == '3'
+    assert dataset.age == 70
     assert len(dataset) == 1
-    assert dataset.txt is not None
+    assert dataset.jpg is not None
 
 
 def test_remove_dataset():
