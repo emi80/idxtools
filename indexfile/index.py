@@ -584,6 +584,9 @@ class Index(object):
             log.debug('Create lookup table')
 
             self._lookup = {}
+            self._lookup['type'] = {}
+            self._lookup['path'] = {}
+            self._lookup['_info'] = {}
             if not self.format.get('fileinfo'):
                 log.debug('''No information about file specific keywords
                            available''')
@@ -607,9 +610,6 @@ class Index(object):
                         self._lookup[k][val] = []
                     self._lookup[k][val].append(dataset.id)
                 log.debug('Create entries for files')
-                self._lookup['type'] = {}
-                self._lookup['path'] = {}
-                self._lookup['_info'] = {}
                 for key, info in [x for x in dataset._files.items()]:
                     if not self._lookup['type'].get(key):
                         self._lookup['type'][key] = []
@@ -717,7 +717,8 @@ class Index(object):
             i._create_lookup()
         else:
             log.debug('File query')
-            filelist = [x for x in set.intersection(*setlist) if "/" in x]
+            #filelist = [x for x in set.intersection(*setlist) if "/" in x]
+            filelist = [x for x in set.intersection(*setlist)]
             if absolute:
                 log.debug('Use absolute path')
                 filelist = [os.path.join(os.path.dirname(self.path), x)
@@ -726,6 +727,7 @@ class Index(object):
             i = Index(format=self.format, path=self.path)
             for afile in filelist:
                 for info in self._lookup['_info'].get(afile):
+                    info['path'] = afile
                     i.insert(**info)
             i._create_lookup()
 
