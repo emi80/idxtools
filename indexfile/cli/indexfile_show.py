@@ -13,6 +13,8 @@ Options:
                          for output
   -t, --tags <tags>      Output only the selected tags in tabular format (no
                          header)
+  -d, --hide-na          Do not output lines with missing values [default:
+                         false]
   -o, --output <output>  The output file. [default: stdout]
   --header               Output header when selecting tags
 """
@@ -34,6 +36,7 @@ def run(args, index):
     map_keys = args.get('--map-keys')
     exact = args.get('--exact')
     header = args.get("--header")
+    hide_missing = args.get("--hide-na")
 
     tags=[]
     if args.get('--tags'):
@@ -69,7 +72,7 @@ def run(args, index):
                     args.get('--output').write("%s%s" % (i.size,os.linesep))
                     return
                 signal.signal(signal.SIGPIPE, handler)
-                command = "i.export(header=%s,export_type=%r,tags=tags,absolute=absolute" % (header,type)
+                command = "i.export(header=%s,export_type=%r,tags=tags,absolute=absolute, hide_missing=hide_missing" % (header,type)
                 if not map_keys:
                     command = "%s,map=None" % command
                 command = "%s)" % command
