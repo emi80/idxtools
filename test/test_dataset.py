@@ -86,6 +86,23 @@ def test_create_dataset_w_na():
     assert dataset.sex == 'NA'
 
 
+def test_repr():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    assert repr(dataset) == '(Dataset 1)'
+
+def test_str():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    assert str(dataset) == 'age=65; id=1; sex=M;'
+
+
 def test_add_file():
     """Add file to existing dataset"""
     info = {'id': '1', 'sex': 'M', 'age': 65}
@@ -168,9 +185,24 @@ def test_add_file_no_path():
     # pylint: disable=W0142
     dataset.add_file(**fileinfo)
     # pylint: enable=W0142
-    print dataset._files
     assert len(dataset) == 0
     assert not hasattr(dataset, 'txt')
+
+
+def test_add_file_missing_values():
+    """Add file with no path"""
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    fileinfo = {'path': 'test.txt', 'type': 'txt', 'view': ''}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset.add_file(**fileinfo)
+    # pylint: enable=W0142
+    assert len(dataset) == 1
+    assert dataset.txt.get('test.txt').get('view') == 'NA'
 
 
 def test_multiple_files():
@@ -276,6 +308,30 @@ def test_rm_file_type():
     with pytest.raises(AttributeError):
         dataset.txt
     # pylint: enable=E1101,W0104
+
+
+def test_rm_file_no_path_no_type():
+    """Remove file from dataset"""
+    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    assert len(dataset) == 1
+    dataset.rm_file(id='1')
+    assert len(dataset) == 1
+
+
+def test_rm_file_not_existing_file():
+    """Remove file from dataset"""
+    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    assert len(dataset) == 1
+    dataset.rm_file(path='test.pdf')
+    assert len(dataset) == 1
 
 
 def test_export_all():
@@ -398,11 +454,22 @@ def test_get_tags_include():
     assert string == "id=1; sex=M;"
 
 
+def test_get_tags_only_one():
+    """Concatenate metadata tags from dataset with exclusion list"""
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = Dataset(**info)
+    # pylint: enable=W0142
+    string = dataset.get_tags(tags='id')
+    assert string == "id=1;"
+
+
 def test_merge():
     """Merge metadata from two or more datasets"""
     info1 = {'id': '1', 'sex': 'M', 'age': 65, 'desc': 'First test dataset'}
     info2 = {'id': '2', 'sex': 'F', 'age': 61, 'desc': 'Second test dataset'}
-     # Disable warning about * magic
+    # Disable warning about * magic
     # pylint: disable=W0142
     dataset1 = Dataset(**info1)
     dataset2 = Dataset(**info2)
@@ -427,3 +494,26 @@ def test_get_tags_on_merged():
     merged = dataset1.merge(dataset2)
     string = merged.get_tags()
     assert string == '''age=65,61; desc="First test dataset","Second test dataset"; id=1,2; sex=M,F;'''
+
+
+class MyDataset(Dataset):
+    """My test dataset"""
+    def __init__(self, **kwargs):
+        super(MyDataset, self).__init__(**kwargs)
+
+        self._init_attributes()
+
+    def _init_attributes(self):
+        """Initialize attributes"""
+        self._attributes['test'] = (lambda x: "This is a dataset"
+                                    if type(x) == MyDataset else None)
+
+
+def test_attributes():
+    """Test attribute creations and accession"""
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    dataset = MyDataset(**info)
+    # pylint: enable=W0142
+    assert dataset.test == "This is a dataset"
