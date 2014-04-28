@@ -263,7 +263,7 @@ class Dataset(object):
                 yield (path, info)
 
     def __len__(self):
-        return len(self._files)
+        return len([f for l in self._files.values() for f in l])
 
 
 class Index(object):
