@@ -642,7 +642,7 @@ class Index(object):
             log.debug('Lookup table created')
 
     def select(self, id=None, oplist=['>', '=', '<', '!'], absolute=False,
-               exact=False, **kwargs):
+               exact=False, or_query=False, **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes
         to be looked for.
 
@@ -721,7 +721,10 @@ class Index(object):
         else:
             log.debug('File query')
             #filelist = [x for x in set.intersection(*setlist) if "/" in x]
-            filelist = [x for x in set.intersection(*setlist)]
+            if or_query:
+                filelist = [x for x in set.union(*setlist)]
+            else:
+                filelist = [x for x in set.intersection(*setlist)]
             if absolute:
                 log.debug('Use absolute path')
                 filelist = [os.path.join(os.path.dirname(self.path), x)

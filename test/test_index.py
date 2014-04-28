@@ -187,6 +187,39 @@ def test_select_path():
     assert dataset.jpg is not None
 
 
+def test_select_multiple_terms():
+    i = Index()
+    i.insert(id='1', age=65, path='test1.txt', type='txt')
+    i.insert(id='2', age=63, path='test2.txt', type='txt')
+    i.insert(id='3', age=70, path='test3.jpg', type='jpg')
+    i.insert(id='4', age=45, path='test4.pdf', type='pdf')
+    selected = i.select(type='jpg', path='test3.jpg')
+    assert selected.datasets != i.datasets
+    assert len(selected.datasets) == 1
+
+
+def test_select_multiple():
+    i = Index()
+    i.insert(id='1', age=65, path='test1.txt', type='txt')
+    i.insert(id='2', age=63, path='test2.txt', type='txt')
+    i.insert(id='3', age=70, path='test3.jpg', type='jpg')
+    i.insert(id='4', age=45, path='test4.pdf', type='pdf')
+    selected = i.select(type='txt', path='test3.jpg')
+    assert selected.datasets != i.datasets
+    assert len(selected.datasets) == 0
+
+
+def test_select_multiple_or():
+    i = Index()
+    i.insert(id='1', age=65, path='test1.txt', type='txt')
+    i.insert(id='2', age=63, path='test2.txt', type='txt')
+    i.insert(id='3', age=70, path='test3.jpg', type='jpg')
+    i.insert(id='4', age=45, path='test4.pdf', type='pdf')
+    selected = i.select(type='txt', path='test3.jpg', or_query=True)
+    assert selected.datasets != i.datasets
+    assert len(selected.datasets) == 3
+
+
 def test_remove_dataset():
     i = Index()
     i.insert(id='1', age=65, path='test.txt', type='txt')
