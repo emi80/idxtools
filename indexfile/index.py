@@ -715,7 +715,7 @@ class Index(object):
             log.debug('Metadata query')
             datasets = dict([(x, self.datasets.get(x)) for x in
                             set.intersection(*setlist)
-                            if self.datasets.get(x)])
+                            if self.datasets.get(x) is not None])
             i = Index(datasets=datasets, format=self.format, path=self.path)
             i._create_lookup()
         else:

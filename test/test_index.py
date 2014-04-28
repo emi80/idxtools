@@ -220,6 +220,19 @@ def test_select_multiple_or():
     assert len(selected.datasets) == 3
 
 
+def test_select_no_path():
+    i = Index('test/data/index.txt')
+    i.set_format('test/data/format.json')
+    i.open()
+    assert i.datasets.get('WLP.2') is not None
+    selected = i.select(id='WLP.2')
+    assert selected.datasets != i.datasets
+    assert len(selected.datasets) == 1
+    dataset = selected.datasets.get('WLP.2')
+    assert dataset is not None
+    dataset.id = 'WLP.2'
+
+
 def test_remove_dataset():
     i = Index()
     i.insert(id='1', age=65, path='test.txt', type='txt')
