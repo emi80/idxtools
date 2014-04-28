@@ -548,6 +548,8 @@ class Index(object):
                         line[k] = val
                 log.debug('Create output for %s format', export_type)
                 if export_type == 'index':
+                    if hide_missing and not line.get(path):
+                        continue
                     out.append(colsep.join([line.pop(path, '.'),
                                             to_tags(**dict(line.items() +
                                                            kwargs.items()))]))
