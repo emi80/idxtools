@@ -321,7 +321,7 @@ class Index(object):
             if path is not sys.stdin:
                 self.path = os.path.abspath(path.name)
 
-    def set_format(self, input_format):
+    def set_format(self, input_format=None):
         """Set index format from json string or file
 
         :param str: the input string. It can be a path to a file or a valid
@@ -334,6 +334,7 @@ class Index(object):
         if not input_format:
             log.debug('Use default indexfile format')
             input_format = indexfile.default_format
+            return
 
         log.debug('Load format %s', input_format)
         try:

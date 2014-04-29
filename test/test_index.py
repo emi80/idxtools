@@ -64,6 +64,16 @@ def test_set_format_file():
     assert i.format != indexfile.default_format
 
 
+def test_set_format_none():
+    """Test set format with no argument"""
+    i = Index()
+    assert i is not None
+    assert i.format == indexfile.default_format
+    i.set_format()
+    assert i.format
+    assert i.format == indexfile.default_format
+
+
 def test_open_empty():
     """Open empty index"""
     i = Index()
