@@ -155,10 +155,10 @@ def test_insert_update():
     assert dataset.text.get('test.txt').type == 'text'
 
 
-def test_select_simple_dataset():
+def test_lookup_simple_dataset():
     i = Index()
     i.insert(id='1', age=65, path='test.txt', type='txt')
-    selected = i.select(id='1')
+    selected = i.lookup(id='1')
     assert selected.datasets == i.datasets
     dataset = selected.datasets.get('1')
     assert dataset is not None
@@ -167,12 +167,12 @@ def test_select_simple_dataset():
     assert len(dataset) == 1
 
 
-def test_select_dataset():
+def test_lookup_dataset():
     i = Index()
     i.insert(id='1', age=65, path='test1.txt', type='txt')
     i.insert(id='2', age=63, path='test2.txt', type='txt')
     i.insert(id='3', age=70, path='test3.jpg', type='jpg')
-    selected = i.select(id='2')
+    selected = i.lookup(id='2')
     assert selected.datasets != i.datasets
     dataset = selected.datasets.get('2')
     assert dataset is not None
@@ -182,12 +182,12 @@ def test_select_dataset():
     assert dataset.txt is not None
 
 
-def test_select_path():
+def test_lookup_path():
     i = Index()
     i.insert(id='1', age=65, path='test1.txt', type='txt')
     i.insert(id='2', age=63, path='test2.txt', type='txt')
     i.insert(id='3', age=70, path='test3.jpg', type='jpg')
-    selected = i.select(path='test3.jpg')
+    selected = i.lookup(path='test3.jpg')
     assert selected.datasets != i.datasets
     dataset = selected.datasets.get('3')
     assert dataset is not None
@@ -197,45 +197,45 @@ def test_select_path():
     assert dataset.jpg is not None
 
 
-def test_select_multiple_terms():
+def test_lookup_multiple_terms():
     i = Index()
     i.insert(id='1', age=65, path='test1.txt', type='txt')
     i.insert(id='2', age=63, path='test2.txt', type='txt')
     i.insert(id='3', age=70, path='test3.jpg', type='jpg')
     i.insert(id='4', age=45, path='test4.pdf', type='pdf')
-    selected = i.select(type='jpg', path='test3.jpg')
+    selected = i.lookup(type='jpg', path='test3.jpg')
     assert selected.datasets != i.datasets
     assert len(selected.datasets) == 1
 
 
-def test_select_multiple():
+def test_lookup_multiple():
     i = Index()
     i.insert(id='1', age=65, path='test1.txt', type='txt')
     i.insert(id='2', age=63, path='test2.txt', type='txt')
     i.insert(id='3', age=70, path='test3.jpg', type='jpg')
     i.insert(id='4', age=45, path='test4.pdf', type='pdf')
-    selected = i.select(type='txt', path='test3.jpg')
+    selected = i.lookup(type='txt', path='test3.jpg')
     assert selected.datasets != i.datasets
     assert len(selected.datasets) == 0
 
 
-def test_select_multiple_or():
+def test_lookup_multiple_or():
     i = Index()
     i.insert(id='1', age=65, path='test1.txt', type='txt')
     i.insert(id='2', age=63, path='test2.txt', type='txt')
     i.insert(id='3', age=70, path='test3.jpg', type='jpg')
     i.insert(id='4', age=45, path='test4.pdf', type='pdf')
-    selected = i.select(type='txt', path='test3.jpg', or_query=True)
+    selected = i.lookup(type='txt', path='test3.jpg', or_query=True)
     assert selected.datasets != i.datasets
     assert len(selected.datasets) == 3
 
 
-def test_select_no_path():
+def test_lookup_no_path():
     i = Index('test/data/index.txt')
     i.set_format('test/data/format.json')
     i.open()
     assert i.datasets.get('WLP.2') is not None
-    selected = i.select(id='WLP.2')
+    selected = i.lookup(id='WLP.2')
     assert selected.datasets != i.datasets
     assert len(selected.datasets) == 1
     dataset = selected.datasets.get('WLP.2')
@@ -398,5 +398,5 @@ def test_replicates_w_metadata():
              path='test/data/format.json',
              type='json',
              view='json')
-    i.select(id='aWL3.1,aWL3.2')
+    i.lookup(id='aWL3.1,aWL3.2')
     i.remove(path='test/data/format.json', clear=True)

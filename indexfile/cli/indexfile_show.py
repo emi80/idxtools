@@ -62,7 +62,7 @@ def run(args, index):
                 kwargs[m.group('key')] = m.group('value')
                 if list_sep in kwargs[m.group('key')]:
                     kwargs[m.group('key')] = m.group('value').split(list_sep)
-            indices.append(index.select(absolute=absolute, exact=exact, **kwargs))
+            indices.append(index.lookup(absolute=absolute, exact=exact, **kwargs))
         else:
             indices.append(index)
 
