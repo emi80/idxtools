@@ -30,9 +30,12 @@ def quote_tags(strings, force=False):
 
 class DotDict(dict):
     """Extends python dictionary allowing attribute access"""
-    def __init__(self, **kwargs):
-        for key, val in kwargs.items():
-            self[key] = val
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+        for key, val in self.items():
+            if type(val) == dict:
+                val = DotDict(**val)
+            self.__setitem__(key, val)
 
     def __getattr__(self, name):
         return self.get(name)
@@ -42,5 +45,19 @@ class DotDict(dict):
             value = DotDict(**value)
         dict.__setitem__(self, key, value)
 
+    def lookup(self, value, exact=False):
+        result = []
+        for item in self.items():
+            if isinstance(item[1], list) and value in item[1]:
+                result.append(item[0])
+            if isinstance(item[1], dict):
+                result += ["{}.{}".format(item[0], i)
+                           for i in DotDict(item[1]).lookup(value)]
+            if item[1] == value:
+                result.append(item[0])
+
+        return result
+
     __setattr__ = __setitem__
     __delattr__ = dict.__delitem__
+

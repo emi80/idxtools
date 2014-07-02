@@ -133,3 +133,32 @@ def test_dot_dict_of_dict_init():
     assert getattr(dic.info, 'path')
     assert getattr(dic.info, 'type')
     assert getattr(dic.info, 'view')
+
+
+def test_lookup_dict_init():
+    dic = u.DotDict(id="1", path="test.txt", type="txt", view="text")
+    assert type(dic) == u.DotDict
+    assert getattr(dic, 'id')
+    assert getattr(dic, 'path')
+    assert getattr(dic, 'type')
+    assert getattr(dic, 'view')
+    assert hasattr(dic, 'lookup')
+    assert callable(getattr(dic, 'lookup'))
+    assert dic.lookup('1') == ['id']
+
+
+def test_lookup_dict_of_dict():
+    """Test DotDict"""
+    dic = u.DotDict(id="1", info={'path': 'test.txt',
+                                     'type': 'txt',
+                                     'view': 'text'})
+    assert type(dic) == u.DotDict
+    assert getattr(dic, 'id')
+    assert getattr(dic, 'info')
+    assert hasattr(dic, 'lookup')
+    assert callable(getattr(dic, 'lookup'))
+    assert type(dic.info) == u.DotDict
+    assert getattr(dic.info, 'path')
+    assert getattr(dic.info, 'type')
+    assert getattr(dic.info, 'view')
+    assert dic.lookup('txt') == ['info.type']
