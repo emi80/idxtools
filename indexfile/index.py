@@ -20,7 +20,7 @@ log = indexfile.getLogger(__name__)
 # pylint: enable=C0103
 
 
-class Dataset(object):
+class Dataset(dict):
     """A class that represent dataset in the index file.
 
     Each entry is identified by a dataset id (eg. labExpId) and has metadata
@@ -32,7 +32,7 @@ class Dataset(object):
         the dataset attributes.
 
         """
-        self.__dict__['_metadata'] = {}
+        self.__dict__['_metadata'] = DotDict()
         self.__dict__['_files'] = DotDict()
         self.__dict__['_attributes'] = {}
 
@@ -74,25 +74,12 @@ class Dataset(object):
             file_type = os.path.splitext(path)[1].strip('.')
             kwargs['type'] = file_type
 
-        existing_type = self.find_file(path)
+        if path in self._files and not update:
+            log.debug("Skip existing %s entry", path)
+            return
 
-        if existing_type:
-            if not update:
-                log.debug("Skip existing %s entry", path)
-                return
-            log.debug("Update %s entry", path)
-            if file_type != existing_type:
-                self.rm_file(path=path)
-
-        if not self._files.get(file_type):
-            log.debug('Create file type dictionary for %s', file_type)
-            self._files[file_type] = DotDict()
-
-        if (not path in self._files.get(file_type).keys()) or update:
-            log.debug('Create entry for %s', path)
-            self._files.get(file_type)[path] = DotDict()
-
-        info = self._files.get(file_type).get(path)
+        if not path in self._files:
+            self._files[path] = {}
 
         for key, val in kwargs.items():
             if key == 'path' or key not in fileinfo:
@@ -100,15 +87,7 @@ class Dataset(object):
             if not val or val == '':
                 log.debug('Replace missing value with NA for %s', key)
                 val = 'NA'
-            info[key] = val
-
-
-    def find_file(self, path):
-        """Look for sepcified file inot the dataset"""
-        for ftype, files in self._files.items():
-            if path in files.keys():
-                return ftype
-        return None
+            self._files[path][key] = val
 
 
     def rm_file(self, **kwargs):
@@ -126,22 +105,15 @@ class Dataset(object):
             return
 
         if not type:
-            for key, val in self._files.items():
-                if path in val:
-                    type = key
-                    log.debug('Found file type entry for %s', path)
-                    break
-            else:
-                log.debug('No file type entry found for %s', path)
-                return
             log.debug('Delete entry for %s', path)
-            del self._files.get(type)[path]
-            if not self._files.get(type):
-                log.debug('Delete file type entry for %s', type)
-                del self._files[type]
+            if path in self._files:
+                del self._files[path]
         else:
             log.debug('Delete all %r entries', type)
-            del self._files[type]
+            for f in [v for k,v in self._files.items()
+                      if v.type == type]:
+                del f
+
 
     def export(self, types=None, tags=None):
         """Export a :class:Dataset object to a list of dictionaries (one for
@@ -158,12 +130,11 @@ class Dataset(object):
         if not tags:
             tags = self._metadata.keys() + ['path', 'type']
             if self._files:
-                tags += [k for infos in self._files.values()
-                         for info in infos.values()
-                         for k in info.keys()]
+                tags.extend([k for v in self._files.values()
+                             for k in v.keys()])
             tags = list(set(tags))
         if not types:
-            types = self._files.keys()
+            types = set([v.type for v in self._files.values()])
         if type(types) == str:
             types = [types]
         if type(tags) == str:
@@ -174,11 +145,11 @@ class Dataset(object):
             log.debug('No files found in the index. Write metadata index')
             return [dict([(k, v) for k, v in self._metadata.items()
                     if k in tags])]
-        for ftype in types:
-            log.debug('Export type %r', ftype)
-            for path, info in getattr(self, ftype).items():
+        for path, info in self._files.items():
+            if info.type in types:
+                log.debug('Export type %r', info.type)
                 data = dict([(k, v) for k, v in self._metadata.items()
-                            + {'path': path, 'type': ftype}.items()
+                            + {'path': path, 'type': info.type}.items()
                             + info.items() if k in tags])
                 out.append(data)
         return out
@@ -233,15 +204,42 @@ class Dataset(object):
         d = Dataset(**meta)
         return d
 
+    def has(self, exact=False, **kwargs):
+        for k, v in kwargs.items():
+            if k in self._metadata:
+                val = self._metadata.get(k)
+                if val != v:
+                    return False
+            else:
+                for key in self._files:
+                    if self._files[key].get(k) != v:
+                        return False
+        return True
+
+
+    def __getitem__(self, key):
+        return self._files.get(key)
+
+    def get(self, *args, **kwargs):
+        if args and len(args) == 1:
+            return self._files.get(args[0])
+        if kwargs:
+            for k, v in kwargs.items():
+                if k in self._metadata:
+                    continue
+                return sorted([key for key, value in
+                               self._files.items() if value.get(k) == v])
+        return None
+
+
     def __getattr__(self, name):
         if name in self.__dict__['_attributes'].keys():
             return self.__dict__['_attributes'][name](self)
         if name in self._metadata.keys():
             return self._metadata.get(name)
-        if name in self._files.keys():
-            return self._files.get(name)
         raise AttributeError('%r object has no attribute %r' % (
             self.__class__.__name__, name))
+
 
     def __setattr__(self, name, value):
         if name != '__dict__':
@@ -258,12 +256,11 @@ class Dataset(object):
         Iterates over all files in a dataset. Returns a tuple containing the
         path and a dictionary with the file information.
         """
-        for files in self._files.values():
-            for path, info in files.items():
+        for path, info in self._files.items():
                 yield (path, info)
 
     def __len__(self):
-        return len([f for l in self._files.values() for f in l])
+        return len(self._files)
 
 
 class Index(object):
@@ -458,7 +455,7 @@ class Index(object):
     def remove(self, clear=False, **kwargs):
         """Remove dataset(s) from the index given a search query.
         """
-        datasets = self.select(**kwargs).datasets.keys()
+        datasets = self.lookup(**kwargs).datasets.keys()
         if datasets:
             log.debug('Remove datasets %s', datasets)
             for k in datasets:
@@ -644,7 +641,7 @@ class Index(object):
 
             log.debug('Lookup table created')
 
-    def select(self, id=None, oplist=['>', '=', '<', '!'], absolute=False,
+    def lookup(self, id=None, oplist=['>', '=', '<', '!'], absolute=False,
                exact=False, or_query=False, **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes
         to be looked for.
@@ -676,8 +673,10 @@ class Index(object):
                     return self
                 else:
                     return []
-            if not self._lookup:
-                self._create_lookup()
+            # if not self._lookup:
+            #     self._lookup = self.datasets
+                # self._lookup = LookupDict(self.datasets.values()[0])
+                # self._create_lookup()
             for k, val in kwargs.items():
                 if meta:
                     log.debug('Metadata query')
@@ -685,9 +684,9 @@ class Index(object):
                         finfo[k] = val
                         continue
                 log.debug('File query')
-                if not k in self._lookup.keys():
-                    raise ValueError('''The attribute %r is not present in the
-                                     index''' % k)
+                # if not k in self._lookup.keys():
+                #     raise ValueError('''The attribute %r is not present in the
+                #                      index''' % k)
                 if type(val) == list:
                     operator = ' in '
                     value = val
@@ -712,6 +711,7 @@ class Index(object):
                     query = '''[id for k, v in self._lookup[%r].items() if %s
                             for id in v]''' % (k, search)
 
+                log.info('Query: {}'.format(query))
                 setlist.append(set(eval(query)))
 
         if meta:
@@ -741,7 +741,7 @@ class Index(object):
             i._create_lookup()
 
         if finfo and meta:
-            i = i.select(None, oplist, absolute, exact, **finfo)
+            i = i.lookup(None, oplist, absolute, exact, **finfo)
 
         return i
 

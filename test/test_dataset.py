@@ -49,11 +49,10 @@ def test_create_dataset_w_path():
     assert not hasattr(dataset, 'path')
     assert not hasattr(dataset, 'type')
     assert len(dataset) == 1
-    assert dataset.txt is not None
-    assert len(dataset.txt) == 1
-    assert dataset.txt.get('test.txt') is not None
-    assert dataset.txt.get('test.txt').get('type') == 'txt'
-    assert dataset.txt.get('test.txt').get('view') == 'text'
+    assert dataset._files is not None
+    assert dataset.get('test.txt') is not None
+    assert dataset.get('test.txt').get('type') == 'txt'
+    assert dataset.get('test.txt').get('view') == 'text'
 
 
 def test_create_dataset_w_path_type():
@@ -66,11 +65,10 @@ def test_create_dataset_w_path_type():
     assert not hasattr(dataset, 'path')
     assert not hasattr(dataset, 'type')
     assert len(dataset) == 1
-    assert dataset.txt is not None
-    assert len(dataset.txt) == 1
-    assert dataset.txt.get('test.txt') is not None
-    assert dataset.txt.get('test.txt').get('type') == 'txt'
-    assert dataset.txt.get('test.txt').get('view') == 'text'
+    assert dataset._files is not None
+    assert dataset.get('test.txt') is not None
+    assert dataset.get('test.txt').get('type') == 'txt'
+    assert dataset.get('test.txt').get('view') == 'text'
 
 
 def test_create_dataset_w_na():
@@ -116,11 +114,10 @@ def test_add_file():
     dataset.add_file(**fileinfo)
     # pylint: enable=W0142
     assert len(dataset) == 1
-    assert dataset.txt is not None
-    assert len(dataset.txt) == 1
-    assert dataset.txt.get('test.txt') is not None
-    assert dataset.txt.get('test.txt').get('type') == 'txt'
-    assert dataset.txt.get('test.txt').get('view') == 'text'
+    assert dataset is not None
+    assert dataset.get('test.txt') is not None
+    assert dataset.get('test.txt').get('type') == 'txt'
+    assert dataset.get('test.txt').get('view') == 'text'
 
 
 def test_add_file_update():
@@ -134,17 +131,16 @@ def test_add_file_update():
     dataset.add_file(**fileinfo)
     dataset.add_file(**newfileinfo)
     # pylint: enable=W0142
-    assert dataset.txt.get('test.txt').get('view') == 'text'
+    assert dataset.get('test.txt').get('view') == 'text'
     # Disable warning about * magic
     # pylint: disable=W0142
     dataset.add_file(update=True, **newfileinfo)
     # pylint: enable=W0142
     assert len(dataset) == 1
-    assert dataset.txt is not None
-    assert len(dataset.txt) == 1
-    assert dataset.txt.get('test.txt') is not None
-    assert dataset.txt.get('test.txt').get('type') == 'txt'
-    assert dataset.txt.get('test.txt').get('view') == 'Text'
+    assert dataset._files is not None
+    assert dataset.get('test.txt') is not None
+    assert dataset.get('test.txt').get('type') == 'txt'
+    assert dataset.get('test.txt').get('view') == 'Text'
 
 
 def test_add_file_update_type():
@@ -158,19 +154,17 @@ def test_add_file_update_type():
     dataset.add_file(**fileinfo)
     dataset.add_file(**newfileinfo)
     # pylint: enable=W0142
-    assert dataset.txt.get('test.txt').get('view') == 'text'
-    assert not hasattr(dataset,'text')
+    assert dataset.get('test.txt').get('view') == 'text'
+    assert dataset.get('test.txt').get('type') == 'txt'
     # Disable warning about * magic
     # pylint: disable=W0142
     dataset.add_file(update=True, **newfileinfo)
     # pylint: enable=W0142
     assert len(dataset) == 1
-    assert not hasattr(dataset,'txt')
-    assert dataset.text is not None
-    assert len(dataset.text) == 1
-    assert dataset.text.get('test.txt') is not None
-    assert dataset.text.get('test.txt').get('type') == 'text'
-    assert dataset.text.get('test.txt').get('view') == 'Text'
+    assert dataset._files is not None
+    assert dataset.get('test.txt') is not None
+    assert dataset.get('test.txt').get('type') == 'text'
+    assert dataset.get('test.txt').get('view') == 'Text'
 
 
 def test_add_file_no_path():
@@ -186,7 +180,6 @@ def test_add_file_no_path():
     dataset.add_file(**fileinfo)
     # pylint: enable=W0142
     assert len(dataset) == 0
-    assert not hasattr(dataset, 'txt')
 
 
 def test_add_file_missing_values():
@@ -202,7 +195,7 @@ def test_add_file_missing_values():
     dataset.add_file(**fileinfo)
     # pylint: enable=W0142
     assert len(dataset) == 1
-    assert dataset.txt.get('test.txt').get('view') == 'NA'
+    assert dataset.get('test.txt').get('view') == 'NA'
 
 
 def test_multiple_files():
@@ -214,10 +207,6 @@ def test_multiple_files():
     dataset.add_file(path='test1.txt', type='txt', view='text')
     dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
     dataset.add_file(path='test1.jpg', type='jpg', view='jpeg')
-    assert dataset.txt
-    assert dataset.jpg
-    assert len(dataset.txt) == 2
-    assert len(dataset.jpg) == 2
     assert len(dataset) == 4
 
 
@@ -248,9 +237,8 @@ def test_rm_file():
     # pylint: enable=W0142
     dataset.add_file(path='test1.txt', type='txt', view='text')
     dataset.rm_file(path='test.txt')
-    assert dataset.txt
-    assert len(dataset.txt) == 1
-    assert dataset.txt.get('test.txt') is None
+    assert len(dataset) == 1
+    assert dataset.get('test.txt') is None
 
 
 def test_rm_last_file_for_a_type():
@@ -298,8 +286,8 @@ def test_rm_file_type():
     dataset = Dataset(**info)
     # pylint: enable=W0142
     dataset.add_file(path='test1.txt', type='txt', view='text')
-    assert dataset.txt
-    assert len(dataset.txt) == 2
+    assert dataset._files
+    assert len(dataset) == 2
     dataset.rm_file(type='txt')
     # Disable warning about:
     # - missing pytest.raises.
@@ -494,6 +482,25 @@ def test_get_tags_on_merged():
     merged = dataset1.merge(dataset2)
     string = merged.get_tags()
     assert string == '''age=65,61; desc="First test dataset","Second test dataset"; id=1,2; sex=M,F;'''
+
+
+def test_dataset_has():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    result = dataset.has(age=65)
+    assert result == True
+    dataset.add_file(id='1', path='test.txt', type='txt')
+    result = dataset.has(type='txt')
+    assert result == True
+
+
+def test_dataset_get():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    dataset.add_file(id='1', path='test.txt', type='txt')
+    assert dataset.get(type='txt') == ['test.txt']
+    dataset.add_file(id='1', path='test1.txt', type='txt')
+    assert dataset.get(type='txt') == ['test.txt', 'test1.txt']
 
 
 class MyDataset(Dataset):
