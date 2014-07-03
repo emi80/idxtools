@@ -1,6 +1,6 @@
 """Unit tests for the Dataset class"""
 import pytest
-from indexfile.index import Dataset
+from indexfile.dataset import Dataset
 
 
 def test_create_empty_dataset():
@@ -498,9 +498,13 @@ def test_dataset_get():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     dataset.add_file(id='1', path='test.txt', type='txt')
-    assert dataset.get(type='txt') == ['test.txt']
+    txt = dataset.get(type='txt')
+    assert txt
+    assert type(txt) == Dataset
+    assert len(txt) == 1
     dataset.add_file(id='1', path='test1.txt', type='txt')
-    assert dataset.get(type='txt') == ['test.txt', 'test1.txt']
+    txt = dataset.get(type='txt')
+    assert len(txt) == 2
 
 
 class MyDataset(Dataset):

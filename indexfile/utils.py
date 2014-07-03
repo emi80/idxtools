@@ -58,6 +58,10 @@ class DotDict(dict):
 
         return result
 
+    def __deepcopy__(self, memo):
+        import copy
+        return DotDict(copy.deepcopy(dict(self)))
+
     __setattr__ = __setitem__
     __delattr__ = dict.__delitem__
 
