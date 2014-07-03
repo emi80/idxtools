@@ -220,26 +220,7 @@ class Dataset(dict):
 
 
     def get(self, *args, **kwargs):
-        """Return a clone of the import re
-import os
-import sys
-import csv
-import simplejson as json
-import tempfile
-import simplejson as json
-from lockfile import LockFile
-from copy import deepcopy
-from indexfile.utils import *
-from copy import copy, deepcopy
-
-
-
-# setup logger
-import indexfile
-# Disable warning about invalid constant name
-# pylint: disable=C0103
-log = indexfile.getLogger(__name__)
-# pylint: enable=C0103dataset if it contains the key-value pairs
+        """Return a clone of the dataset if it contains the key-value pairs
         specified in kwargs  
         """
         if args and len(args) == 1:
@@ -255,10 +236,10 @@ log = indexfile.getLogger(__name__)
             if not path:
                 return None
             files.append(set(path))
-        if files:
-            return self.clone(list(set.intersection(*files)))
-        return None
-
+        if not files:
+            return None    
+        return self.clone(list(set.intersection(*files)))
+        
 
     def clone(self, paths=None):
         metadata = self._metadata
