@@ -1,4 +1,5 @@
 """Utility methods used in the API"""
+import copy
 
 def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
     """Convert a dictionary to a string in index file format"""
@@ -59,7 +60,6 @@ class DotDict(dict):
         return result
 
     def __deepcopy__(self, memo):
-        import copy
         return DotDict(copy.deepcopy(dict(self)))
 
     __setattr__ = __setitem__
