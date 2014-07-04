@@ -126,13 +126,12 @@ def test_insert():
     assert len(dataset) == 1
     assert hasattr(dataset, 'id')
     assert hasattr(dataset, 'age')
-    assert hasattr(dataset, 'txt')
     assert dataset.id == '1'
     assert dataset.age == 65
-    assert dataset.txt.get('test.txt') is not None
-    assert len(dataset.txt.get('test.txt')) == 1
-    assert hasattr(dataset.txt.get('test.txt'), 'type')
-    assert dataset.txt.get('test.txt').type == 'txt'
+    assert dataset.get('test.txt') is not None
+    assert len(dataset.get('test.txt')) == 1
+    assert hasattr(dataset.get('test.txt'), 'type')
+    assert dataset.get('test.txt').type == 'txt'
 
 
 def test_insert_update():
@@ -146,13 +145,11 @@ def test_insert_update():
     assert len(dataset) == 1
     assert hasattr(dataset, 'id')
     assert hasattr(dataset, 'age')
-    assert not hasattr(dataset, 'txt')
-    assert hasattr(dataset, 'text')
     assert dataset.id == '1'
     assert dataset.age == 70
-    assert len(dataset.text.get('test.txt')) == 1
-    assert hasattr(dataset.text.get('test.txt'), 'type')
-    assert dataset.text.get('test.txt').type == 'text'
+    assert len(dataset.get('test.txt')) == 1
+    assert hasattr(dataset.get('test.txt'), 'type')
+    assert dataset.get('test.txt').type == 'text'
 
 
 def test_lookup_simple_dataset():
@@ -179,7 +176,6 @@ def test_lookup_dataset():
     assert dataset.id == '2'
     assert dataset.age == 63
     assert len(dataset) == 1
-    assert dataset.txt is not None
 
 
 def test_lookup_path():
@@ -194,7 +190,6 @@ def test_lookup_path():
     assert dataset.id == '3'
     assert dataset.age == 70
     assert len(dataset) == 1
-    assert dataset.jpg is not None
 
 
 def test_lookup_multiple_terms():
@@ -356,7 +351,7 @@ def test_export_ol_no_map_tab_all():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export(map=None, export_type='tab')
-    assert exp[0] == '''"5.8 ng/uL (30 nM) 08/04/2013"\tcell\tACTGAT(A)\tdmel\tL3\tAR025\t2x75D\taWL3.2\t2\tanterior\t297\tlongPolyA\twing\t2\t100\tMATE1_SENSE\t37478754\trnaSeq\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tgtf\tTranscriptFB554'''
+    assert exp[0] == '''ACTGAT(A)\tL3\tAR025\tanterior\trnaSeq\taWL3.2\t"5.8 ng/uL (30 nM) 08/04/2013"\tcell\t297\t37478754\tdmel\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\t2\tMATE1_SENSE\t2x75D\t2\tlongPolyA\t100\twing\tgtf\tTranscriptFB554'''
 
 
 def test_export_ol_no_map_tab_all_header():
@@ -366,8 +361,8 @@ def test_export_ol_no_map_tab_all_header():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export(map=None, export_type='tab', header=True)
-    assert exp[0] == 'maxPeak\treadType\ttissue\tlibBio\tcell\tdataType\treplicate\tnReads\ttype\tlocalization\tadaptor\tlabExpId\tbarcode\trnaExtract\tpath\tage\trnaQuantity\treadStrand\tpoolId\torganism\tview'
-    assert exp[1] == '''"5.8 ng/uL (30 nM) 08/04/2013"\tcell\tACTGAT(A)\tdmel\tL3\tAR025\t2x75D\taWL3.2\t2\tanterior\t297\tlongPolyA\twing\t2\t100\tMATE1_SENSE\t37478754\trnaSeq\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tgtf\tTranscriptFB554'''
+    assert exp[0] == 'adaptor\tage\tbarcode\tcell\tdataType\tlabExpId\tlibBio\tlocalization\tmaxPeak\tnReads\torganism\tpath\tpoolId\treadStrand\treadType\treplicate\trnaExtract\trnaQuantity\ttissue\ttype\tview'
+    assert exp[1] == '''ACTGAT(A)\tL3\tAR025\tanterior\trnaSeq\taWL3.2\t"5.8 ng/uL (30 nM) 08/04/2013"\tcell\t297\t37478754\tdmel\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\t2\tMATE1_SENSE\t2x75D\t2\tlongPolyA\t100\twing\tgtf\tTranscriptFB554'''
 
 
 def test_replicates():
