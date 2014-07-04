@@ -213,8 +213,10 @@ class Dataset(dict):
                 if val != v:
                     return False
             else:
+                if k == 'path' and v not in self._files:
+                    return False
                 for key in self._files:
-                    if self._files[key].get(k) != v:
+                    if self._files[key].get(k) and self._files[key].get(k) != v:
                         return False
         return True
 
@@ -231,8 +233,11 @@ class Dataset(dict):
         for k, v in kwargs.items():
             if k in self._metadata:
                 continue
-            path = [key for key, value in self._files.items() 
-                     if value.get(k) == v]
+            if k == 'path' and v in self._files:
+                path = [v]
+            else:
+                path = [key for key, value in self._files.items() 
+                        if value.get(k) == v]
             if not path:
                 return None
             files.append(set(path))
