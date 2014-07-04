@@ -48,14 +48,15 @@ class DotDict(dict):
 
     def lookup(self, value, exact=False):
         result = []
-        for item in self.items():
-            if isinstance(item[1], list) and value in item[1]:
-                result.append(item[0])
-            if isinstance(item[1], dict):
-                result += ["{}.{}".format(item[0], i)
-                           for i in DotDict(item[1]).lookup(value)]
-            if item[1] == value:
-                result.append(item[0])
+        for k, v in self.items():
+            if isinstance(v, list) and value in v:
+                result.append(k)
+            if isinstance(v, dict):
+                print k, DotDict(v).lookup(value)
+                result += ["{0}.{1}".format(k, i)
+                           for i in DotDict(v).lookup(value)]
+            if v == value:
+                result.append(k)
 
         return result
 
