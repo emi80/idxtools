@@ -253,7 +253,7 @@ class Dataset(dict):
         if paths:
             files = dict([(key, self._files[key]) for key in self._files 
                           if key in paths])
-        new_ds = copy(self)
+        new_ds = deepcopy(self)
         new_ds._metadata = deepcopy(metadata)
         new_ds._metadata = deepcopy(files)
         new_ds._attributes = deepcopy(attrs)
