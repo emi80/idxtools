@@ -9,3 +9,4 @@ py==1.4.15
 pytest==2.3.5
 readline==6.2.4.1
 simplejson==3.3.2
+tox==1.7.1
