@@ -225,6 +225,14 @@ def test_lookup_multiple_or():
     assert len(selected.datasets) == 3
 
 
+def test_lookup_multiple_or():
+    i = Index()
+    i.insert(id='1', age=65, path='test1.txt', type='txt')
+    i.insert(id='1', age=65, path='test1.gff', type='gff')
+    selected = i.lookup(type='txt')
+    assert len(selected.datasets.values()[0]) == 1 
+
+
 def test_lookup_no_path():
     i = Index('test/data/index.txt')
     i.set_format('test/data/format.json')

@@ -225,7 +225,7 @@ class Dataset(dict):
                 return None
             files.append(set(path))
         if not files:
-            return None    
+            return None   
         return self.clone(list(set.intersection(*files)))
         
 
@@ -237,10 +237,9 @@ class Dataset(dict):
             files = dict([(key, self._files[key]) for key in self._files 
                           if key in paths])
         new_ds = deepcopy(self)
-        # new_ds._metadata = deepcopy(metadata)
-        # new_ds._files = deepcopy(files)
-        # new_ds._attributes = deepcopy(attrs)
-        print new_ds._files
+        new_ds.__dict__['_metadata'] = deepcopy(metadata)
+        new_ds.__dict__['_files'] = deepcopy(files)
+        new_ds.__dict__['_attributes'] = deepcopy(attrs)
 
         return new_ds
 
