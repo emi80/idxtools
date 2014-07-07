@@ -203,23 +203,6 @@ class Dataset(dict):
         d = Dataset(**meta)
         return d
 
-    def has(self, exact=False, **kwargs):
-        """Returns True if the dataset contains the key-value pairs 
-        specified as kwargs.
-        """
-        for k, v in kwargs.items():
-            if k in self._metadata:
-                val = self._metadata.get(k)
-                if val != v:
-                    return False
-            else:
-                if k == 'path' and v not in self._files:
-                    return False
-                for key in self._files:
-                    if self._files[key].get(k) and self._files[key].get(k) != v:
-                        return False
-        return True
-
 
     def get(self, *args, **kwargs):
         """Return a clone of the dataset if it contains the key-value pairs
@@ -242,7 +225,7 @@ class Dataset(dict):
                 return None
             files.append(set(path))
         if not files:
-            return None    
+            return None   
         return self.clone(list(set.intersection(*files)))
         
 
@@ -253,13 +236,12 @@ class Dataset(dict):
         if paths:
             files = dict([(key, self._files[key]) for key in self._files 
                           if key in paths])
-        new_ds = copy(self)
-        new_ds._metadata = deepcopy(metadata)
-        new_ds._metadata = deepcopy(files)
-        new_ds._attributes = deepcopy(attrs)
+        new_ds = deepcopy(self)
+        new_ds.__dict__['_metadata'] = deepcopy(metadata)
+        new_ds.__dict__['_files'] = deepcopy(files)
+        new_ds.__dict__['_attributes'] = deepcopy(attrs)
 
         return new_ds
-
 
 
     def __getitem__(self, key):
@@ -295,3 +277,33 @@ class Dataset(dict):
 
     def __len__(self):
         return len(self._files)
+
+    def __contains__(self, item):
+        """Returns True if the dataset contains the key-value pairs 
+        specified as kwargs.
+        """
+        if not isinstance(item, dict):
+            return False
+
+        if 'path' in item and item.get('path') not in self._files:
+            return False
+
+        kw = item.copy()
+
+        for k, v in kw.items():
+            if k in self._metadata:
+                val = self._metadata.get(k)
+                if val and val != v:
+                    return False
+                del kw[k]
+
+        for key in self._files:
+            result = list(set([v == self._files.get(key).get(k) if k != 'path'
+                          else v == key for k,v in kw.items()]))
+            if len(result) == 1 and result[0] == True:
+                break
+        else:
+            if kw:                
+                return False
+
+        return True

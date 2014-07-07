@@ -225,6 +225,14 @@ def test_lookup_multiple_or():
     assert len(selected.datasets) == 3
 
 
+def test_lookup_multiple_or():
+    i = Index()
+    i.insert(id='1', age=65, path='test1.txt', type='txt')
+    i.insert(id='1', age=65, path='test1.gff', type='gff')
+    selected = i.lookup(type='txt')
+    assert len(selected.datasets.values()[0]) == 1 
+
+
 def test_lookup_no_path():
     i = Index('test/data/index.txt')
     i.set_format('test/data/format.json')
@@ -236,6 +244,48 @@ def test_lookup_no_path():
     dataset = selected.datasets.get('WLP.2')
     assert dataset is not None
     dataset.id = 'WLP.2'
+
+
+def test_lookup_more_types_index_id():
+    """Test export"""
+    i = Index('test/data/index_gfs.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    result = i.lookup(id='WWP.1')
+    assert result.export()[0][0] != '.'
+
+
+def test_lookup_one_type_index():
+    """Test export"""
+    i = Index('test/data/index_gtfs.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    result = i.lookup(type='gtf')
+    assert result.export()[0][0] != '.'
+
+
+def test_lookup_more_types_index():
+    """Test export"""
+    i = Index('test/data/index_one_gfs.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    result = i.lookup(type='gtf')
+    assert result != None
+    assert result.datasets != {}
+    assert result.export()[0][0] != '.'
+
+
+def test_lookup_full_index():
+    """Test export"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    result = i.lookup(type='gtf')
+    assert result.export()[0][0] != '.'
 
 
 def test_remove_dataset():

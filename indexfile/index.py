@@ -133,7 +133,6 @@ class Index(object):
         """
         for line in index_file:
             tags = Index.parse_line(line, **self.format)
-
             dataset = self.insert(**tags)
 
     def _load_table(self, index_file, dialect=None):
@@ -145,7 +144,6 @@ class Index(object):
         format information
 
         """
-
         reader = csv.DictReader(index_file, dialect=dialect)
         for line in reader:
             tags = Index.map_keys(line, **self.format)
@@ -261,7 +259,7 @@ class Index(object):
                 kwargs = {}
             kwargs = dict(self.format.items() + kwargs.items())
 
-        dsid = kwargs.pop('id')
+        dsid = kwargs.pop('id', None)
         idxmap = kwargs.pop('map', None)
         colsep = kwargs.pop('colsep', '\t')
         #fileinfo = kwargs.pop('fileinfo', [])
@@ -367,24 +365,25 @@ class Index(object):
             #     meta = True
             if not self.datasets:
                 return self
-            datasets = {}
+            datasets = {}            
             for ds in self.datasets:
                 if or_query:
                     for k, v in kwargs.items():
-                        if self.datasets.get(ds).has(**{k: v}):
+                        if {k: v} in self.datasets.get(ds):
                             obj = self.datasets.get(ds).get(**{k: v})
                             if obj:
                                 datasets[ds] = obj
                             else:
                                 datasets[ds] = self.datasets.get(ds)
-                if self.datasets.get(ds).has(**kwargs): 
-                    # print ds, kwargs                   
+                if kwargs in self.datasets.get(ds):
                     obj = self.datasets.get(ds).get(**kwargs)
                     if obj:
                         datasets[ds] = obj
                     else:
                         datasets[ds] = self.datasets.get(ds)
             return Index(datasets=datasets, format=self.format)
+        
+        return None
                 
 
         #         if meta:
@@ -448,8 +447,7 @@ class Index(object):
 
         # if finfo and meta:
         #     i = i.lookup(None, oplist, absolute, exact, **finfo)
-
-        return i
+        # return i
 
     def __len__(self):
         return len(self.datasets)

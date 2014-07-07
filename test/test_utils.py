@@ -1,7 +1,7 @@
 """Test utility methods"""
 
 from indexfile import utils as u
-
+from copy import deepcopy
 
 def test_to_tags():
     """Convert dictionary to indexfile string"""
@@ -162,3 +162,29 @@ def test_lookup_dict_of_dict():
     assert getattr(dic.info, 'type')
     assert getattr(dic.info, 'view')
     assert dic.lookup('txt') == ['info.type']
+
+
+def test_deepcopy():
+    """Test DotDict"""
+    dic = u.DotDict(id="1", info={'path': 'test.txt',
+                                     'type': 'txt',
+                                     'view': 'text'})
+    assert type(dic) == u.DotDict
+    assert getattr(dic, 'id')
+    assert getattr(dic, 'info')
+    assert hasattr(dic, 'lookup')
+    assert callable(getattr(dic, 'lookup'))
+    assert type(dic.info) == u.DotDict
+    assert getattr(dic.info, 'path')
+    assert getattr(dic.info, 'type')
+    assert getattr(dic.info, 'view')
+    cp = deepcopy(dic)
+    assert type(cp) == u.DotDict
+    assert getattr(cp, 'id')
+    assert getattr(cp, 'info')
+    assert hasattr(cp, 'lookup')
+    assert callable(getattr(cp, 'lookup'))
+    assert type(cp.info) == u.DotDict
+    assert getattr(cp.info, 'path')
+    assert getattr(cp.info, 'type')
+    assert getattr(cp.info, 'view')
