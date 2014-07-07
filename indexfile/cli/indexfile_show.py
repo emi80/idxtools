@@ -69,7 +69,7 @@ def run(args, index):
         for i in indices:
             if isinstance(i,Index):
                 if args.get('--count') and not args.get('--tags'):
-                    args.get('--output').write("%s%s" % (i.size,os.linesep))
+                    args.get('--output').write("%s%s" % (len(i),os.linesep))
                     return
                 signal.signal(signal.SIGPIPE, handler)
                 command = "i.export(header=%s,export_type=%r,tags=tags,absolute=absolute, hide_missing=hide_missing" % (header,type)
