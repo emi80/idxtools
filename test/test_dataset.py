@@ -483,15 +483,56 @@ def test_get_tags_on_merged():
     string = merged.get_tags()
     assert string == '''age=65,61; desc="First test dataset","Second test dataset"; id=1,2; sex=M,F;'''
 
+def test_dataset_clone():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    dataset.add_file(id='1', path='test.txt', type='txt')
+    dataset.add_file(id='1', path='test.bam', type='bam')
+    assert len(dataset) == 2
+    cl = dataset.clone()
+    assert id(dataset) != id(cl)
+    assert type(dataset) == type(cl)
+    assert dataset._metadata == cl._metadata
+    assert dataset._files == cl._files
+    assert dataset._attributes == cl._attributes
+    assert hasattr(cl, "clone")
+    assert hasattr(cl, "add_file")
+    assert hasattr(cl, "rm_file")
+    assert hasattr(cl, "export")
+    assert hasattr(cl, "get_meta_tags")
+    assert hasattr(cl, "get_meta_items")
+    assert hasattr(cl, "get_tags")
+    assert hasattr(cl, "merge")
+    assert hasattr(cl, "get")
+
 
 def test_dataset_has():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
-    result = dataset.has(age=65)
+    result = {'age': 65} in dataset
     assert result == True
     dataset.add_file(id='1', path='test.txt', type='txt')
-    result = dataset.has(type='txt')
+    result = {'type': 'txt'} in dataset
     assert result == True
+
+
+def test_dataset_multi_has():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    result = {'age': 65} in dataset
+    assert result == True
+    dataset.add_file(id='1', path='test.txt', type='txt')
+    dataset.add_file(id='1', path='test.gff', type='gff')
+    result = {'type': 'txt'} in dataset
+    assert result == True
+
+
+def test_dataset_has_files():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    dataset.add_file(id='1', path='test.txt', type='txt')
+    result = {'type': 'txt'} in dataset
+    assert dataset._files
 
 
 def test_dataset_get():
