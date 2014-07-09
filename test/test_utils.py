@@ -58,6 +58,26 @@ def test_quote_single():
     assert qstring == '"Long string with spaces"'
 
 
+def test_match_exact():
+    assert u.match("a", "a", exact=True)
+    assert u.match(1, 1, exact=True)
+    assert not u.match(1, "1", exact=True)
+
+
+def test_match_regexp():
+    assert u.match("a", "atom")
+    assert u.match("ca[rt]", "cat")
+    assert u.match(".+ar$", "car")
+    assert u.match("[^3]", "4")
+
+
+def test_match_ops():
+    assert u.match(">2", 20)
+    assert u.match(">=2", 2)
+    assert u.match("!=3", 4)
+    assert not u.match("!=3", "4")
+
+
 def test_dot_dict_setitem():
     """Test DotDict"""
     dic = u.DotDict()

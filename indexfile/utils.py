@@ -1,5 +1,6 @@
 """Utility methods used in the API"""
 import copy
+import re
 
 def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
     """Convert a dictionary to a string in index file format"""
@@ -27,6 +28,27 @@ def quote_tags(strings, force=False):
             item = ('\"%s\"' % item)
         out.append(item)
     return out
+
+
+def match(src, dest, exact=False, oplist=['>', '!=', '<', '==']):
+    if exact:
+        return src == dest
+    if type(dest) == int:
+        try:
+            src = int(src)
+            return src == dest
+        except ValueError:
+            if not src.startswith(tuple(oplist)):
+                raise SyntaxError("Invalid sytax: {0}{1}".format(dest, src))
+            return eval("{0}{1}".format(dest, src), {"__builtins__": {}})
+
+    if type(dest) == str:
+        cre = re.compile(src)
+        if cre.match(dest):
+            return True
+        else:
+            return False
+    return False
 
 
 class DotDict(dict):
