@@ -1,0 +1,1 @@
+aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf	maxPeak=297; readType=2x75D; tissue=wing; libBio="5.8 ng/uL (30 nM) 08/04/2013"; cell=anterior; dataType=rnaSeq; replicate=2; nReads=37478754; type=gtf; localization=cell; adaptor=ACTGAT(A); labExpId=aWL3.2; barcode=AR025; rnaExtract=longPolyA; age=L3; rnaQuantity=100; readStrand=MATE1_SENSE; poolId=2; organism=dmel; view=TranscriptFB554;

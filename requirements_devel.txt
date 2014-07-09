@@ -5,7 +5,8 @@ docopt==0.6.1
 docopts==0.6.1-fix2
 ipython==0.13.2
 lockfile==0.9.1
-py==1.4.15
+py>=1.4.17
 pytest==2.3.5
 readline==6.2.4.1
 simplejson==3.3.2
+tox==1.7.1
