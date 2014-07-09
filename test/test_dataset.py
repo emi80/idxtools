@@ -483,48 +483,49 @@ def test_get_tags_on_merged():
     string = merged.get_tags()
     assert string == '''age=65,61; desc="First test dataset","Second test dataset"; id=1,2; sex=M,F;'''
 
+
 def test_dataset_clone():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     dataset.add_file(id='1', path='test.txt', type='txt')
     dataset.add_file(id='1', path='test.bam', type='bam')
     assert len(dataset) == 2
-    cl = dataset.clone()
-    assert id(dataset) != id(cl)
-    assert type(dataset) == type(cl)
-    assert dataset._metadata == cl._metadata
-    assert dataset._files == cl._files
-    assert dataset._attributes == cl._attributes
-    assert hasattr(cl, "clone")
-    assert hasattr(cl, "add_file")
-    assert hasattr(cl, "rm_file")
-    assert hasattr(cl, "export")
-    assert hasattr(cl, "get_meta_tags")
-    assert hasattr(cl, "get_meta_items")
-    assert hasattr(cl, "get_tags")
-    assert hasattr(cl, "merge")
-    assert hasattr(cl, "get")
+    clone = dataset.clone()
+    assert id(dataset) != id(clone)
+    assert type(dataset) == type(clone)
+    assert dataset._metadata == clone._metadata
+    assert dataset._files == clone._files
+    assert dataset._attributes == clone._attributes
+    assert hasattr(clone, "clone")
+    assert hasattr(clone, "add_file")
+    assert hasattr(clone, "rm_file")
+    assert hasattr(clone, "export")
+    assert hasattr(clone, "get_meta_tags")
+    assert hasattr(clone, "get_meta_items")
+    assert hasattr(clone, "get_tags")
+    assert hasattr(clone, "merge")
+    assert hasattr(clone, "get")
 
 
 def test_dataset_has():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     result = {'age': 65} in dataset
-    assert result == True
+    assert result is True
     dataset.add_file(id='1', path='test.txt', type='txt')
     result = {'type': 'txt'} in dataset
-    assert result == True
+    assert result is True
 
 
 def test_dataset_multi_has():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     result = {'age': 65} in dataset
-    assert result == True
+    assert result is True
     dataset.add_file(id='1', path='test.txt', type='txt')
     dataset.add_file(id='1', path='test.gff', type='gff')
     result = {'type': 'txt'} in dataset
-    assert result == True
+    assert result is True
 
 
 def test_dataset_has_files():
@@ -535,7 +536,21 @@ def test_dataset_has_files():
     assert dataset._files
 
 
-def test_dataset_get():
+def test_dataset_get_exact():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    dataset.add_file(id='1', path='test.txt', type='txt')
+    txt = dataset.get(type='txt', exact=True)
+    assert txt
+    assert type(txt) == Dataset
+    assert len(txt) == 1
+    dataset.add_file(id='1', path='test1.txt', type='txt')
+    txt = dataset.get(type='txt')
+    assert len(txt) == 2
+    txt = dataset.get(type='t', exact=True)
+    assert txt is None
+
+def test_dataset_get_regex_simple():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     dataset.add_file(id='1', path='test.txt', type='txt')
@@ -544,8 +559,39 @@ def test_dataset_get():
     assert type(txt) == Dataset
     assert len(txt) == 1
     dataset.add_file(id='1', path='test1.txt', type='txt')
-    txt = dataset.get(type='txt')
+    txt = dataset.get(type='t')
     assert len(txt) == 2
+
+
+def test_dataset_get_regex():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    dataset.add_file(id='1', path='test.gtf', type='gtf')
+    dataset.add_file(id='1', path='test.gff', type='gff')
+    txt = dataset.get(type='g[tf]f')
+    assert type(txt) == Dataset
+    assert len(txt) == 2
+
+
+def test_dataset_get_ops():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    dataset.add_file(id='1', path='test.gtf', type='gtf', size=100)
+    dataset.add_file(id='1', path='test.gff', type='gff', size=50)
+    txt = dataset.get(size='>50')
+    assert type(txt) == Dataset
+    assert len(txt) == 1
+    assert txt.get('test.gff') is None
+    assert txt.get('test.gtf') is not None
+
+
+def test_dataset_get_ops():
+    info = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**info)
+    dataset.add_file(id='1', path='test.gtf', type='gtf', size=100)
+    dataset.add_file(id='1', path='test.gff', type='gff', size=50)
+    with pytest.raises(SyntaxError):
+        txt = dataset.get(size='!50')
 
 
 class MyDataset(Dataset):

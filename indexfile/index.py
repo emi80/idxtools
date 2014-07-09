@@ -109,7 +109,7 @@ class Index(object):
             log.debug("Overwritie exisitng data")
             del self.datasets
             self.datasets = {}
-        if index_file == sys.stdin:            
+        if index_file == sys.stdin:
             log.debug('Create temporary file for %s', index_file)
             index_file = tempfile.TemporaryFile()
             for line in sys.stdin:
@@ -251,7 +251,7 @@ class Index(object):
         false
         :keyword type: specify the export type. Values:
         ['index','tab','json']. Default: 'index'
-        """        
+        """
 
         if self.format:
             log.debug('Use format from the Index instance')
@@ -287,7 +287,7 @@ class Index(object):
             expd = dataset.export(tags=tags)
             for dic in expd:
                 line = dict()
-                for k, val in dic.items():                    
+                for k, val in dic.items():
                     if k == 'id' and dsid:
                         k = dsid
                     if k == 'path' and absolute:
@@ -320,7 +320,7 @@ class Index(object):
                         if hide_missing and val == "NA":
                             break
                         if type(val) == list:
-                            val = quote_tags(val)    
+                            val = quote_tags(val)
                             vals[i] = self.format.get('rep_sep', ",").join(val)
                     else:
                         out.append(colsep.join(quote_tags(vals)))
@@ -335,9 +335,7 @@ class Index(object):
 
         return out
 
-
-    def lookup(self, oplist=['>', '=', '<', '!'], absolute=False,
-               exact=False, or_query=False, **kwargs):
+    def lookup(self, exact=False, or_query=False, **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes
         to be looked for.
 
@@ -347,107 +345,35 @@ class Index(object):
 
         """
 
-        setlist = []
-        finfo = {}
-        meta = False
-
         if not id and not kwargs:
             log.debug('No query specified')
             return self
 
-        # if id:
-        #     log.debug('Query by id=%s', id)
-        #     kwargs[self.format.get('id', 'id')] = id
-
         if kwargs:
             log.debug('Query by %s', kwargs)
-            # if set(kwargs.keys()).difference(set(self.format.get('fileinfo'))):
-            #     meta = True
             if not self.datasets:
                 return self
-            datasets = {}            
-            for ds in self.datasets:
+            datasets = {}
+            for dsetk in self.datasets:
+                dset = self.datasets.get(dsetk)
                 if or_query:
-                    for k, v in kwargs.items():
-                        if {k: v} in self.datasets.get(ds):
-                            obj = self.datasets.get(ds).get(**{k: v})
+                    for key, val in kwargs.items():
+                        if {key: val, 'exact': exact} in dset:
+                            obj = dset.get(exact=exact, **{key: val})
                             if obj:
-                                datasets[ds] = obj
+                                datasets[dsetk] = obj
                             else:
-                                datasets[ds] = self.datasets.get(ds)
-                if kwargs in self.datasets.get(ds):
-                    obj = self.datasets.get(ds).get(**kwargs)
+                                datasets[dsetk] = dset
+                kwargs['exact'] = exact
+                if kwargs in dset:
+                    obj = dset.get(exact=exact, **kwargs)
                     if obj:
-                        datasets[ds] = obj
+                        datasets[dsetk] = obj
                     else:
-                        datasets[ds] = self.datasets.get(ds)
+                        datasets[dsetk] = dset
             return Index(datasets=datasets, format=self.format)
-        
+
         return None
-                
-
-        #         if meta:
-        #             log.debug('Metadata query')
-        #             if k in self.format.get('fileinfo'):
-        #                 finfo[k] = val
-        #                 continue
-        #         log.debug('File query')
-        #         if type(val) == list:
-        #             operator = ' in '
-        #             value = val
-        #         else:
-        #             operator = "".join([x for x in list(val) if x in oplist])
-        #             while operator in ['', '=', '!']:
-        #                 operator = '%s=' % operator
-        #             value = "".join([x for x in list(val) if x not in oplist])
-        #         try:
-        #             value = int(value)
-        #             log.debug('Query integer value %d for %s', value, k)
-        #             query = '''[id for k, v in self._lookup[%r].items() if
-        #                     int(k) %s%r for id in v]''' % (k, operator, value)
-        #         except:
-        #             log.debug('Query string value %s for %s', value, k)
-        #             if exact or type(value) == list:
-        #                 log.debug('Look for exact values')
-        #                 search = "k%s%r" % (operator, value)
-        #             else:
-        #                 value = str(value)
-        #                 search = 're.match(%r, k)' % value
-        #             query = '''[id for k, v in self._lookup[%r].items() if %s
-        #                     for id in v]''' % (k, search)
-
-        #         log.info('Query: {}'.format(query))
-        #         setlist.append(set(eval(query)))
-
-        # if meta:
-        #     log.debug('Metadata query')
-        #     datasets = dict([(x, self.datasets.get(x)) for x in
-        #                     set.intersection(*setlist)
-        #                     if self.datasets.get(x) is not None])
-        #     i = Index(datasets=datasets, format=self.format, path=self.path)
-        #     i._create_lookup()
-        # else:
-        #     log.debug('File query')
-        #     #filelist = [x for x in set.intersection(*setlist) if "/" in x]
-        #     if or_query:
-        #         filelist = [x for x in set.union(*setlist)]
-        #     else:
-        #         filelist = [x for x in set.intersection(*setlist)]
-        #     if absolute:
-        #         log.debug('Use absolute path')
-        #         filelist = [os.path.join(os.path.dirname(self.path), x)
-        #                     if not os.path.isabs(x) and self.path
-        #                     else x for x in filelist]
-        #     i = Index(format=self.format, path=self.path)
-        #     for afile in filelist:
-        #         for info in self._lookup['_info'].get(afile):
-        #             info['path'] = afile
-        #             i.insert(**info)
-        #     i._create_lookup()
-
-        # if finfo and meta:
-        #     i = i.lookup(None, oplist, absolute, exact, **finfo)
-        # return i
 
     def __len__(self):
         return len(self.datasets)

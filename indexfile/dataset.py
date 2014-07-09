@@ -1,4 +1,3 @@
-import re
 import os
 import sys
 import csv
@@ -206,12 +205,14 @@ class Dataset(dict):
 
     def get(self, *args, **kwargs):
         """Return a clone of the dataset if it contains the key-value pairs
-        specified in kwargs  
+        specified in kwargs
         """
+
         if args and len(args) == 1:
             return self._files.get(args[0])
         if not kwargs:
             return None
+        exact = kwargs.pop('exact', False)
         files = []
         for k, v in kwargs.items():
             if k in self._metadata:
@@ -219,22 +220,22 @@ class Dataset(dict):
             if k == 'path' and v in self._files:
                 path = [v]
             else:
-                path = [key for key, value in self._files.items() 
-                        if value.get(k) == v]
+                path = [key for key, value in self._files.items()
+                        if match(v, value.get(k), exact=exact)]
             if not path:
                 return None
             files.append(set(path))
         if not files:
-            return None   
+            return None
         return self.clone(list(set.intersection(*files)))
-        
+
 
     def clone(self, paths=None):
         metadata = self._metadata
         files = self._files
         attrs = self._attributes
         if paths:
-            files = dict([(key, self._files[key]) for key in self._files 
+            files = dict([(key, self._files[key]) for key in self._files
                           if key in paths])
         new_ds = deepcopy(self)
         new_ds.__dict__['_metadata'] = deepcopy(metadata)
@@ -279,7 +280,7 @@ class Dataset(dict):
         return len(self._files)
 
     def __contains__(self, item):
-        """Returns True if the dataset contains the key-value pairs 
+        """Returns True if the dataset contains the key-value pairs
         specified as kwargs.
         """
         if not isinstance(item, dict):
@@ -288,22 +289,26 @@ class Dataset(dict):
         if 'path' in item and item.get('path') not in self._files:
             return False
 
+        exact = item.pop('exact', False)
+
         kw = item.copy()
 
         for k, v in kw.items():
             if k in self._metadata:
                 val = self._metadata.get(k)
-                if val and val != v:
+                if val and not match(str(v), str(val), exact=exact):
                     return False
                 del kw[k]
 
         for key in self._files:
-            result = list(set([v == self._files.get(key).get(k) if k != 'path'
-                          else v == key for k,v in kw.items()]))
-            if len(result) == 1 and result[0] == True:
+            result = list(set([match(v, self._files.get(key).get(k),
+                                     exact=exact)
+                               if k != 'path' else match(v, key, exact=exact)
+                               for k, v in kw.items()]))
+            if len(result) == 1 and result[0] is True:
                 break
         else:
-            if kw:                
+            if kw:
                 return False
 
         return True
