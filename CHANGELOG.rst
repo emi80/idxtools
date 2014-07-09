@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 0.10.0:
+    - Improve index file lookup
+    - Change some APIs
+    - Use stdin when data is piped instead of IDX_FILE (`#9 <https://github.com/emi80/idxtools/issues/9>`_)
+    - Implement removal of all files of a given type from a dataset (`#11 <https://github.com/emi80/idxtools/issues/11>`_)
+
+
 Version 0.9.1:
     - Detect replicate id and create metadata for replicates (`#3 <https://github.com/emi80/idxtools/issues/3>`_)
     - Add support to remove whole dataset to the remove command (`#8 <https://github.com/emi80/idxtools/issues/8>`_)
