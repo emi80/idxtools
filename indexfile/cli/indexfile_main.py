@@ -8,7 +8,7 @@ Options:
   -h, --help             Show this help message
   --version              Show the version information
   --loglevel <level>     Set the log level to one of error|warn|info|debug
-  -i, --input <index>    The input index file. [default: stdin]
+  -i, --index <index>    The input index file. [default: stdin]
   -f, --format <format>  Index format specifications in JSON format. Can be a
                          file or a string.
 
@@ -20,9 +20,9 @@ The main commands are:
 
 """
 import sys
-from subprocess import call
+import os
 from docopt import docopt
-from indexfile.cli import *
+from indexfile.cli import validate, open_index
 
 def main():
     import indexfile
@@ -35,9 +35,10 @@ def main():
 
     args = validate(args)
 
-    indexfile.setLogLevel(args.get('--loglevel'))
+    config = indexfile.load_config(os.getcwd(), args)
 
-    index = open_index(args)
+    indexfile.setLogLevel(config.get('loglevel'))
+    index = open_index(config)
 
     argv = [args['<command>']] + args['<args>']
     if args['<command>'] in 'show add remove'.split():

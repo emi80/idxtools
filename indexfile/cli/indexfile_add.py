@@ -16,7 +16,7 @@ def run(args, index):
     index.lock()
     try:
         infos = args.get("<metadata>")
-        update = args.get("--update")
+        update = args.get("update")
         kwargs = {}
         for info in infos:
             m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)

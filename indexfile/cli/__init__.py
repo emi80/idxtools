@@ -1,41 +1,48 @@
 """
 Command line interface to the IndexFile API
 """
-from indexfile.index import *
-import os
+import sys
+import csv
+import simplejson as json
+from indexfile.index import Index
 
-def open_index(args):
-    import simplejson as json
+
+def open_index(config):
+    """Open index file from config dictionary"""
 
     i = Index()
-    format = args.get('--format')
-    index = args.get('--input')
+    if not sys.stdin.isatty():
+        index = sys.stdin
+    else:
+        index = config.get('index')
 
-    if not format:
-        format = os.environ.get('IDX_FORMAT')
+    idx_format = config.get('format')
 
-    if format:
+    if idx_format:
         try:
-            format = open(format,'r')
-            i.format = json.load(format)
+            idx_format = open(idx_format, 'r')
+            i.format = json.load(idx_format)
         except:
-            i.format = json.loads(format)
+            i.format = json.loads(idx_format)
 
-    if index is sys.stdin and index.isatty():
-        if not os.environ.get('IDX_FILE'):
-            raise ValueError("No index file specified")
-        index = os.environ.get('IDX_FILE')
-
-    i.open(index)
+    try:
+        i.open(index)
+    except csv.Error:
+        index = config.get('index')
+        i.open(index)
 
     return i
 
+
 def validate(args):
-    if not args.get('--input') or args.get('--input') =='stdin':
-        args['--input'] = sys.stdin
-    if '--output' in args.keys():
-        if args.get('--output') == 'stdout':
-            args['--output'] = sys.stdout
+    """Validate command line arguments and remove dashes"""
+
+    args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
+    if not args.get('index') or args.get('index') == 'stdin':
+        args['index'] = sys.stdin
+    if 'output' in args.keys():
+        if args.get('output') == 'stdout':
+            args['output'] = sys.stdout
         else:
-            args['--output'] = open(args['--output'],'w+')
+            args['output'] = open(args['output'], 'w+')
     return args
