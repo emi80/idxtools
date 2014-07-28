@@ -3,8 +3,6 @@
 """
 
 import logging
-import os
-import sys
 
 __name__ = "idxtools"
 __version__ = "0.10.0"

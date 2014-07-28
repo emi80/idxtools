@@ -27,7 +27,6 @@ def update_config(config, new_config):
                 config[k] = v
 
 
-
 def load_config(path, args=None):
     """Load configuration for a session"""
     config = default_config()
