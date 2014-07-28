@@ -210,6 +210,7 @@ class Dataset(dict):
 
         if args and len(args) == 1:
             return self._files.get(args[0])
+            # return self.clone(args[0])
         if not kwargs:
             return None
         exact = kwargs.pop('exact', False)

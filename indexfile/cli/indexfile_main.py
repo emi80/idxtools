@@ -22,7 +22,7 @@ The main commands are:
 import sys
 import os
 from docopt import docopt
-from indexfile.cli import validate, open_index
+from indexfile.cli import validate, open_index, load_config
 
 def main():
     import indexfile
@@ -35,7 +35,7 @@ def main():
 
     args = validate(args)
 
-    config = indexfile.load_config(os.getcwd(), args)
+    config = load_config(os.getcwd(), args)
 
     indexfile.setLogLevel(config.get('loglevel'))
     index = open_index(config)

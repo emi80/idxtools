@@ -2,9 +2,41 @@
 Command line interface to the IndexFile API
 """
 import sys
+import os
 import csv
+import yaml
+import indexfile
 import simplejson as json
 from indexfile.index import Index
+
+
+def default_config():
+    """Return the default configuration"""
+    config = {}
+    config['loglevel'] = indexfile._log_level
+    config['format'] = json.dumps(indexfile.default_format)
+    return config
+
+
+def update_config(config, new_config):
+    """Update config with values in new_config"""
+    for k, v in new_config.iteritems():
+            if k not in config or v not in [None, sys.stdin, sys.stdout]:
+                if type(v) is unicode and v[0] == "$":
+                    v = os.getenv(v[1:])
+                config[k] = v
+
+
+
+def load_config(path, args=None):
+    """Load configuration for a session"""
+    config = default_config()
+    config_file = os.path.join(path, 'indexfile.yml')
+    if os.path.exists(config_file):
+        update_config(config, yaml.load(open(config_file)))
+    if args:
+        update_config(config, args)
+    return config
 
 
 def open_index(config):
