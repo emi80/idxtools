@@ -230,7 +230,7 @@ def test_lookup_multiple_or():
     i.insert(id='1', age=65, path='test1.txt', type='txt')
     i.insert(id='1', age=65, path='test1.gff', type='gff')
     selected = i.lookup(type='txt')
-    assert len(selected.datasets.values()[0]) == 1 
+    assert len(selected.datasets.values()[0]) == 1
 
 
 def test_lookup_no_path():
@@ -326,7 +326,7 @@ def test_export_oneline():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export()
-    assert exp[0] == '''aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tLIBRARY_ID=aWL3.2; RNA_quantity=100; barcode=AR025; cell=anterior; dataType=rnaSeq; developmental_point=L3; fileinfo=path,size,md5,type,view,submittedDataVersion; library_Bioanalyser="5.8 ng/uL (30 nM) 08/04/2013"; localization=cell; max_peak=297; n_sequences=37478754; organism=dmel; pool_ID=2; readStrand=MATE1_SENSE; readType=2x75D; replicate=2; rnaExtract=longPolyA; sequence=ACTGAT(A); tissue=wing; type=gtf; view=TranscriptFB554;'''
+    assert exp[0] == '''aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tLIBRARY_ID=aWL3.2; RNA_quantity=100; barcode=AR025; cell=anterior; dataType=rnaSeq; developmental_point=L3; library_Bioanalyser="5.8 ng/uL (30 nM) 08/04/2013"; localization=cell; max_peak=297; n_sequences=37478754; organism=dmel; pool_ID=2; readStrand=MATE1_SENSE; readType=2x75D; replicate=2; rnaExtract=longPolyA; sequence=ACTGAT(A); tissue=wing; type=gtf; view=TranscriptFB554;'''
 
 
 def test_export_no_map():
@@ -338,6 +338,7 @@ def test_export_no_map():
     exp = i.export(map=None)
     assert len(exp) == 216
     assert 'labExpId' in exp[0]
+    assert 'fileinfo' not in exp[0]
 
 
 def test_export_no_map_tab_tags_no_miss():
@@ -359,7 +360,7 @@ def test_export_oneline_no_map():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export(map=None)
-    assert exp[0] == '''aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tadaptor=ACTGAT(A); age=L3; barcode=AR025; cell=anterior; dataType=rnaSeq; fileinfo=path,size,md5,type,view,submittedDataVersion; labExpId=aWL3.2; libBio="5.8 ng/uL (30 nM) 08/04/2013"; localization=cell; maxPeak=297; nReads=37478754; organism=dmel; poolId=2; readStrand=MATE1_SENSE; readType=2x75D; replicate=2; rnaExtract=longPolyA; rnaQuantity=100; tissue=wing; type=gtf; view=TranscriptFB554;'''
+    assert exp[0] == '''aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\tadaptor=ACTGAT(A); age=L3; barcode=AR025; cell=anterior; dataType=rnaSeq; labExpId=aWL3.2; libBio="5.8 ng/uL (30 nM) 08/04/2013"; localization=cell; maxPeak=297; nReads=37478754; organism=dmel; poolId=2; readStrand=MATE1_SENSE; readType=2x75D; replicate=2; rnaExtract=longPolyA; rnaQuantity=100; tissue=wing; type=gtf; view=TranscriptFB554;'''
 
 
 def test_export_ol_no_map_tab_tags():
