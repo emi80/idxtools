@@ -87,7 +87,6 @@ class Dataset(dict):
                 val = 'NA'
             self._files[path][key] = val
 
-
     def rm_file(self, **kwargs):
         """Remove a file form the dataset files dictionary. ``kwargs`` contains
         the file information. The 'path' argument is mandatory in order
@@ -111,7 +110,6 @@ class Dataset(dict):
             for f in [v for k,v in self._files.items()
                       if v.type == type]:
                 del f
-
 
     def export(self, types=None, tags=None):
         """Export a :class:Dataset object to a list of dictionaries (one for
@@ -202,14 +200,15 @@ class Dataset(dict):
         d = Dataset(**meta)
         return d
 
-
-    def get(self, *args, **kwargs):
-        """Return a clone of the dataset if it contains the key-value pairs
-        specified in kwargs
+    def dice(self, *args, **kwargs):
+        """Returns a clone of the dataset if:
+        - it contains the key-value pairs specified in kwargs
+        OR
+        - it contains a file specified in args
         """
 
         if args and len(args) == 1:
-            return self._files.get(args[0])
+            return self.clone(args[0])
         if not kwargs:
             return None
         exact = kwargs.pop('exact', False)
@@ -229,8 +228,8 @@ class Dataset(dict):
             return None
         return self.clone(list(set.intersection(*files)))
 
-
     def clone(self, paths=None):
+        """Return a copy of the datasets"""
         metadata = self._metadata
         files = self._files
         attrs = self._attributes
@@ -244,10 +243,11 @@ class Dataset(dict):
 
         return new_ds
 
+    def get(self, key):
+        return self[key]
 
     def __getitem__(self, key):
         return self._files.get(key)
-
 
     def __getattr__(self, name):
         if name in self.__dict__['_attributes'].keys():
@@ -256,7 +256,6 @@ class Dataset(dict):
             return self._metadata.get(name)
         raise AttributeError('%r object has no attribute %r' % (
             self.__class__.__name__, name))
-
 
     def __setattr__(self, name, value):
         if name != '__dict__':

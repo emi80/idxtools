@@ -1,5 +1,15 @@
 Idxtools
 ========
+.. image:: https://badge.fury.io/py/idxtools.png
+    :target: http://badge.fury.io/py/idxtools
+    
+.. image:: https://api.travis-ci.org/emi80/idxtools.svg?branch=develop
+    :target: https://travis-ci.org/emi80/idxtools
+    
+.. image:: https://coveralls.io/repos/emi80/idxtools/badge.png?branch=develop
+  :target: https://coveralls.io/r/emi80/idxtools?branch=develop
+
+
 
 Idxtools provides some command line tools and an API to perform operations on index files.
 
@@ -19,7 +29,7 @@ Installation
 
 The package can be installed either using pip::
 
-    pip install idxtools --pre
+    pip install idxtools
 
 or from source::
 
