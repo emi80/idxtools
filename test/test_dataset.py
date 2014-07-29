@@ -51,8 +51,8 @@ def test_create_dataset_w_path():
     assert len(dataset) == 1
     assert dataset._files is not None
     assert dataset.get('test.txt') is not None
-    assert dataset.get('test.txt').get('type') == 'txt'
-    assert dataset.get('test.txt').get('view') == 'text'
+    assert dataset['test.txt'].get('type') == 'txt'
+    assert dataset['test.txt'].get('view') == 'text'
 
 
 def test_create_dataset_w_path_type():
@@ -66,9 +66,9 @@ def test_create_dataset_w_path_type():
     assert not hasattr(dataset, 'type')
     assert len(dataset) == 1
     assert dataset._files is not None
-    assert dataset.get('test.txt') is not None
-    assert dataset.get('test.txt').get('type') == 'txt'
-    assert dataset.get('test.txt').get('view') == 'text'
+    assert dataset['test.txt'] is not None
+    assert dataset['test.txt'].get('type') == 'txt'
+    assert dataset['test.txt'].get('view') == 'text'
 
 
 def test_create_dataset_w_na():
@@ -115,9 +115,9 @@ def test_add_file():
     # pylint: enable=W0142
     assert len(dataset) == 1
     assert dataset is not None
-    assert dataset.get('test.txt') is not None
-    assert dataset.get('test.txt').get('type') == 'txt'
-    assert dataset.get('test.txt').get('view') == 'text'
+    assert dataset['test.txt'] is not None
+    assert dataset['test.txt'].get('type') == 'txt'
+    assert dataset['test.txt'].get('view') == 'text'
 
 
 def test_add_file_update():
@@ -131,16 +131,16 @@ def test_add_file_update():
     dataset.add_file(**fileinfo)
     dataset.add_file(**newfileinfo)
     # pylint: enable=W0142
-    assert dataset.get('test.txt').get('view') == 'text'
+    assert dataset['test.txt'].get('view') == 'text'
     # Disable warning about * magic
     # pylint: disable=W0142
     dataset.add_file(update=True, **newfileinfo)
     # pylint: enable=W0142
     assert len(dataset) == 1
     assert dataset._files is not None
-    assert dataset.get('test.txt') is not None
-    assert dataset.get('test.txt').get('type') == 'txt'
-    assert dataset.get('test.txt').get('view') == 'Text'
+    assert dataset['test.txt'] is not None
+    assert dataset['test.txt'].get('type') == 'txt'
+    assert dataset['test.txt'].get('view') == 'Text'
 
 
 def test_add_file_update_type():
@@ -154,17 +154,17 @@ def test_add_file_update_type():
     dataset.add_file(**fileinfo)
     dataset.add_file(**newfileinfo)
     # pylint: enable=W0142
-    assert dataset.get('test.txt').get('view') == 'text'
-    assert dataset.get('test.txt').get('type') == 'txt'
+    assert dataset['test.txt'].get('view') == 'text'
+    assert dataset['test.txt'].get('type') == 'txt'
     # Disable warning about * magic
     # pylint: disable=W0142
     dataset.add_file(update=True, **newfileinfo)
     # pylint: enable=W0142
     assert len(dataset) == 1
     assert dataset._files is not None
-    assert dataset.get('test.txt') is not None
-    assert dataset.get('test.txt').get('type') == 'text'
-    assert dataset.get('test.txt').get('view') == 'Text'
+    assert dataset['test.txt'] is not None
+    assert dataset['test.txt'].get('type') == 'text'
+    assert dataset['test.txt'].get('view') == 'Text'
 
 
 def test_add_file_no_path():
@@ -195,7 +195,7 @@ def test_add_file_missing_values():
     dataset.add_file(**fileinfo)
     # pylint: enable=W0142
     assert len(dataset) == 1
-    assert dataset.get('test.txt').get('view') == 'NA'
+    assert dataset['test.txt'].get('view') == 'NA'
 
 
 def test_multiple_files():
@@ -238,7 +238,7 @@ def test_rm_file():
     dataset.add_file(path='test1.txt', type='txt', view='text')
     dataset.rm_file(path='test.txt')
     assert len(dataset) == 1
-    assert dataset.get('test.txt') is None
+    assert dataset['test.txt'] is None
 
 
 def test_rm_last_file_for_a_type():
@@ -536,62 +536,62 @@ def test_dataset_has_files():
     assert dataset._files
 
 
-def test_dataset_get_exact():
+def test_dataset_dice_exact():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     dataset.add_file(id='1', path='test.txt', type='txt')
-    txt = dataset.get(type='txt', exact=True)
+    txt = dataset.dice(type='txt', exact=True)
     assert txt
     assert type(txt) == Dataset
     assert len(txt) == 1
     dataset.add_file(id='1', path='test1.txt', type='txt')
-    txt = dataset.get(type='txt')
+    txt = dataset.dice(type='txt')
     assert len(txt) == 2
-    txt = dataset.get(type='t', exact=True)
+    txt = dataset.dice(type='t', exact=True)
     assert txt is None
 
-def test_dataset_get_regex_simple():
+def test_dataset_dice_regex_simple():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     dataset.add_file(id='1', path='test.txt', type='txt')
-    txt = dataset.get(type='txt')
+    txt = dataset.dice(type='txt')
     assert txt
     assert type(txt) == Dataset
     assert len(txt) == 1
     dataset.add_file(id='1', path='test1.txt', type='txt')
-    txt = dataset.get(type='t')
+    txt = dataset.dice(type='t')
     assert len(txt) == 2
 
 
-def test_dataset_get_regex():
+def test_dataset_dice_regex():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     dataset.add_file(id='1', path='test.gtf', type='gtf')
     dataset.add_file(id='1', path='test.gff', type='gff')
-    txt = dataset.get(type='g[tf]f')
+    txt = dataset.dice(type='g[tf]f')
     assert type(txt) == Dataset
     assert len(txt) == 2
 
 
-def test_dataset_get_ops():
+def test_dataset_dice_ops():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     dataset.add_file(id='1', path='test.gtf', type='gtf', size=100)
     dataset.add_file(id='1', path='test.gff', type='gff', size=50)
-    txt = dataset.get(size='>50')
+    txt = dataset.dice(size='>50')
     assert type(txt) == Dataset
     assert len(txt) == 1
     assert txt.get('test.gff') is None
     assert txt.get('test.gtf') is not None
 
 
-def test_dataset_get_ops():
+def test_dataset_dice_ops():
     info = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**info)
     dataset.add_file(id='1', path='test.gtf', type='gtf', size=100)
     dataset.add_file(id='1', path='test.gff', type='gff', size=50)
     with pytest.raises(SyntaxError):
-        txt = dataset.get(size='!50')
+        txt = dataset.dice(size='!50')
 
 
 class MyDataset(Dataset):

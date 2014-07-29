@@ -358,14 +358,14 @@ class Index(object):
                 if or_query:
                     for key, val in kwargs.items():
                         if {key: val, 'exact': exact} in dset:
-                            obj = dset.get(exact=exact, **{key: val})
+                            obj = dset.dice(exact=exact, **{key: val})
                             if obj:
                                 datasets[dsetk] = obj
                             else:
                                 datasets[dsetk] = dset
                 kwargs['exact'] = exact
                 if kwargs in dset:
-                    obj = dset.get(exact=exact, **kwargs)
+                    obj = dset.dice(exact=exact, **kwargs)
                     if obj:
                         datasets[dsetk] = obj
                     else:

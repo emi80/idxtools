@@ -128,10 +128,10 @@ def test_insert():
     assert hasattr(dataset, 'age')
     assert dataset.id == '1'
     assert dataset.age == 65
-    assert dataset.get('test.txt') is not None
-    assert len(dataset.get('test.txt')) == 1
-    assert hasattr(dataset.get('test.txt'), 'type')
-    assert dataset.get('test.txt').type == 'txt'
+    assert dataset.dice('test.txt') is not None
+    assert len(dataset['test.txt']) == 1
+    assert hasattr(dataset['test.txt'], 'type')
+    assert dataset['test.txt'].type == 'txt'
 
 
 def test_insert_update():
@@ -147,9 +147,9 @@ def test_insert_update():
     assert hasattr(dataset, 'age')
     assert dataset.id == '1'
     assert dataset.age == 70
-    assert len(dataset.get('test.txt')) == 1
-    assert hasattr(dataset.get('test.txt'), 'type')
-    assert dataset.get('test.txt').type == 'text'
+    assert len(dataset['test.txt']) == 1
+    assert hasattr(dataset['test.txt'], 'type')
+    assert dataset['test.txt'].type == 'text'
 
 
 def test_lookup_simple_dataset():
