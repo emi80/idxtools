@@ -7,6 +7,7 @@ import csv
 import yaml
 import indexfile
 import simplejson as json
+from os import environ as env
 from indexfile.index import Index
 
 
@@ -20,19 +21,27 @@ def default_config():
 
 def update_config(config, new_config):
     """Update config with values in new_config"""
-    for k, v in new_config.iteritems():
-            if k not in config or v not in [None, sys.stdin, sys.stdout]:
-                if type(v) is unicode and v[0] == "$":
-                    v = os.getenv(v[1:])
-                config[k] = v
+    for key, val in new_config.iteritems():
+        if key not in config or val not in [None, sys.stdin, sys.stdout]:
+            if type(val) is unicode and val[0] == "$":
+                val = os.getenv(val[1:])
+            config[key] = val
 
 
-def load_config(path, args=None):
+def load_config(path=None, args=None, use_env=True):
     """Load configuration for a session"""
     config = default_config()
-    config_file = os.path.join(path, 'indexfile.yml')
-    if os.path.exists(config_file):
-        update_config(config, yaml.load(open(config_file)))
+    if use_env:
+        if 'IDX_FILE' in env:
+            update_config(config, {'index': env.get('IDX_FILE')})
+        if 'IDX_FORMAT' in env:
+            update_config(config, {'format': env.get('IDX_FORMAT')})
+    if path:
+        config_file = path
+        if os.path.isdir(path):
+            config_file = os.path.join(path, 'indexfile.yml')
+        if os.path.exists(config_file):
+            update_config(config, yaml.load(open(config_file)))
     if args:
         update_config(config, args)
     return config
