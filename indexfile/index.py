@@ -137,8 +137,15 @@ class Index(object):
         :param index_file: a :class:`file` object pointing to the input file
 
         """
+        replicates = []
         for line in index_file:
             tags = Index.parse_line(line, **self.format)
+            if self.format.get('rep_sep') in tags['id']:
+                # postpone inserting replicates lines
+                replicates.append(tags)
+            else:
+                dataset = self.insert(**tags)
+        for tags in replicates:
             dataset = self.insert(**tags)
 
     def _load_table(self, index_file, dialect=None):
