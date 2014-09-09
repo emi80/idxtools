@@ -13,41 +13,36 @@ Options:
                          for output
   -t, --tags <tags>      Output only the selected tags in tabular format (no
                          header)
-  -d, --hide-missing          Do not output lines with missing values [default:
+  -s, --show-missing     Show lines with missing values [default:
                          false]
   -o, --output <output>  The output file. [default: stdout]
   --header               Output header when selecting tags
 """
-
+import os
+import signal
+import re
 from docopt import docopt
-from indexfile.cli import *
+from indexfile.cli import validate
+from indexfile.index import Index
+
 
 def run(args, index):
-    import signal
-    import re
-    #absolute = False
-    #map_keys = False
-    #exact = False
-    type='index'
+    """Run the command"""
+    export_type = 'index'
 
     args = validate(args)
 
-    absolute = args.get('--absolute-path')
-    map_keys = args.get('--map-keys')
-    exact = args.get('--exact')
-    header = args.get("--header")
-    hide_missing = args.get("--hide-missing")
+    absolute = args.get('absolutepath')
+    map_keys = args.get('mapkeys')
+    exact = args.get('exact')
+    header = args.get("header")
+    hide_missing = not args.get("showmissing")
 
-    tags=[]
-    if args.get('--tags'):
-        type = 'tab'
-        if args.get('--tags') != 'all':
-            tags = args.get("--tags").split(',')
-
-
-    def handler(signum, frame):
-        index.release()
-        exit()
+    tags = []
+    if args.get('tags'):
+        export_type = 'tab'
+        if args.get('tags') != 'all':
+            tags = args.get("tags").split(',')
 
     index.lock()
 
@@ -55,33 +50,39 @@ def run(args, index):
         indices = []
         query = args.get('<query>')
         if query:
-            list_sep=':'
+            list_sep = ':'
             kwargs = {}
-            for q in query:
-                m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", q)
-                kwargs[m.group('key')] = m.group('value')
-                if list_sep in kwargs[m.group('key')]:
-                    kwargs[m.group('key')] = m.group('value').split(list_sep)
+            for qry in query:
+                match = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", qry)
+                kwargs[match.group('key')] = match.group('value')
+                if list_sep in kwargs[match.group('key')]:
+                    kwargs[match.group('key')] = match.group(
+                        'value').split(list_sep)
             indices.append(index.lookup(exact=exact, **kwargs))
         else:
             indices.append(index)
 
         for i in indices:
-            if isinstance(i,Index):
-                if args.get('--count') and not args.get('--tags'):
-                    args.get('--output').write("%s%s" % (len(i),os.linesep))
+            if isinstance(i, Index):
+                if args.get('count') and not args.get('tags'):
+                    args.get('output').write("%s%s" % (len(i), os.linesep))
                     return
-                signal.signal(signal.SIGPIPE, handler)
-                command = "i.export(header=%s,export_type=%r,tags=tags,absolute=absolute, hide_missing=hide_missing" % (header,type)
+                signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+                kwargs = {
+                    'header': header,
+                    'export_type': export_type,
+                    'tags': tags,
+                    'absolute': absolute,
+                    'hide_missing': hide_missing
+                }
                 if not map_keys:
-                    command = "%s,map=None" % command
-                command = "%s)" % command
-                indexp = eval(command)
-                if args.get('--count'):
-                    args.get('--output').write("%s%s" % (len(indexp),os.linesep))
+                    kwargs['map'] = None
+                indexp = i.export(**kwargs)
+                if args.get('count'):
+                    args.get('output').write("%s%s" % (len(indexp), os.linesep))
                     return
                 for line in indexp:
-                    args.get('--output').write('%s%s' % (line,os.linesep))
+                    args.get('output').write('%s%s' % (line, os.linesep))
     finally:
         index.release()
 

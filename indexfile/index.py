@@ -262,7 +262,7 @@ class Index(object):
         dsid = kwargs.pop('id', None)
         idxmap = kwargs.pop('map', None)
         colsep = kwargs.pop('colsep', '\t')
-        #fileinfo = kwargs.pop('fileinfo', [])
+        fileinfo = kwargs.pop('fileinfo', [])
 
         path = 'path'
 
@@ -277,9 +277,7 @@ class Index(object):
         out = []
 
         if export_type == 'tab':
-            log.debug('Create header for %s export format', type)
-            # if not self._alltags:
-            #     self._alltags = self.datasets.values()[0]._metadata.keys() + self.datasets.values()[0]._files.values()[0].keys() + ['path']
+            log.debug('Create header for %s export format', export_type)
             headline = []
             if tags:
                 headline = tags
@@ -295,7 +293,7 @@ class Index(object):
                             val = os.path.join(os.path.dirname(self.path),
                                                os.path.normpath(val))
                     if idxmap:
-                        k = idxmap.get(k,k)
+                        k = idxmap.get(k, k)
                     if k:
                         line[k] = val
                 log.debug('Create output for %s format', export_type)
@@ -311,8 +309,9 @@ class Index(object):
                     if not headline:
                         headline = sorted(line.keys())
                     if not tags:
-                        headline = sorted(list(set.intersection(set(headline), set(line.keys()))))
-                    vals = [line.get(k,'NA') for k in headline]
+                        headline = sorted(list(set.intersection(
+                            set(headline), set(line.keys()))))
+                    vals = [line.get(k, 'NA') for k in headline]
                     if tags or len(line.values()) != len(headline):
                         vals = [line.get(l, 'NA') if l != 'id'
                                 else line.get(dsid) for l in headline]
@@ -359,14 +358,14 @@ class Index(object):
                 if or_query:
                     for key, val in kwargs.items():
                         if {key: val, 'exact': exact} in dset:
-                            obj = dset.get(exact=exact, **{key: val})
+                            obj = dset.dice(exact=exact, **{key: val})
                             if obj:
                                 datasets[dsetk] = obj
                             else:
                                 datasets[dsetk] = dset
                 kwargs['exact'] = exact
                 if kwargs in dset:
-                    obj = dset.get(exact=exact, **kwargs)
+                    obj = dset.dice(exact=exact, **kwargs)
                     if obj:
                         datasets[dsetk] = obj
                     else:
