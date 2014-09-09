@@ -21,12 +21,13 @@ The main commands are:
 """
 import sys
 import os
+import runpy
+import indexfile
+import logging
 from docopt import docopt
 from indexfile.cli import validate, open_index, load_config
 
 def main():
-    import indexfile
-    import logging
     name = indexfile.__name__
     version = indexfile.__version__
     log = indexfile.getLogger(__name__)
@@ -42,7 +43,6 @@ def main():
 
     argv = [args['<command>']] + args['<args>']
     if args['<command>'] in 'show add remove'.split():
-        import runpy
         if len(argv) == 1 and args['<command>'] != "show":
             argv.append('--help')
         sys.argv = argv
