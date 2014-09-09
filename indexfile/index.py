@@ -54,7 +54,9 @@ class Index(object):
 
         self.datasets = datasets or {}
         self._lock = None
-        self.format = format or deepcopy(indexfile.default_format)
+        self.format = deepcopy(indexfile.default_format)
+        if format:
+            self.format.update(format)
         self._lookup = {}
         self._alltags = []
 
@@ -87,26 +89,30 @@ class Index(object):
 
         """
 
-        if not input_format:
-            log.debug('Use default indexfile format')
-            input_format = indexfile.default_format
+        if not input_format and self.format:
             return
+
+        idx_format = deepcopy(indexfile.default_format)
 
         log.debug('Load format %s', input_format)
         try:
             format_file = open(input_format, 'r')
-            self.format = json.load(format_file)
+            idx_format.update(json.load(format_file))
         # Disable pylint message about no exception type specifies
         # pylint: disable=W0702
         except:
-            self.format = json.loads(input_format)
+            print input_format
+            idx_format.update(json.loads(input_format))
         # pylint: enable=W0702
+
+        self.format = idx_format
 
     def _open_file(self, index_file):
         """Open index file"""
 
         if self.datasets:
             log.debug("Overwritie exisitng data")
+            input_format = indexfile.default_format
             del self.datasets
             self.datasets = {}
         if index_file == sys.stdin:

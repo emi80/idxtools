@@ -58,14 +58,8 @@ def open_index(config):
 
     idx_format = config.get('format')
 
-    if idx_format:
-        try:
-            idx_format = open(idx_format, 'r')
-            i.format = json.load(idx_format)
-        except:
-            i.format = json.loads(idx_format)
-
     try:
+        i.set_format(idx_format)
         i.open(index)
     except csv.Error:
         index = config.get('index')
