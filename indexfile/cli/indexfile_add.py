@@ -7,6 +7,7 @@ Options:
   -u --update  Update information for an existing dataset
 """
 
+import re
 from docopt import docopt
 from indexfile.cli import *
 
