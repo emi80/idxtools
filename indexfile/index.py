@@ -101,7 +101,6 @@ class Index(object):
         # Disable pylint message about no exception type specifies
         # pylint: disable=W0702
         except:
-            print input_format
             idx_format.update(json.loads(input_format))
         # pylint: enable=W0702
 
