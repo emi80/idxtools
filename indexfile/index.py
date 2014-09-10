@@ -195,7 +195,7 @@ class Index(object):
 
         existing_dataset = self.datasets.get(dataset.id)
 
-        if existing_dataset:
+        if existing_dataset is not None:
             if update:
                 log.debug('Update existing dataset %s', existing_dataset.id)
                 for key, val in meta.items():
@@ -203,7 +203,7 @@ class Index(object):
                         existing_dataset.__setattr__(key, val)
             dataset = existing_dataset
 
-        if not existing_dataset:
+        if existing_dataset is None:
             if ',' in dataset.id:
                 log.info('Gather replicates info for %s', dataset.id)
                 reps = self.find_replicates(**kwargs)
