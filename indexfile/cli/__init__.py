@@ -83,10 +83,7 @@ def open_index(config):
     """Open index file from config dictionary"""
 
     i = Index()
-    if not sys.stdin.isatty():
-        index = sys.stdin
-    else:
-        index = config.get('index')
+    index = config.get('index')
 
     idx_format = config.get('format')
 
