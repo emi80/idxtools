@@ -41,7 +41,7 @@ setup(
         'Programming Language :: Python',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
     ],
-    install_requires=["argpars>=1.2.1",
+    install_requires=["argparse>=1.2.1",
                       "clint>=0.3.1",
                       "docopt>=0.6.1",
                       "schema>=0.3.1",
