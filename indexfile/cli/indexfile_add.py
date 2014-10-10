@@ -1,5 +1,6 @@
 """
-Add new file to the index using the provided file metadata (eg. path, type, size, md5...)
+Add new file to the index using the provided file metadata
+(eg. path, type, size, md5...)
 
 Usage: %s_add [options] <metadata>...
 
@@ -8,11 +9,23 @@ Options:
 """
 
 import re
+from schema import Schema, Use, Optional
 from docopt import docopt
-from indexfile.cli import *
 
-def run(args, index):
-    args = validate(args)
+
+def run(index):
+    """Add files to the index"""
+
+    # parser args and remove dashes
+    args = docopt(__doc__)
+    args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
+
+    # create validation schema
+    sch = Schema({
+        Optional('update'): Use(bool),
+        str: object
+    })
+    args = sch.validate(args)
 
     index.lock()
     try:
@@ -20,13 +33,12 @@ def run(args, index):
         update = args.get("update")
         kwargs = {}
         for info in infos:
-            m = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
-            kwargs[m.group('key')] = m.group('value')
+            match_ = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
+            kwargs[match_.group('key')] = match_.group('value')
         index.insert(update=update, **kwargs)
         index.save()
     finally:
         index.release()
 
 if __name__ == '__main__':
-    args = docopt(__doc__)
-    run(args, index)
+    run(index)

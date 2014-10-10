@@ -8,7 +8,39 @@ import yaml
 import indexfile
 import simplejson as json
 from os import environ as env
+from schema import SchemaError
 from indexfile.index import Index
+
+COMMANDS = {
+    'show': {
+        'desc': 'Show the index',
+        'aliases': []
+    },
+    'add': {
+        'desc': 'Add file contents to the index',
+        'aliases': []
+    },
+    'remove': {
+        'desc': 'Remove files from the index',
+        'aliases': ['rm']
+    },
+    'help': {
+        'desc': 'Show the help',
+    }
+}
+
+
+def get_command_aliases():
+    """Get all command aliases"""
+    return [alias for command in COMMANDS.values()
+            for alias in command.get('aliases', [])]
+
+
+def get_command(alias):
+    """Get command from command string or alias"""
+    if alias in COMMANDS:
+        return alias
+    return [k for k, v in COMMANDS.iteritems() if alias in v.get('aliases')]
 
 
 def default_config():
@@ -68,15 +100,19 @@ def open_index(config):
     return i
 
 
-def validate(args):
-    """Validate command line arguments and remove dashes"""
+# validation objects
+class Command(object):
 
-    args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
-    if not args.get('index') or args.get('index') == 'stdin':
-        args['index'] = sys.stdin
-    if 'output' in args.keys():
-        if args.get('output') == 'stdout':
-            args['output'] = sys.stdout
+    def __init__(self, error=None):
+        self._error = error
+
+    def validate(self, data):
+        """Return valid command string or SchemaException in case of error"""
+        if not data:
+            data = 'help'
+        if data in COMMANDS.keys() + get_command_aliases():
+            return data
         else:
-            args['output'] = open(args['output'], 'w+')
-    return args
+            raise SchemaError('Invalid command %r' %
+                              data,
+                              self._error)

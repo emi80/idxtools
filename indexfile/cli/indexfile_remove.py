@@ -7,18 +7,30 @@ Options:
 
 """
 from docopt import docopt
-from indexfile.cli import *
+from schema import Schema, Use, Optional
 
-def run(args, index):
-    args = validate(args)
+
+def run(index):
+    """Remove files and/or datasets from the index"""
+
+    # parser args and remove dashes
+    args = docopt(__doc__)
+    args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
+
+    # create validation schema
+    sch = Schema({
+        Optional('clear'): Use(bool),
+        str: object
+    })
+    args = sch.validate(args)
 
     index.lock()
     paths = args.get('<path>')
     try:
         for path in paths:
             if '=' in path:
-                kw = dict([path.split('=')])
-                index.remove(**kw)
+                kwargs = dict([path.split('=')])
+                index.remove(**kwargs)
             else:
                 index.remove(path=path, clear=args.get('clear'))
             index.save()
@@ -26,5 +38,4 @@ def run(args, index):
         index.release()
 
 if __name__ == '__main__':
-    args = docopt(__doc__)
-    run(args, index)
+    run(index)
