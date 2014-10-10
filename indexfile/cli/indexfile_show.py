@@ -21,16 +21,36 @@ Options:
 import os
 import signal
 import re
+import sys
+from schema import Schema, And, Or, Use, Optional
 from docopt import docopt
-from indexfile.cli import validate
 from indexfile.index import Index
 
 
-def run(args, index):
-    """Run the command"""
+def run(index):
+    """Show index contents and filter based on query terms"""
     export_type = 'index'
 
-    args = validate(args)
+    # parser args and remove dashes
+    args = docopt(__doc__)
+    args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
+
+    # create validation schema
+    sch = Schema({
+        Optional('absolutepath'): Use(bool),
+        Optional('count'): Use(bool),
+        Optional('exact'): Use(bool),
+        Optional('mapkeys'): Use(bool),
+        Optional('tags'): str,
+        Optional('showmissing'): Use(bool),
+        'output': Or(None,
+                     And(Or('-', 'stdout'),
+                         Use(lambda x: sys.stdout)),
+                     Use(lambda f: open(f, 'w+'))),
+        Optional('header'): Use(bool),
+        str: object
+    })
+    args = sch.validate(args)
 
     absolute = args.get('absolutepath')
     map_keys = args.get('mapkeys')
@@ -83,9 +103,13 @@ def run(args, index):
                     return
                 for line in indexp:
                     args.get('output').write('%s%s' % (line, os.linesep))
+
+    except Exception:
+        if args.get('output') != sys.stdout:
+            os.remove(ags.get('output').name)
+
     finally:
         index.release()
 
 if __name__ == '__main__':
-    args = docopt(__doc__)
-    run(args, index)
+    run(index)
