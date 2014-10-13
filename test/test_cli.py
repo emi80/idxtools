@@ -101,6 +101,6 @@ def test_add_multiple_files(tmpdir):
     command = 'idxtools add -a %s -l %s' % (attrs, filelist)
     call(command, shell=True, stdout=PIPE)
     command_line = "idxtools show"
-    out = check_output(command_line, shell=True)
+    out = Popen(command_line, stdout=PIPE, shell=True).communicate()[0]
 
     assert out == expected
