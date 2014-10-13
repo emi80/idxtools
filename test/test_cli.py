@@ -3,12 +3,11 @@
 # pylint: disable=E0611
 from indexfile.cli import default_config, load_config
 from os import (
-    getcwd,
     environ as env
 )
 from docopt import docopt
 import indexfile.cli.indexfile_main as im
-from subprocess import call, Popen, PIPE, STDOUT, check_output
+from subprocess import call, Popen, PIPE
 
 
 def test_default_config():
