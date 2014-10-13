@@ -152,6 +152,15 @@ def test_insert_update():
     assert dataset['test.txt'].type == 'text'
 
 
+def test_add_file_external():
+    index = '''.\tage=-; cell=Neutrophils; dataType=RNA-Seq; dateSubmittedFirst=2012-10-17T09:49:23+0200; donorId=C000XW; ethnicity=NA; lab=MPIMG; labExpId=ERR180946; labProtocolId=C000XWB1; libProtocol=I_bc_pelib_858; localization="Primary Cell"; quality=phred; readStrand=MATE2_SENSE; readType=2x76D; rnaExtract=total; seqPlatform=ILLUMINA; seqRun=1; sex=Male; sraSampleAccession=ERS150362; sraStudyAccession=ERP001664; tissue="Cord blood";'''
+    i = Index()
+    i.set_format('test/data/tsv_format.json')
+    i.insert(**Index.parse_line(index, **i.format))
+    i.insert(id="ERR180946", path="/users/rg/epalumbo/projects/BluePrint/reads/20130805/data/ERR180946_1.fastq.gz", view="FastqRd1",type="fastq")
+    assert i.export(map=None)[0] == '''/users/rg/epalumbo/projects/BluePrint/reads/20130805/data/ERR180946_1.fastq.gz\tage=-; cell=Neutrophils; dataType=RNA-Seq; dateSubmittedFirst=2012-10-17T09:49:23+0200; donorId=C000XW; ethnicity=NA; lab=MPIMG; labExpId=ERR180946; labProtocolId=C000XWB1; libProtocol=I_bc_pelib_858; localization="Primary Cell"; quality=phred; readStrand=MATE2_SENSE; readType=2x76D; rnaExtract=total; seqPlatform=ILLUMINA; seqRun=1; sex=Male; sraSampleAccession=ERS150362; sraStudyAccession=ERP001664; tissue="Cord blood"; type=fastq; view=FastqRd1;'''
+
+
 def test_lookup_simple_dataset():
     i = Index()
     i.insert(id='1', age=65, path='test.txt', type='txt')

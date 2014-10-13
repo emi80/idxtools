@@ -8,6 +8,7 @@ from os import (
 )
 from docopt import docopt
 import indexfile.cli.indexfile_main as im
+from subprocess import call, Popen, PIPE, STDOUT, check_output
 
 
 def test_default_config():
@@ -34,9 +35,9 @@ def test_file_config(tmpdir):
 
     # prepare yaml config file
     configfile = '{0}/indexfile.yml'.format(tmpdir)
-    with open(configfile, 'w+') as f:
-        f.write("index:  test/data/index.txt\n")
-        f.write("format: test/data/format.json\n")
+    with open(configfile, 'w+') as cfg:
+        cfg.write("index:  test/data/index.txt\n")
+        cfg.write("format: test/data/format.json\n")
 
     config = load_config(path=configfile)
 
@@ -74,3 +75,32 @@ def test_file_not_found_config(tmpdir):
 
     assert config['index'] == env['IDX_FILE']
     assert config['format'] == env['IDX_FORMAT']
+
+
+def test_add_multiple_files(tmpdir):
+    """ Test insertion of multiple files """
+    # reset env
+    del env['IDX_FORMAT']
+
+    # prepare input files and options
+    idxfile = '%s/index.txt' % tmpdir
+    filelist = '%s/list.tsv' % tmpdir
+    with open(idxfile, "w+") as i:
+        i.write('.\tid=1; age=10; sex=M;\n')
+    with open(filelist, 'w+') as fli:
+        fli.write("\t".join(['test_1.fastq', '1', 'FqRd1', 'fastq']) + "\n")
+        fli.write("\t".join(['test_2.fastq', '1', 'FqRd2', 'fastq']) + "\n")
+    attrs = "path,id,view,type"
+    env['IDX_FILE'] = idxfile
+
+    # expected lines
+    expected = 'test_2.fastq\tage=10; id=1; sex=M; type=fastq; view=FqRd2;\n'
+    expected += 'test_1.fastq\tage=10; id=1; sex=M; type=fastq; view=FqRd1;\n'
+
+    # run commands
+    command = 'idxtools add -a %s -l %s' % (attrs, filelist)
+    call(command, shell=True, stdout=PIPE)
+    command_line = "idxtools show"
+    out = check_output(command_line, shell=True)
+
+    assert out == expected
