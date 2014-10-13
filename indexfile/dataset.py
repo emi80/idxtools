@@ -278,6 +278,9 @@ class Dataset(dict):
     def __len__(self):
         return len(self._files)
 
+    def __nonzero__(self):
+        return bool(self.__dict__['_metadata'])
+
     def __contains__(self, item):
         """Returns True if the dataset contains the key-value pairs
         specified as kwargs.
