@@ -98,11 +98,12 @@ class Index(object):
         try:
             format_file = open(input_format, 'r')
             idx_format.update(json.load(format_file))
+            log.debug("Succesfully loaded JSON file")
         # Disable pylint message about no exception type specifies
         # pylint: disable=W0702
         except:
-            print input_format
             idx_format.update(json.loads(input_format))
+            log.debug("Succesfully loaded JSON string")
         # pylint: enable=W0702
 
         self.format = idx_format
