@@ -510,7 +510,7 @@ class Index(object):
         return tagsd
 
     @classmethod
-    def map_keys(cls, obj, **kwargs):
+    def map_keys(cls, obj, map_only=True, **kwargs):
         """ Maps ``obj`` keys using the mapping information contained
         in the arguments. ``kwargs`` is used to specify the index format
         information.
@@ -518,6 +518,7 @@ class Index(object):
         :param obj: the input dictionary
 
         """
+        # TODO: use map_keys as a general function for mapping
         if not obj:
             log.debug('No data to map')
             return {}
@@ -525,23 +526,25 @@ class Index(object):
         dsid = kwargs.get('id')
         idxmap = kwargs.get('map', {})
 
-        out = {}
-        if idxmap:
-            log.debug('Mappings present')
-            for k, val in idxmap.items():
-                if not val:
-                    idxmap.pop(k)
-                    continue
-                idxmap[val] = k
+        # return original dict if no id and map definitions are found
+        if not idxmap and not dsid:
+            return obj
 
-        log.debug('Create output dictionary')
-        for k, val in obj.items():
-            key = k
-            if map:
-                log.debug('Map %s to %s', key, idxmap.get(key))
-                key = idxmap.get(k)
-            if key:
-                if key == dsid:
-                    key = "id"
-                out[key] = val
+        out = dict(obj.items())
+        if idxmap:
+            log.debug('Mapping attribute names using map: %s', idxmap)
+            if map_only:
+                # use known attributes with non-empty mapping
+                log.debug("Using only known mappings from the map")
+                out = dict([(idxmap.get(k), v) for (k, v) in out.iteritems()
+                           if idxmap.get(k)])
+            else:
+                log.debug("Using input attributes if no mapping found")
+                out = dict([(idxmap.get(k), v) if idxmap.get(k)
+                           else (k, v) for (k, v) in out.iteritems()])
+        if dsid:
+            log.debug("Mapping 'id' to %r", dsid)
+            out = dict([('id', v) if k == dsid else (k, v)
+                       for (k, v) in out.iteritems()])
+
         return out
