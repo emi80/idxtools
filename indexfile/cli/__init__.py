@@ -29,6 +29,10 @@ COMMANDS = {
     }
 }
 
+DEFAULT_CONFIG_FILE = '.indexfile.yml'
+DEFAULT_ENV_INDEX = 'IDX_FILE'
+DEFAULT_ENV_FORMAT = 'IDX_FORMAT'
+
 
 def get_command_aliases():
     """Get all command aliases"""
@@ -65,13 +69,13 @@ def load_config(path=None, args=None, use_env=True):
     config = default_config()
     if use_env:
         if 'IDX_FILE' in env:
-            update_config(config, {'index': env.get('IDX_FILE')})
+            update_config(config, {'index': env.get(DEFAULT_ENV_INDEX)})
         if 'IDX_FORMAT' in env:
-            update_config(config, {'format': env.get('IDX_FORMAT')})
+            update_config(config, {'format': env.get(DEFAULT_ENV_FORMAT)})
     if path:
         config_file = path
         if os.path.isdir(path):
-            config_file = os.path.join(path, 'indexfile.yml')
+            config_file = os.path.join(path, DEFAULT_CONFIG_FILE)
         if os.path.exists(config_file):
             update_config(config, yaml.load(open(config_file)))
     if args:
