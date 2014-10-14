@@ -3,12 +3,11 @@
 # pylint: disable=E0611
 from indexfile.cli import default_config, load_config
 from os import (
-    getcwd,
     environ as env
 )
 from docopt import docopt
 import indexfile.cli.indexfile_main as im
-from subprocess import call, Popen, PIPE, STDOUT, check_output
+from subprocess import call, Popen, PIPE
 
 
 def test_default_config():
@@ -101,6 +100,6 @@ def test_add_multiple_files(tmpdir):
     command = 'idxtools add -a %s -l %s' % (attrs, filelist)
     call(command, shell=True, stdout=PIPE)
     command_line = "idxtools show"
-    out = check_output(command_line, shell=True)
+    out = Popen(command_line, stdout=PIPE, shell=True).communicate()[0]
 
     assert out == expected
