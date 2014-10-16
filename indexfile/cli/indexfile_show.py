@@ -61,8 +61,10 @@ def run(index):
     tags = []
     if args.get('tags'):
         export_type = 'tab'
-        if args.get('tags') != 'all':
+        if args.get('tags') not in ['all', 'attrs']:
             tags = args.get("tags").split(',')
+        if args.get('tags') == 'attrs':
+            header = True
 
     index.lock()
 
@@ -102,6 +104,11 @@ def run(index):
                     args.get('output').write("%s%s" % (len(indexp), os.linesep))
                     return
                 for line in indexp:
+                    # print the atribute names only
+                    if args.get('tags') == 'attrs':
+                        args.get('output').write("\n".join(line.split()))
+                        args.get('output').write("\n")
+                        break
                     args.get('output').write('%s%s' % (line, os.linesep))
 
     except Exception:

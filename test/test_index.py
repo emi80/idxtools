@@ -389,6 +389,7 @@ def test_export_ol_no_map_tab_tags():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export(map=None, export_type='tab', tags=['id', 'path'])
+    print exp[0]
     assert exp[0] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
 
 
@@ -410,7 +411,7 @@ def test_export_ol_no_map_tab_tags_header():
     i.open()
     exp = i.export(map=None, export_type='tab', tags=['id', 'path'],
                    header=True)
-    assert exp[0] == 'id\tpath'
+    assert exp[0] == 'labExpId\tpath'
     assert exp[1] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
 
 
