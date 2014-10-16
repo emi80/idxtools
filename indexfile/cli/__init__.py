@@ -44,7 +44,8 @@ def get_command(alias):
     """Get command from command string or alias"""
     if alias in COMMANDS:
         return alias
-    return [k for k, v in COMMANDS.iteritems() if alias in v.get('aliases')]
+    return [k for k, v in COMMANDS.iteritems()
+            if alias in v.get('aliases', [])][0]
 
 
 def default_config():
