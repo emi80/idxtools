@@ -93,8 +93,9 @@ def test_add_multiple_files(tmpdir):
     env['IDX_FILE'] = idxfile
 
     # expected lines
-    expected = 'test_2.fastq\tage=10; id=1; sex=M; type=fastq; view=FqRd2;\n'
-    expected += 'test_1.fastq\tage=10; id=1; sex=M; type=fastq; view=FqRd1;\n'
+    expected = 'test_1.fastq\tage=10; id=1; sex=M; type=fastq; view=FqRd1;\n'
+    expected += 'test_2.fastq\tage=10; id=1; sex=M; type=fastq; view=FqRd2;\n'
+
 
     # run commands
     command = 'idxtools add -a %s -l %s' % (attrs, filelist)

@@ -257,7 +257,7 @@ class Index(object):
             index.write("%s%s" % (line, os.linesep))
 
     def export(self, absolute=False, export_type='index', tags=None,
-               header=False, hide_missing=False, **kwargs):
+               header=False, hide_missing=False, sort_by=None, **kwargs):
         """Export the index file information. ``kwargs`` contains the format
         information.
 
@@ -288,13 +288,8 @@ class Index(object):
 
             path = idxmap.get('path', 'path')
 
-        out = []
+        dsets = []
 
-        if export_type == 'tab':
-            log.debug('Create header for %s export format', export_type)
-            headline = []
-            if tags:
-                headline = tags
         for dataset in self.datasets.values():
             expd = dataset.export(tags=tags)
             for dic in expd:
@@ -310,41 +305,47 @@ class Index(object):
                         k = idxmap.get(k, k)
                     if k:
                         line[k] = val
-                log.debug('Create output for %s format', export_type)
-                if export_type == 'index':
-                    if hide_missing and not line.get(path):
-                        continue
-                    out.append(colsep.join([line.pop(path, '.'),
-                                            to_tags(**dict(line.items() +
-                                                           kwargs.items()))]))
-                if export_type == 'json':
-                    out.append(json.dumps(line))
-                if export_type == 'tab':
-                    if not headline:
-                        headline = sorted(line.keys())
-                    if not tags:
-                        headline = sorted(list(set.intersection(
-                            set(headline), set(line.keys()))))
-                    vals = [line.get(k, 'NA') for k in headline]
-                    if tags or len(line.values()) != len(headline):
-                        vals = [line.get(l, 'NA') if l != 'id'
-                                else line.get(dsid) for l in headline]
-                    for i, val in enumerate(vals):
-                        if hide_missing and val == "NA":
-                            break
-                        if type(val) == list:
-                            val = quote_tags(val)
-                            vals[i] = self.format.get('rep_sep', ",").join(val)
-                    else:
-                        out.append(colsep.join(quote_tags(vals)))
+                dsets.append(line)
+
+        # if sort_by:
+        dsets.sort(key=lambda x: (x.get('path')))
+
+        log.debug('Create output for %s format', export_type)
+        out = []
+        headline = []
+        if export_type == 'index':
+            for line in dsets:
+                if hide_missing and not line.get(path):
+                    continue
+                out.append(colsep.join([line.pop(path, '.'),
+                           to_tags(**dict(line.items() +
+                           kwargs.items()))]))
+
+        if export_type == 'json':
+            for line in dsets:
+                out.append(json.dumps(line))
 
         if export_type == 'tab':
-            log.debug('Adjust output for %s export format', export_type)
-            out = list(set(out))
-            if tags:
-                out.sort()
+            keys = [d.keys() for d in dsets]
+            if not headline:
+                def union(x, y):
+                    return set.union(set(x), set(y))
+                headline = sorted(reduce(union, keys))
+            for line in dsets:
+                vals = [line.get(k, 'NA') for k in headline]
+                if tags or len(line.values()) != len(headline):
+                    vals = [line.get(l, 'NA') if l != 'id'
+                            else line.get(dsid) for l in headline]
+                for i, val in enumerate(vals):
+                    if hide_missing and val == "NA":
+                        break
+                    if type(val) == list:
+                        val = quote_tags(val)
+                        vals[i] = self.format.get('rep_sep', ",").join(val)
+                else:
+                    out.append(colsep.join(quote_tags(vals)))
             if header:
-                out = [colsep.join(headline)] + out
+                out.insert(0, colsep.join(headline))
 
         return out
 
