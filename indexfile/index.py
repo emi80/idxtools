@@ -273,7 +273,7 @@ class Index(object):
                 kwargs = {}
             kwargs = dict(self.format.items() + kwargs.items())
 
-        dsid = kwargs.pop('id', None)
+        dsid = kwargs.pop('id', 'id')
         idxmap = kwargs.pop('map', None)
         colsep = kwargs.pop('colsep', '\t')
         fileinfo = kwargs.pop('fileinfo', [])
