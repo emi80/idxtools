@@ -350,6 +350,16 @@ def test_export_no_map():
     assert 'fileinfo' not in exp[0]
 
 
+def test_export_no_format_no_map():
+    """Test export"""
+    i = Index()
+    #assert i is not None
+    i.insert(id="myId", path="test/data/index.txt", type="text", view="TxtFile")
+    exp = i.export(map=None, export_type='tab', tags=['id'])
+    assert len(exp) == 1
+    assert exp[0] == 'myId'
+
+
 def test_export_no_map_tab_tags_no_miss():
     """Test export without missing values"""
     i = Index('test/data/index.txt')
