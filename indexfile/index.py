@@ -330,7 +330,17 @@ class Index(object):
             if not headline:
                 def union(x, y):
                     return set.union(set(x), set(y))
-                headline = sorted(reduce(union, keys))
+                headline = list(reduce(union, keys))
+                def sort_header(x):
+                    if not tags:
+                        return x
+                    if x == dsid:
+                        x = 'id'
+                    if tags and x in tags:
+                        return tags.index(x)
+                    return sys.maxint
+
+                headline.sort(key=sort_header)
             for line in dsets:
                 vals = [line.get(k, 'NA') for k in headline]
                 if tags or len(line.values()) != len(headline):
