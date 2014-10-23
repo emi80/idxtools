@@ -353,11 +353,12 @@ class Index(object):
                         val = quote_tags(val)
                         vals[i] = self.format.get('rep_sep', ",").join(val)
                 else:
-                    out.append(colsep.join(quote_tags(vals)))
+                    if colsep.join(quote_tags(vals)) not in out:
+                        out.append(colsep.join(quote_tags(vals)))
             if header:
                 out.insert(0, colsep.join(headline))
 
-        return list(set(out))
+        return out
 
     def lookup(self, exact=False, or_query=False, **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes
