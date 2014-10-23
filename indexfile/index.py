@@ -357,7 +357,7 @@ class Index(object):
             if header:
                 out.insert(0, colsep.join(headline))
 
-        return out
+        return list(set(out))
 
     def lookup(self, exact=False, or_query=False, **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes
