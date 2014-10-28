@@ -34,6 +34,40 @@ DEFAULT_ENV_INDEX = 'IDX_FILE'
 DEFAULT_ENV_FORMAT = 'IDX_FORMAT'
 
 
+def walk_up(bottom):
+    """
+    mimic os.walk, but walk 'up'
+    instead of down the directory tree
+    """
+
+    bottom = os.path.realpath(bottom)
+
+    #get files in current dir
+    try:
+        names = os.listdir(bottom)
+    except Exception as e:
+        print e
+        return
+
+    dirs, nondirs = [], []
+    for name in names:
+        if os.path.isdir(os.path.join(bottom, name)):
+            dirs.append(name)
+        else:
+            nondirs.append(name)
+
+    yield bottom, dirs, nondirs
+
+    new_path = os.path.realpath(os.path.join(bottom, '..'))
+
+    # see if we are at the top
+    if new_path == bottom:
+        return
+
+    for x in walk_up(new_path):
+        yield x
+
+
 def get_command_aliases():
     """Get all command aliases"""
     return [alias for command in COMMANDS.values()
@@ -74,11 +108,12 @@ def load_config(path=None, args=None, use_env=True):
         if 'IDX_FORMAT' in env:
             update_config(config, {'format': env.get(DEFAULT_ENV_FORMAT)})
     if path:
-        config_file = path
         if os.path.isdir(path):
-            config_file = os.path.join(path, DEFAULT_CONFIG_FILE)
-        if os.path.exists(config_file):
-            update_config(config, yaml.load(open(config_file)))
+            for c, d, f in walk_up(path):
+                if DEFAULT_CONFIG_FILE in f:
+                    config_file = os.path.join(c, DEFAULT_CONFIG_FILE)
+                    update_config(config, yaml.load(open(config_file)))
+                    break
     if args:
         update_config(config, args)
     return config
