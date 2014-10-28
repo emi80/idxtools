@@ -1,9 +1,10 @@
 """ Tests for the cli module """
 
 # pylint: disable=E0611
+import os
 from indexfile.cli import default_config, load_config
 from os import (
-    environ as env
+    environ as env,
 )
 from docopt import docopt
 import indexfile.cli.indexfile_main as im
@@ -33,12 +34,30 @@ def test_file_config(tmpdir):
     """ Load configuration from file """
 
     # prepare yaml config file
-    configfile = '{0}/indexfile.yml'.format(tmpdir)
+    configfile = '{0}/.indexfile.yml'.format(tmpdir)
     with open(configfile, 'w+') as cfg:
         cfg.write("index:  test/data/index.txt\n")
         cfg.write("format: test/data/format.json\n")
 
-    config = load_config(path=configfile)
+    config = load_config(path=str(tmpdir))
+
+    assert config['index'] == 'test/data/index.txt'
+    assert config['format'] == 'test/data/format.json'
+
+
+def test_file_config_recursive(tmpdir):
+    """ Load configuration from file walking up directory tree"""
+
+    # prepare yaml config file
+    configfile = '{0}/.indexfile.yml'.format(tmpdir)
+    with open(configfile, 'w+') as cfg:
+        cfg.write("index:  test/data/index.txt\n")
+        cfg.write("format: test/data/format.json\n")
+
+    _dir = os.path.join(str(tmpdir), 'dir1')
+    os.mkdir(_dir)
+
+    config = load_config(path=_dir)
 
     assert config['index'] == 'test/data/index.txt'
     assert config['format'] == 'test/data/format.json'
