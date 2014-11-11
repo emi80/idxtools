@@ -298,7 +298,7 @@ class Dataset(dict):
         for k, v in kw.items():
             if k in self._metadata:
                 val = self._metadata.get(k)
-                if val and not match(str(v), str(val), exact=exact):
+                if val and not match(v, val, exact=exact):
                     return False
                 del kw[k]
 

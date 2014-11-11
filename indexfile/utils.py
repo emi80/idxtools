@@ -31,8 +31,10 @@ def quote_tags(strings, force=False):
 
 
 def match(src, dest, exact=False, oplist=['>', '!=', '<', '==']):
-    if exact:
-        return src == dest
+
+    if type(src) == list:
+        return dest in src
+
     if type(dest) == int:
         try:
             src = int(src)
@@ -43,6 +45,8 @@ def match(src, dest, exact=False, oplist=['>', '!=', '<', '==']):
             return eval("{0}{1}".format(dest, src), {"__builtins__": {}})
 
     if type(dest) == str:
+        if exact:
+            return src == dest
         cre = re.compile(src)
         if cre.match(dest):
             return True
