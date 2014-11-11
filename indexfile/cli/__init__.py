@@ -93,7 +93,7 @@ def default_config():
 def update_config(config, new_config):
     """Update config with values in new_config"""
     for key, val in new_config.iteritems():
-        if key not in config or val not in [None, sys.stdin, sys.stdout]:
+        if key not in config or val not in [None]:
             if type(val) is unicode and val[0] == "$":
                 val = os.getenv(val[1:])
             config[key] = val
