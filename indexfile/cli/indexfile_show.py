@@ -72,14 +72,14 @@ def run(index):
         indices = []
         query = args.get('<query>')
         if query:
-            list_sep = ':'
+            list_sep = r'[:\s]'
             kwargs = {}
             for qry in query:
-                match = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", qry)
-                kwargs[match.group('key')] = match.group('value')
-                if list_sep in kwargs[match.group('key')]:
-                    kwargs[match.group('key')] = match.group(
-                        'value').split(list_sep)
+                match = re.match(r'(?P<key>[^=<>!]*)=(?P<value>.*)', qry, re.DOTALL)
+                kwargs[match.group('key')] = match.group('value')                
+                if re.search(list_sep, kwargs[match.group('key')], re.MULTILINE):
+                    kwargs[match.group('key')] = re.split(list_sep, match.group(
+                        'value'))
             indices.append(index.lookup(exact=exact, **kwargs))
         else:
             indices.append(index)
