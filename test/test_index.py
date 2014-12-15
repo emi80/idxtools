@@ -372,6 +372,18 @@ def test_export_no_map_tab_tags_no_miss():
     assert exp[0] == 'EL3.1\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig'
 
 
+def test_export_no_map_tab_repeated_tags():
+    """Test export tab output with repeated tags"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['id', 'id', 'path'],
+                   hide_missing=True)
+    assert len(exp) == 200
+    assert exp[0] == 'EL3.1\tEL3.1\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig'
+
+
 def test_export_oneline_no_map():
     """Test export one known line"""
     i = Index('test/data/index_oneline.txt')
@@ -413,6 +425,18 @@ def test_export_ol_no_map_tab_tags_header():
                    header=True)
     assert exp[0] == 'labExpId\tpath'
     assert exp[1] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
+
+
+def test_export_ol_no_map_tab_repeated_tags_header():
+    """Test export"""
+    i = Index('test/data/index_oneline.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['id', 'id', 'path'],
+                   header=True)
+    assert exp[0] == 'labExpId\tlabExpId\tpath'
+    assert exp[1] == 'aWL3.2\taWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
 
 
 def test_export_ol_no_map_tab_all():
