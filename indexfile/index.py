@@ -312,7 +312,6 @@ class Index(object):
 
         log.debug('Create output for %s format', export_type)
         out = []
-        headline = []
         if export_type == 'index':
             for line in dsets:
                 if hide_missing and not line.get(path):
@@ -326,21 +325,24 @@ class Index(object):
                 out.append(json.dumps(line))
 
         if export_type == 'tab':
-            keys = [d.keys() for d in dsets]
-            if not headline:
+            headline = []
+            if tags:
+                headline = [tag if tag != 'id' else dsid for tag in tags]
+            else:
+                keys = [d.keys() for d in dsets]
                 def union(x, y):
                     return set.union(set(x), set(y))
                 headline = list(reduce(union, keys))
-                def sort_header(x):
-                    if not tags:
-                        return x
-                    if x == dsid:
-                        x = 'id'
-                    if tags and x in tags:
-                        return tags.index(x)
-                    return sys.maxint
+            def sort_header(x):
+                if not tags:
+                    return x
+                if x == dsid:
+                    x = 'id'
+                if tags and x in tags:
+                    return tags.index(x)
+                return sys.maxint
 
-                headline.sort(key=sort_header)
+            headline.sort(key=sort_header)
             for line in dsets:
                 vals = [line.get(k, 'NA') for k in headline]
                 if tags or len(line.values()) != len(headline):
