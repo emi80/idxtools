@@ -229,9 +229,11 @@ class Index(object):
             log.debug('Remove datasets %s', datasets)
             for k in datasets:
                 dataset = self.datasets.get(k)
-                if 'path' in kwargs:
-                    log.debug('Remove %s', kwargs.get('path'))
-                    dataset.rm_file(path=kwargs.get('path'))
+                fileinfo = self.format.get('fileinfo')
+                if any([tag in fileinfo for tag in kwargs]):
+                    rmargs = dict((tag, kwargs[tag]) for k in kwargs if k in fileinfo)
+                    log.debug('Remove %s', rmargs)
+                    dataset.rm_file(**rmargs)
                     if len(dataset) == 0 and clear:
                         del self.datasets[k]
                 else:

@@ -107,9 +107,9 @@ class Dataset(dict):
                 del self._files[path]
         else:
             log.debug('Delete all %r entries', type)
-            for f in [v for k,v in self._files.items()
-                      if v.type == type]:
-                del f
+            for f in [k for k,v in self._files.items()
+                         if v.type == type]:
+                del self._files[f]
 
     def export(self, types=None, tags=None):
         """Export a :class:Dataset object to a list of dictionaries (one for
