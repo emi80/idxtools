@@ -316,6 +316,20 @@ def test_remove_file():
     assert len(i.datasets.get('1')) == 1
 
 
+def test_remove_fileinfo():
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    i.insert(id='1', path='test1.txt', type='txt')
+    i.insert(id='1', path='test1.jpg', type='jpeg')
+    assert len(i.datasets) == 1
+    dataset = i.datasets.get('1')
+    assert len(dataset) == 3
+    i.remove(type='jpeg')
+    print i.datasets.get('1')._files
+    assert len(i.datasets) == 1
+    assert len(i.datasets.get('1')) == 2
+
+
 def test_export():
     """Test export"""
     i = Index('test/data/index.txt')
