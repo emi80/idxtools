@@ -151,6 +151,30 @@ def test_insert_update():
     assert hasattr(dataset['test.txt'], 'type')
     assert dataset['test.txt'].type == 'text'
 
+def test_insert_update_exc():
+    """Test insertion into the index adding non-existing keys"""
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    with pytest.raises(AttributeError):
+        i.insert(id='1', age=70, path='test.txt', type='text', length=20, update=True)
+
+def test_insert_force_update():
+    """Test insertion into the index"""
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    i.insert(id='1', age=70, path='test.txt', type='text', length=20, update=True, addkeys=True)
+    assert len(i.datasets) == 1
+    dataset = i.datasets.get('1')
+    assert dataset is not None
+    assert len(dataset) == 1
+    assert hasattr(dataset, 'id')
+    assert hasattr(dataset, 'age')
+    assert dataset.id == '1'
+    assert dataset.age == 70
+    assert dataset.length == 20
+    assert len(dataset['test.txt']) == 1
+    assert hasattr(dataset['test.txt'], 'type')
+    assert dataset['test.txt'].type == 'text'
 
 def test_add_file_external():
     index = '''.\tage=-; cell=Neutrophils; dataType=RNA-Seq; dateSubmittedFirst=2012-10-17T09:49:23+0200; donorId=C000XW; ethnicity=NA; lab=MPIMG; labExpId=ERR180946; labProtocolId=C000XWB1; libProtocol=I_bc_pelib_858; localization="Primary Cell"; quality=phred; readStrand=MATE2_SENSE; readType=2x76D; rnaExtract=total; seqPlatform=ILLUMINA; seqRun=1; sex=Male; sraSampleAccession=ERS150362; sraStudyAccession=ERP001664; tissue="Cord blood";'''

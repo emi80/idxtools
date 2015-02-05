@@ -179,7 +179,7 @@ class Index(object):
                 Please check the dataset ids')
         return [datasets[k] for k in sorted(datasets.keys())]
 
-    def insert(self, update=False, dataset=None, **kwargs):
+    def insert(self, update=False, addkeys=False, dataset=None, **kwargs):
         """Add a dataset to the index. Keyword arguments contains the dataset
         attributes.
 
@@ -200,7 +200,7 @@ class Index(object):
             if update:
                 log.debug('Update existing dataset %s', existing_dataset.id)
                 for key, val in meta.items():
-                    if getattr(existing_dataset, key):
+                    if addkeys or getattr(existing_dataset, key):
                         existing_dataset.__setattr__(key, val)
             dataset = existing_dataset
 

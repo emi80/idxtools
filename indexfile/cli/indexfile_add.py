@@ -9,6 +9,7 @@ Options:
                                 list.
   -l --file-list <list>         List of files to be added
   -u --update                   Update information for an existing dataset
+  -f --force                    Only works in combination with --update. Add non-existing keys to the dataset.
 """
 
 import re
@@ -34,6 +35,7 @@ def run(index):
                        Use(open)),
         'attributes': Or(And(None, Use(lambda x: "")), str),
         Optional('update'): Use(bool),
+        Optional('force'): Use(bool),
         str: object
     })
     args = sch.validate(args)
@@ -45,6 +47,7 @@ def run(index):
         filelist = args.get('filelist')
         infos = args.get("<metadata>")
         update = args.get("update")
+        force = args.get("force")
         kwargs = {}
         if not infos and filelist:
             for file_ in filelist.readlines():
@@ -52,7 +55,7 @@ def run(index):
                 assert len(file_) == len(header)
                 for i, k in enumerate(header):
                     kwargs[k] = file_[i]
-                index.insert(update=update, **kwargs)
+                index.insert(update=update, addkeys=force, **kwargs)
             index.save()
         elif infos:
             for info in infos:
