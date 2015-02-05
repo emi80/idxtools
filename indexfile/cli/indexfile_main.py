@@ -5,7 +5,7 @@ Usage: %s [-i <index>] [-f <format>] [--loglevel <loglevel>] [<command>]
           [<args>...] %s [--version] [--help]
 
 Options:
-  -h, --help             Show this help message
+  -h, --help             Show this help message and exit
   --version              Show the version information
   --loglevel <level>     Set the log level to one of error|warn|info|debug
   -i, --index <index>    The input index file.
@@ -14,6 +14,7 @@ Options:
 
 The main commands are:
 
+  help       Show this help message and exit
   show       Show the index
   add        Add file contents to the index
   remove     Remove files from the index
@@ -35,6 +36,9 @@ def main():
     name = indexfile.__name__
     version = indexfile.__version__
     log = indexfile.getLogger(__name__)
+
+    # local variables
+    index = None
 
     # create validation schema
     sch = Schema({

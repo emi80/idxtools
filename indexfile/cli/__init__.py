@@ -124,7 +124,6 @@ def open_index(config):
 
     i = Index()
     index = config.get('index')
-
     idx_format = config.get('format')
 
     try:
@@ -133,6 +132,8 @@ def open_index(config):
     except csv.Error:
         index = config.get('index')
         i.open(index)
+    except AttributeError:
+        pass
 
     return i
 
