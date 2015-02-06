@@ -293,6 +293,12 @@ class Index(object):
         dsets = []
 
         for dataset in self.datasets.values():
+            for ak, addon in self.format.get('addons').items(): # addon ~ 'data_type'
+                mapping = addon.get('mapping') # 'view'
+                if mapping:
+                    for k, v in dataset:
+                        if v.get(mapping) in addon:
+                            v[ak] = addon.get(v.get(mapping))
             expd = dataset.export(tags=tags)
             for dic in expd:
                 line = dict()
