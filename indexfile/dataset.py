@@ -129,6 +129,7 @@ class Dataset(dict):
                 tags.extend([k for v in self._files.values()
                              for k in v.keys()])
             tags = list(set(tags))
+        templates = [t for t in tags if '{' in t]
         if not types:
             types = set([v.type for v in self._files.values()])
         if type(types) == str:
@@ -144,9 +145,12 @@ class Dataset(dict):
         for path, info in self._files.items():
             if info.type in types:
                 log.debug('Export type %r', info.type)
-                data = dict([(k, v) for k, v in self._metadata.items()
-                            + {'path': path, 'type': info.type}.items()
-                            + info.items() if k in tags])
+                items = self._metadata.items() + {'path': path, 'type': info.type}.items() + info.items()
+                data = dict(items)
+                for t in templates:
+                    data = map_path(data, t)
+                data = dict([(k, v) for k, v in data.items() if k in tags])
+
                 out.append(data)
         return out
 

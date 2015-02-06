@@ -422,6 +422,18 @@ def test_export_no_map_tab_repeated_tags():
     assert exp[0] == 'EL3.1\tEL3.1\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig'
 
 
+def test_export_no_map_tab_path_template():
+    """Test export tab output with path template"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['path','{dirname}/{id}.{view}.{ext}'],
+                   hide_missing=True)
+    assert len(exp) == 200
+    assert exp[0] == '/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1.MinusRawSignal.bigwig'
+
+
 def test_export_oneline_no_map():
     """Test export one known line"""
     i = Index('test/data/index_oneline.txt')

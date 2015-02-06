@@ -1,6 +1,7 @@
 """Utility methods used in the API"""
 import copy
 import re
+import os
 
 def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
     """Convert a dictionary to a string in index file format"""
@@ -53,6 +54,25 @@ def match(src, dest, exact=False, oplist=['>', '!=', '<', '==']):
         else:
             return False
     return False
+
+
+def map_path(pathd, template):
+    """Rename a file given a template string"""
+    d = pathd.copy()
+    path = d.get('path')
+    dirname, basename = (os.path.dirname(path), os.path.basename(path))
+    d['dirname'] = dirname
+    d['basename'] = basename
+
+    # get extension
+    pathsplit = basename.split('.')
+    n = 2 if pathsplit[-1] == 'gz' else 1
+    d['ext'] = '.'.join(pathsplit[-n:])
+
+    # map path
+    d[template] = template.format(**d)
+
+    return d
 
 
 class DotDict(dict):
