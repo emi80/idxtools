@@ -293,7 +293,7 @@ class Index(object):
         dsets = []
 
         for dataset in self.datasets.values():
-            for ak, addon in self.format.get('addons').items(): # addon ~ 'data_type'
+            for ak, addon in self.format.get('addons', {}).items(): # addon ~ 'data_type'
                 mapping = addon.get('mapping') # 'view'
                 if mapping:
                     for k, v in dataset:
