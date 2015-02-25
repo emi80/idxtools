@@ -3,11 +3,13 @@ import copy
 import re
 import os
 
-def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', quote=None, **kwargs):
+def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', addons=None, quote=None, **kwargs):
     """Convert a dictionary to a string in index file format"""
     taglist = []
     #for k,v in kwargs.items():
     for key, val in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
+        if addons and key in addons:
+            continue
         if type(val) == list:
             val = rep_sep.join([
                 quote_tags([key, value])[1] for value in val])

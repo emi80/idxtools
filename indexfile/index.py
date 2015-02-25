@@ -299,6 +299,7 @@ class Index(object):
                     for k, v in dataset:
                         if v.get(mapping) in addon:
                             v[ak] = addon.get(v.get(mapping))
+                            print v
             expd = dataset.export(tags=tags)
             for dic in expd:
                 line = dict()
