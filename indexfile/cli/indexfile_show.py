@@ -19,9 +19,9 @@ Options:
   --header               Output header when selecting tags
 """
 import os
+import signal
 import re
 import sys
-import errno
 from schema import Schema, And, Or, Use, Optional
 from docopt import docopt
 from indexfile.index import Index
@@ -29,7 +29,6 @@ from indexfile.index import Index
 
 def run(index):
     """Show index contents and filter based on query terms"""
-
     export_type = 'index'
 
     # parser args and remove dashes
@@ -77,7 +76,7 @@ def run(index):
             kwargs = {}
             for qry in query:
                 match = re.match(r'(?P<key>[^=<>!]*)=(?P<value>.*)', qry, re.DOTALL)
-                kwargs[match.group('key')] = match.group('value')
+                kwargs[match.group('key')] = match.group('value')                
                 if re.search(list_sep, kwargs[match.group('key')], re.MULTILINE):
                     kwargs[match.group('key')] = re.split(list_sep, match.group(
                         'value'))
@@ -90,6 +89,7 @@ def run(index):
                 if args.get('count') and not args.get('tags'):
                     args.get('output').write("%s%s" % (len(i), os.linesep))
                     return
+                signal.signal(signal.SIGPIPE, signal.SIG_DFL)
                 kwargs = {
                     'header': header,
                     'export_type': export_type,
@@ -111,13 +111,7 @@ def run(index):
                         break
                     args.get('output').write('%s%s' % (line, os.linesep))
 
-    except IOError, e:
-        if e.errno == errno.EPIPE:
-            pass
-        else:
-            raise e
-
-    except Exception, e:
+    except Exception:
         if args.get('output') != sys.stdout:
             os.remove(ags.get('output').name)
 
