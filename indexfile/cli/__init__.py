@@ -105,9 +105,9 @@ def load_config(path=None, args=None, use_env=True):
     """Load configuration for a session"""
     config = default_config()
     if use_env:
-        if 'IDX_FILE' in env:
+        if DEFAULT_ENV_INDEX in env:
             update_config(config, {'index': env.get(DEFAULT_ENV_INDEX)})
-        if 'IDX_FORMAT' in env:
+        if DEFAULT_ENV_FORMAT in env:
             update_config(config, {'format': env.get(DEFAULT_ENV_FORMAT)})
     if path:
         if os.path.isdir(path):
