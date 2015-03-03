@@ -1,0 +1,17 @@
+{                                                                                                                                                                                                                                  
+    "show": {
+        "desc": "Show the index",
+        "aliases": []
+    },
+    "add": {
+        "desc": "Add file contents to the index",
+        "aliases": []
+    },
+    "remove": {
+        "desc": "Remove files from the index",
+        "aliases": ["rm"]
+    },
+    "help": {
+        "desc": "Show the help"
+    }
+}

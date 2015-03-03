@@ -11,23 +11,25 @@ from os import environ as env
 from schema import SchemaError
 from indexfile.index import Index
 
-COMMANDS = {
-    'show': {
-        'desc': 'Show the index',
-        'aliases': []
-    },
-    'add': {
-        'desc': 'Add file contents to the index',
-        'aliases': []
-    },
-    'remove': {
-        'desc': 'Remove files from the index',
-        'aliases': ['rm']
-    },
-    'help': {
-        'desc': 'Show the help',
-    }
-}
+COMMANDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'commands.json')))
+
+#COMMANDS = {
+#    'show': {
+#        'desc': 'Show the index',
+#        'aliases': []
+#    },
+#    'add': {
+#        'desc': 'Add file contents to the index',
+#        'aliases': []
+#    },
+#    'remove': {
+#        'desc': 'Remove files from the index',
+#        'aliases': ['rm']
+#    },
+#    'help': {
+#        'desc': 'Show the help',
+#    }
+#}
 
 DEFAULT_CONFIG_FILE = '.indexfile.yml'
 DEFAULT_ENV_INDEX = 'IDX_FILE'

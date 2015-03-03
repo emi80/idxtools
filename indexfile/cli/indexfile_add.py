@@ -42,31 +42,28 @@ def run(index):
 
     index.lock()
 
-    try:
-        header = args.get('attributes').split(",")
-        filelist = args.get('filelist')
-        infos = args.get("<metadata>")
-        update = args.get("update")
-        force = args.get("force")
-        kwargs = {}
-        if not infos and filelist:
-            for file_ in filelist.readlines():
-                file_ = file_.split()
-                assert len(file_) == len(header)
-                for i, k in enumerate(header):
-                    kwargs[k] = file_[i]
-                index.insert(update=update, addkeys=force, **kwargs)
-            index.save()
-        elif infos:
-            for info in infos:
-                match_ = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
-                kwargs[match_.group('key')] = match_.group('value')
-            index.insert(update=update, **kwargs)
-            index.save()
-        else:
-            log.warn("Nothing to do")
-    finally:
-        index.release()
+    header = args.get('attributes').split(",")
+    filelist = args.get('filelist')
+    infos = args.get("<metadata>")
+    update = args.get("update")
+    force = args.get("force")
+    kwargs = {}
+    if not infos and filelist:
+        for file_ in filelist.readlines():
+            file_ = file_.split()
+            assert len(file_) == len(header)
+            for i, k in enumerate(header):
+                kwargs[k] = file_[i]
+            index.insert(update=update, addkeys=force, **kwargs)
+        index.save()
+    elif infos:
+        for info in infos:
+            match_ = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
+            kwargs[match_.group('key')] = match_.group('value')
+        index.insert(update=update, **kwargs)
+        index.save()
+    else:
+        log.warn("Nothing to do")
 
 if __name__ == '__main__':
     run(index)

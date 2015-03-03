@@ -26,16 +26,13 @@ def run(index):
 
     index.lock()
     paths = args.get('<path>')
-    try:
-        for path in paths:
-            if '=' in path:
-                kwargs = dict([path.split('=')])
-                index.remove(**kwargs)
-            else:
-                index.remove(path=path, clear=args.get('clear'))
-            index.save()
-    finally:
-        index.release()
+    for path in paths:
+        if '=' in path:
+            kwargs = dict([path.split('=')])
+            index.remove(**kwargs)
+        else:
+            index.remove(path=path, clear=args.get('clear'))
+        index.save()
 
 if __name__ == '__main__':
     run(index)

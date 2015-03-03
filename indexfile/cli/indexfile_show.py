@@ -19,7 +19,6 @@ Options:
   --header               Output header when selecting tags
 """
 import os
-import signal
 import re
 import sys
 from schema import Schema, And, Or, Use, Optional
@@ -29,9 +28,6 @@ from indexfile.index import Index
 def run(index):
     """Show index contents and filter based on query terms"""
     export_type = 'index'
-
-    # silently intercepts SIGPIPE
-    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
     # parser args and remove dashes
     args = docopt(__doc__)
@@ -114,10 +110,8 @@ def run(index):
 
     except Exception:
         if args.get('output') != sys.stdout:
-            os.remove(ags.get('output').name)
-
-    finally:
-        index.release()
+            os.remove(args.get('output').name)
+        raise
 
 if __name__ == '__main__':
     run(index)
