@@ -1,8 +1,8 @@
 """
-Usage: indexfile_show [options] [<query>]...
-
 Select datasets using query strings. Examples of valid strings are: 'sex=M' and 'lab=CRG'.
 Multiple fields in a query are joind with an 'AND'.
+
+Usage: %s [options] [<query>]...
 
 Options:
 
@@ -25,12 +25,18 @@ from schema import Schema, And, Or, Use, Optional
 from docopt import docopt
 from indexfile.index import Index
 
+# set command info
+name = __name__.replace('indexfile_','')
+desc = "Show the index"
+aliases = []
+
 def run(index):
     """Show index contents and filter based on query terms"""
     export_type = 'index'
 
     # parser args and remove dashes
-    args = docopt(__doc__)
+
+    args = docopt(__doc__ % command)
     args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
 
     # create validation schema

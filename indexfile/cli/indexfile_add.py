@@ -2,7 +2,7 @@
 Add new file to the index using the provided file metadata
 (eg. path, type, size, md5...)
 
-Usage: %s_add [options] [<metadata>...]
+Usage: %s [options] [<metadata>...]
 
 Options:
   -a --attributes <attributes>  List of attribute name referring to the file
@@ -18,13 +18,17 @@ import indexfile
 from schema import Schema, Use, Optional, Or, And
 from docopt import docopt
 
+# set command info
+name = __name__.replace('indexfile_','')
+desc = "Add file contents to the index"
+aliases = []
 
 def run(index):
     """Add files to the index"""
     log = indexfile.getLogger(__name__)
 
     # parser args and remove dashes
-    args = docopt(__doc__)
+    args = docopt(__doc__ % command)
     args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
 
     # create validation schema

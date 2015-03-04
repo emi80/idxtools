@@ -4,37 +4,20 @@ Command line interface to the IndexFile API
 import sys
 import os
 import csv
+import imp
 import yaml
+import glob
 import indexfile
 import simplejson as json
 from os import environ as env
 from schema import SchemaError
 from indexfile.index import Index
 
-COMMANDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'commands.json')))
-
-#COMMANDS = {
-#    'show': {
-#        'desc': 'Show the index',
-#        'aliases': []
-#    },
-#    'add': {
-#        'desc': 'Add file contents to the index',
-#        'aliases': []
-#    },
-#    'remove': {
-#        'desc': 'Remove files from the index',
-#        'aliases': ['rm']
-#    },
-#    'help': {
-#        'desc': 'Show the help',
-#    }
-#}
-
 DEFAULT_CONFIG_FILE = '.indexfile.yml'
 DEFAULT_ENV_INDEX = 'IDX_FILE'
 DEFAULT_ENV_FORMAT = 'IDX_FORMAT'
 
+IGNORE_COMMANDS = ['__init__', 'indexfile_main']
 
 def walk_up(bottom):
     """
@@ -70,18 +53,49 @@ def walk_up(bottom):
         yield x
 
 
-def get_command_aliases():
+def load_commands():
+    """Load commands from files"""
+    basedir = os.path.dirname(__file__)
+    cmds = glob.glob('{0}/*.py'.format(basedir))
+    d = {}
+
+    for cmd in cmds:
+        mod = os.path.basename(cmd).replace('.py', '')
+        if mod in IGNORE_COMMANDS:
+            continue
+        info = imp.find_module(mod, [basedir])
+        m = imp.load_module(mod, *info)
+        d[m.name] = {'desc': m.desc, 'aliases': m.aliases}
+
+    d['help'] = {'desc': "Show the help"}
+
+    return d
+
+
+def get_command_aliases(cmds):
     """Get all command aliases"""
-    return [alias for command in COMMANDS.values()
+    return [alias for command in cmds.values()
             for alias in command.get('aliases', [])]
 
 
-def get_command(alias):
+def get_command(alias, cmds):
     """Get command from command string or alias"""
-    if alias in COMMANDS:
+    if alias in cmds:
         return alias
-    return [k for k, v in COMMANDS.iteritems()
+    return [k for k, v in cmds.iteritems()
             if alias in v.get('aliases', [])][0]
+
+
+def get_commands_help(cmds):
+    """Get list of commands and descriptions for the help message"""
+    s = []
+    m = 0
+    for k, v in cmds.iteritems():
+        if v.get('aliases'):
+            k = k + " ({0})".format(', '.join(v.get('aliases')))
+        m = max(m, len(k))
+        s.append([k, v.get('desc', "")])
+    return '\n'.join(['  {0}\t{1}'.format(name.ljust(m), desc) for name, desc in s])
 
 
 def default_config():
@@ -143,14 +157,15 @@ def open_index(config):
 # validation objects
 class Command(object):
 
-    def __init__(self, error=None):
+    def __init__(self, error=None, commands=None):
         self._error = error
+        self._commands = commands
 
     def validate(self, data):
         """Return valid command string or SchemaException in case of error"""
         if not data:
             data = 'help'
-        if data in COMMANDS.keys() + get_command_aliases():
+        if data in self._commands.keys() + get_command_aliases(self._commands):
             return data
         else:
             raise SchemaError('Invalid command %r' %

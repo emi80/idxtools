@@ -14,11 +14,6 @@ Options:
 
 The main commands are:
 
-  help       Show this help message and exit
-  show       Show the index
-  add        Add file contents to the index
-  remove     Remove files from the index
-
 """
 import sys
 import os
@@ -27,7 +22,7 @@ import runpy
 import indexfile
 from docopt import docopt
 from schema import Schema, And, Or, Use, Optional
-from indexfile.cli import open_index, load_config, Command, get_command
+from indexfile.cli import open_index, load_config, Command, get_command, load_commands, get_commands_help
 
 
 def main():
@@ -42,6 +37,10 @@ def main():
         # local variables
         index = None
 
+        # load commands
+        commands = load_commands()
+        helpstr = __doc__ % (name, name) + get_commands_help(commands)
+
         # create validation schema
         sch = Schema({
             'index': Or(None,
@@ -55,13 +54,12 @@ def main():
                                          'warn',
                                          'info',
                                          'debug')),
-            '<command>': Command(),
+            '<command>': Command(commands=commands),
             str: object
         })
 
         # parse args and remove dashes
-        args = docopt(__doc__ % (name, name), version="%s v%s" % (name, version),
-                      options_first=True)
+        args = docopt(helpstr, version="%s v%s" % (name, version), options_first=True)
         args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
 
         # validate args
@@ -69,8 +67,7 @@ def main():
 
         # deal with 'help' command
         if args.get('<command>') == 'help':
-            docopt(__doc__ % (name, name),
-                   version="%s v%s" % (name, version), argv=['--help'])
+            docopt(helpstr, version="%s v%s" % (name, version), argv=['--help'])
 
         # load the index and delegate command
         config = load_config(os.getcwd(), args)
@@ -78,13 +75,13 @@ def main():
         indexfile.setLogLevel(config.get('loglevel'))
         index = open_index(config)
 
-        command_ = get_command(args.get('<command>'))
-        argv = [command_] + args['<args>']
+        command_ = get_command(args.get('<command>'), commands)
+        argv = [name, command_] + args['<args>']
         sys.argv = argv
         module_ = "indexfile.cli.indexfile_%s" % command_
         runpy.run_module(module_,
                          run_name="__main__",
-                         init_globals={'index': index})
+                         init_globals={'index': index, 'command': '{0} {1}'.format(name, command_)})
 
     except KeyboardInterrupt, e:
         sys.exit(1)
