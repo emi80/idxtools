@@ -215,7 +215,7 @@ class Index(object):
         else:
             log.debug('Use existing dataset %s', dataset.id)
 
-        if kwargs.get('path') and kwargs.get('type'):
+        if kwargs.get('path'):
             log.debug('Add %s to dataset', kwargs.get('path'))
             dataset.add_file(update=update, **kwargs)
 

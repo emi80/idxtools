@@ -69,7 +69,10 @@ class Dataset(dict):
 
         if not file_type:
             log.debug('Get file type from file extension')
-            file_type = os.path.splitext(path)[1].strip('.')
+            file_name, file_type = [s.strip('.') for s in os.path.splitext(path)]
+            if file_type == 'gz':
+                file_type = os.path.splitext(file_name)[1].strip('.')
+
             kwargs['type'] = file_type
 
         if path in self._files and not update:
