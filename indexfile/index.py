@@ -186,6 +186,8 @@ class Index(object):
         :keyword update: specifies whether existing values has to be updated
         :keyword dataset: the :class:`Dataset` to be inserted into the index
         """
+        empty_paths = [None, '', '.']
+
         meta = kwargs
         if self.format.get('fileinfo'):
             log.debug('Use file specific keywords from the format')
@@ -215,7 +217,8 @@ class Index(object):
         else:
             log.debug('Use existing dataset %s', dataset.id)
 
-        if kwargs.get('path'):
+        if kwargs.get('path') not in empty_paths:
+        #if os.path.isfile(kwargs.get('path')):
             log.debug('Add %s to dataset', kwargs.get('path'))
             dataset.add_file(update=update, **kwargs)
 
