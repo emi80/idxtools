@@ -33,13 +33,14 @@ def run(index):
     args = sch.validate(args)
 
     index.lock()
-    paths = args.get('<query>')
-    for path in paths:
-        if '=' in path:
-            kwargs = dict([path.split('=')])
+    query = args.get('<query>')
+    for query in queries:
+        if '=' in query:
+            kwargs = dict([query.split('=')])
+            kwargs['clear'] = args.get('clear')
             index.remove(**kwargs)
         else:
-            index.remove(path=path, clear=args.get('clear'))
+            index.remove(path=query, clear=args.get('clear'))
         index.save()
 
 if __name__ == '__main__':
