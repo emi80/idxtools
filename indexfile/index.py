@@ -7,7 +7,7 @@ import re
 import os
 import sys
 import csv
-import simplejson as json
+import yaml
 import tempfile
 import simplejson as json
 from lockfile import LockFile
@@ -82,10 +82,10 @@ class Index(object):
                 self.path = os.path.abspath(path.name)
 
     def set_format(self, input_format=None):
-        """Set index format from json string or file
+        """Set index format from YAML/JSON string or file
 
         :param str: the input string. It can be a path to a file or a valid
-        json string.
+        YAML/JSON string.
 
         """
 
@@ -97,13 +97,13 @@ class Index(object):
         log.debug('Load format %s', input_format)
         try:
             format_file = open(input_format, 'r')
-            idx_format.update(json.load(format_file))
-            log.debug("Succesfully loaded JSON file")
+            idx_format.update(yaml.load(format_file))
+            log.debug("Succesfully loaded file")
         # Disable pylint message about no exception type specifies
         # pylint: disable=W0702
         except:
-            idx_format.update(json.loads(input_format))
-            log.debug("Succesfully loaded JSON string")
+            idx_format.update(yaml.loads(input_format))
+            log.debug("Succesfully loaded string")
         # pylint: enable=W0702
 
         self.format = idx_format
