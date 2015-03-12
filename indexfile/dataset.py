@@ -188,22 +188,22 @@ class Dataset(dict):
         data = dict([i for i in self._metadata.iteritems() if i[0] in tags])
         return to_tags(**data)
 
-    def merge(self, datasets, sep=','):
+    def merge(self, datasets, sep=',', dsid='id'):
         """Merge metadata of this dataset with the ones from another dataset
 
         :param datasets: A list of datasets to be merged with the current
         dataset
         """
-        if type(datasets) != list and hasattr(datasets, 'id'):
+        if type(datasets) != list and hasattr(datasets, dsid):
             datasets = [datasets]
-        dsid = sep.join([self.id] + [d.id for d in datasets])
+        mdsid = sep.join([getattr(self, dsid)] + [getattr(d, dsid) for d in datasets])
         meta = {}
         for k in set(self._metadata.keys() + [
                 j for d1 in datasets for j in d1.get_meta_tags()]):
             vals = [self._metadata.get(k)] + [
                 getattr(d, k) for d in datasets]
             meta[k] = vals if len(set(vals)) > 1 else vals[0]
-        meta['id'] = dsid
+        meta[dsid] = mdsid
         d = Dataset(**meta)
         return d
 
@@ -269,7 +269,7 @@ class Dataset(dict):
             self.__dict__['_metadata'][name] = value
 
     def __repr__(self):
-        return "(Dataset %s)" % (self.id)
+        return "(Dataset)"
 
     def __str__(self):
         return self.get_tags()

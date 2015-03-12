@@ -514,15 +514,16 @@ def test_replicates():
     """Test merged datasets"""
     i = Index('test/data/index.txt')
     i.set_format('test/data/format.json')
+    dsid = i.format.get('id','id')
     i.open()
     reps = i.find_replicates(id="EWP.1,EWP.2")
     dataset = reps[0]
     others = reps[1:]
-    merged = dataset.merge(others)
+    merged = dataset.merge(others, dsid=dsid)
     for key in merged.get_meta_tags():
         vals = [getattr(d, key) for d in reps]
         if len(set(vals)) > 1:
-            if key == 'id':
+            if key == dsid:
                 vals = ','.join(vals)
             assert getattr(merged, key) == vals
         else:

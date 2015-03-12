@@ -90,7 +90,7 @@ def test_repr():
     # pylint: disable=W0142
     dataset = Dataset(**info)
     # pylint: enable=W0142
-    assert repr(dataset) == '(Dataset 1)'
+    assert repr(dataset) == '(Dataset)'
 
 def test_str():
     info = {'id': '1', 'sex': 'M', 'age': 65}

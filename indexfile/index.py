@@ -102,7 +102,7 @@ class Index(object):
         # Disable pylint message about no exception type specifies
         # pylint: disable=W0702
         except:
-            idx_format.update(yaml.loads(input_format))
+            idx_format.update(yaml.load(input_format))
             log.debug("Succesfully loaded string")
         # pylint: enable=W0702
 
@@ -112,7 +112,7 @@ class Index(object):
         """Open index file"""
 
         if self.datasets:
-            log.debug("Overwritie exisitng data")
+            log.debug("Overwrite exisitng data")
             input_format = indexfile.default_format
             del self.datasets
             self.datasets = {}
@@ -141,7 +141,7 @@ class Index(object):
         replicates = []
         for line in index_file:
             tags = Index.parse_line(line, **self.format)
-            if self.format.get('rep_sep') in tags['id']:
+            if self.format.get('rep_sep') in tags[self.format.get('id', 'id')]:
                 # postpone inserting replicates lines
                 replicates.append(tags)
             else:
@@ -167,9 +167,12 @@ class Index(object):
         """Try to find replicates in the index using a dataset id made from
         the concatenation of multiple dataset ids
         """
-        if not kwargs.get('id'):
+        dsid = self.format.get('id', 'id')
+        if 'id' in kwargs:
+            kwargs[dsid] = kwargs.pop('id')
+        if not kwargs.get(dsid):
             return None
-        ids = kwargs.get('id').split(',')
+        ids = kwargs.get(dsid).split(',')
         datasets = dict([
             (k, self.datasets[k]) for k in ids if k in self.datasets])
         if not datasets:
@@ -188,6 +191,11 @@ class Index(object):
         """
         empty_paths = [None, '', '.']
 
+        dsid = self.format.get('id', 'id')
+
+        if 'id' in kwargs:
+            kwargs[dsid] = kwargs.pop('id')
+
         meta = kwargs
         if self.format.get('fileinfo'):
             log.debug('Use file specific keywords from the format')
@@ -196,26 +204,26 @@ class Index(object):
         if not dataset:
             dataset = Dataset(**meta)
 
-        existing_dataset = self.datasets.get(dataset.id)
+        existing_dataset = self.datasets.get(getattr(dataset, dsid))
 
         if existing_dataset is not None:
             if update:
-                log.debug('Update existing dataset %s', existing_dataset.id)
+                log.debug('Update existing dataset %s', getattr(existing_dataset, dsid))
                 for key, val in meta.items():
                     if addkeys or getattr(existing_dataset, key):
                         existing_dataset.__setattr__(key, val)
             dataset = existing_dataset
 
         if existing_dataset is None:
-            if ',' in dataset.id:
-                log.info('Gather replicates info for %s', dataset.id)
+            if ',' in getattr(dataset, dsid):
+                log.info('Gather replicates info for %s', getattr(dataset, dsid))
                 reps = self.find_replicates(**kwargs)
                 if reps:
-                    dataset = reps[0].merge(reps[1:])
-            self.datasets[dataset.id] = dataset
-            dataset = self.datasets.get(dataset.id)
+                    dataset = reps[0].merge(reps[1:], dsid=dsid)
+            self.datasets[getattr(dataset, dsid)] = dataset
+            dataset = self.datasets.get(getattr(dataset, dsid))
         else:
-            log.debug('Use existing dataset %s', dataset.id)
+            log.debug('Use existing dataset %s', getattr(dataset, dsid))
 
         if kwargs.get('path') not in empty_paths:
         #if os.path.isfile(kwargs.get('path')):
@@ -227,6 +235,12 @@ class Index(object):
     def remove(self, clear=False, **kwargs):
         """Remove dataset(s) from the index given a search query.
         """
+
+        dsid = self.format.get('id', 'id')
+
+        if 'id' in kwargs:
+            kwargs[dsid] = kwargs.pop('id')
+
         datasets = self.lookup(**kwargs).datasets.keys()
         if datasets:
             log.debug('Remove datasets %s', datasets)
@@ -240,7 +254,7 @@ class Index(object):
                     if len(dataset) == 0 and clear:
                         del self.datasets[k]
                 else:
-                    if 'id' in kwargs:
+                    if dsid in kwargs:
                         log.debug('Remove whole %s', dataset)
                         del self.datasets[k]
                     else:
@@ -285,6 +299,10 @@ class Index(object):
 
         path = 'path'
 
+        if tags:
+            tags = [tag if tag != 'id' else dsid for tag in tags]
+            tags = [t.replace('{id}','{'+ dsid + '}') for t in tags]
+
         if idxmap:
             log.debug('Use correspondence table for keywords')
             for key, val in idxmap.items():
@@ -306,8 +324,6 @@ class Index(object):
             for dic in expd:
                 line = dict()
                 for k, val in dic.items():
-                    if k == 'id' and dsid:
-                        k = dsid
                     if k == 'path' and absolute:
                         if self.path and not os.path.isabs(val):
                             val = os.path.join(os.path.dirname(self.path),
@@ -347,8 +363,6 @@ class Index(object):
             def sort_header(x):
                 if not tags:
                     return x
-                if x == dsid:
-                    x = 'id'
                 if tags and x in tags:
                     return tags.index(x)
                 return sys.maxint
@@ -357,8 +371,7 @@ class Index(object):
             for line in dsets:
                 vals = [line.get(k, 'NA') for k in headline]
                 if tags or len(line.values()) != len(headline):
-                    vals = [line.get(l, 'NA') if l != 'id'
-                            else line.get(dsid) for l in headline]
+                    vals = [line.get(l, 'NA') for l in headline]
                 for i, val in enumerate(vals):
                     if hide_missing and val == "NA":
                         break
@@ -377,17 +390,19 @@ class Index(object):
         """Select datasets from indexfile. ``kwargs`` contains the attributes
         to be looked for.
 
-        :keyword id: the id to select
-        :keyword absolute: specify if absolute paths should be used. Default:
-        false
+        :keyword exact: exact matching of values
+        :keyword or_query: specifies if an OR operator should be used for multiple attributes
+                           Default: false
 
         """
 
-        if not id and not kwargs:
+        if not kwargs:
             log.debug('No query specified')
             return self
 
         if kwargs:
+            if 'id' in kwargs:
+                kwargs[self.format.get('id', 'id')] = kwargs.pop('id')
             log.debug('Query by %s', kwargs)
             if not self.datasets:
                 return self
@@ -519,9 +534,6 @@ class Index(object):
         for match in re.finditer(expr, tags):
             key = match.group('key')
             log.debug('Matched keyword %s', key)
-            if key == dsid:
-                log.debug('Map id keyword %s', key)
-                key = 'id'
             tagsd[key] = match.group('value')
 
         if not tagsd:
@@ -535,7 +547,7 @@ class Index(object):
         return tagsd
 
     @classmethod
-    def map_keys(cls, obj, map_only=True, **kwargs):
+    def map_keys(cls, obj, map_only=True, normalize_keys=True, **kwargs):
         """ Maps ``obj`` keys using the mapping information contained
         in the arguments. ``kwargs`` is used to specify the index format
         information.
@@ -548,7 +560,7 @@ class Index(object):
             log.debug('No data to map')
             return {}
 
-        dsid = kwargs.get('id')
+        dsid = kwargs.get('id', 'id')
         idxmap = kwargs.get('map', {})
 
         # return original dict if no id and map definitions are found
@@ -563,13 +575,11 @@ class Index(object):
                 log.debug("Using only known mappings from the map")
                 out = dict([(idxmap.get(k), v) for (k, v) in out.iteritems()
                            if idxmap.get(k)])
+                if not dsid in out:
+                    out[dsid] = obj[dsid]
             else:
                 log.debug("Using input attributes if no mapping found")
                 out = dict([(idxmap.get(k), v) if idxmap.get(k)
                            else (k, v) for (k, v) in out.iteritems()])
-        if dsid:
-            log.debug("Mapping 'id' to %r", dsid)
-            out = dict([('id', v) if k == dsid else (k, v)
-                       for (k, v) in out.iteritems()])
 
         return out
