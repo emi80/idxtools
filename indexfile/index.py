@@ -102,7 +102,7 @@ class Index(object):
         # Disable pylint message about no exception type specifies
         # pylint: disable=W0702
         except:
-            idx_format.update(yaml.load(input_format))
+            idx_format.update(yaml.load(input_format.decode('string_escape')))
             log.debug("Succesfully loaded string")
         # pylint: enable=W0702
 
