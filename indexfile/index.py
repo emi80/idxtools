@@ -159,6 +159,17 @@ class Index(object):
 
         """
         reader = csv.DictReader(index_file, dialect=dialect)
+
+        format_file = 'imported_format.yml'
+        import_format = not os.path.exists(format_file)
+        idxmap = self.format.get('map', {})
+        if import_format and not idxmap:
+            self.format['map'] = idxmap
+            for key in reader.fieldnames:
+                if not key in idxmap:
+                    idxmap[key] = key
+            yaml.dump(self.format, open(format_file, 'w'), default_flow_style=False)
+
         for line in reader:
             tags = Index.map_keys(line, **self.format)
             dataset = self.insert(**tags)
