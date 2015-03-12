@@ -119,5 +119,8 @@ def run(index):
             os.remove(args.get('output').name)
         raise
 
+    finally:
+        args.get('output').flush()
+
 if __name__ == '__main__':
     run(index)
