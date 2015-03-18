@@ -1,14 +1,13 @@
 """
-Add new file to the index using the provided file metadata
-(eg. path, type, size, md5...)
+Add or update metadata information to the index
 
 Usage: %s [options] [<metadata>...]
 
 Options:
-  -a --attributes <attributes>  List of attribute name referring to the file
+  -l --metadata-list <list>     List of metadata information to be used.
+  -a --attributes <attributes>  List of attribute names referring to the metadata
                                 list.
-  -l --file-list <list>         List of files to be added
-  -u --update                   Update information for an existing dataset
+  -u --update                   Update information for existing datasets
   -f --force                    Only works in combination with --update. Add non-existing keys to the dataset.
 """
 
@@ -20,11 +19,11 @@ from docopt import docopt
 
 # set command info
 name = __name__.replace('indexfile_','')
-desc = "Add file contents to the index"
-aliases = []
+desc = "Add or update file/dataset metadata to the index"
+aliases = ['add']
 
 def run(index):
-    """Add files to the index"""
+    """Add or update metadata information to the index"""
     log = indexfile.getLogger(__name__)
 
     # parser args and remove dashes
@@ -33,7 +32,7 @@ def run(index):
 
     # create validation schema
     sch = Schema({
-        'filelist': Or(None,
+        'metadatalist': Or(None,
                        And(Or('-', 'stdin'),
                        Use(lambda x: sys.stdin)),
                        Use(open)),
@@ -47,13 +46,13 @@ def run(index):
     index.lock()
 
     header = args.get('attributes').split(",")
-    filelist = args.get('filelist')
+    mdlist = args.get('metadatalist')
     infos = args.get("<metadata>")
     update = args.get("update")
     force = args.get("force")
     kwargs = {}
-    if not infos and filelist:
-        for file_ in filelist.readlines():
+    if not infos and mdlist:
+        for file_ in mdlist.readlines():
             file_ = file_.split()
             assert len(file_) == len(header)
             for i, k in enumerate(header):
