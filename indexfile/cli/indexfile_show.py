@@ -1,8 +1,8 @@
 """
-Usage: indexfile_show [options] [<query>]...
-
 Select datasets using query strings. Examples of valid strings are: 'sex=M' and 'lab=CRG'.
 Multiple fields in a query are joind with an 'AND'.
+
+Usage: %s [options] [<query>]...
 
 Options:
 
@@ -19,18 +19,42 @@ Options:
   --header               Output header when selecting tags
 """
 import os
-import signal
 import re
+import sys
+from schema import Schema, And, Or, Use, Optional
 from docopt import docopt
-from indexfile.cli import validate
 from indexfile.index import Index
 
+# set command info
+name = __name__.replace('indexfile_','')
+desc = "Show the index"
+aliases = []
 
-def run(args, index):
-    """Run the command"""
+def run(index):
+    """Show index contents and filter based on query terms"""
     export_type = 'index'
 
-    args = validate(args)
+    # parser args and remove dashes
+
+    args = docopt(__doc__ % command)
+    args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
+
+    # create validation schema
+    sch = Schema({
+        Optional('absolutepath'): Use(bool),
+        Optional('count'): Use(bool),
+        Optional('exact'): Use(bool),
+        Optional('mapkeys'): Use(bool),
+        Optional('tags'): str,
+        Optional('showmissing'): Use(bool),
+        'output': Or(None,
+                     And(Or('-', 'stdout'),
+                         Use(lambda x: sys.stdout)),
+                     Use(lambda f: open(f, 'w+'))),
+        Optional('header'): Use(bool),
+        str: object
+    })
+    args = sch.validate(args)
 
     absolute = args.get('absolutepath')
     map_keys = args.get('mapkeys')
@@ -41,8 +65,10 @@ def run(args, index):
     tags = []
     if args.get('tags'):
         export_type = 'tab'
-        if args.get('tags') != 'all':
+        if args.get('tags') not in ['all', 'attrs']:
             tags = args.get("tags").split(',')
+        if args.get('tags') == 'attrs':
+            header = True
 
     index.lock()
 
@@ -50,14 +76,14 @@ def run(args, index):
         indices = []
         query = args.get('<query>')
         if query:
-            list_sep = ':'
+            list_sep = r'[:\s]'
             kwargs = {}
             for qry in query:
-                match = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", qry)
+                match = re.match(r'(?P<key>[^=<>!]*)=(?P<value>.*)', qry, re.DOTALL)
                 kwargs[match.group('key')] = match.group('value')
-                if list_sep in kwargs[match.group('key')]:
-                    kwargs[match.group('key')] = match.group(
-                        'value').split(list_sep)
+                if re.search(list_sep, kwargs[match.group('key')], re.MULTILINE):
+                    kwargs[match.group('key')] = re.split(list_sep, match.group(
+                        'value'))
             indices.append(index.lookup(exact=exact, **kwargs))
         else:
             indices.append(index)
@@ -67,7 +93,6 @@ def run(args, index):
                 if args.get('count') and not args.get('tags'):
                     args.get('output').write("%s%s" % (len(i), os.linesep))
                     return
-                signal.signal(signal.SIGPIPE, signal.SIG_DFL)
                 kwargs = {
                     'header': header,
                     'export_type': export_type,
@@ -82,10 +107,20 @@ def run(args, index):
                     args.get('output').write("%s%s" % (len(indexp), os.linesep))
                     return
                 for line in indexp:
+                    # print the atribute names only
+                    if args.get('tags') == 'attrs':
+                        args.get('output').write("\n".join(line.split()))
+                        args.get('output').write("\n")
+                        break
                     args.get('output').write('%s%s' % (line, os.linesep))
+
+    except Exception:
+        if args.get('output') != sys.stdout:
+            os.remove(args.get('output').name)
+        raise
+
     finally:
-        index.release()
+        args.get('output').flush()
 
 if __name__ == '__main__':
-    args = docopt(__doc__)
-    run(args, index)
+    run(index)

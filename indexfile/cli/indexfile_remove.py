@@ -1,30 +1,47 @@
 """
-Usage: %s_remove [options] <path>... [--clear]
+Remove files and/or datasets from the index. Query can be a file path or a string
+like 'id=ID001' or 'type=bam'.
+
+Usage: %s [options] <query>...
 
 Options:
 
-  --clear                   Clear all metadata when <file_path> is the last file of the dataset [default: false]
+  -c, --clear  Remove a dataset entry in the index if it does not contain any
+               more files [default: false]
 
 """
 from docopt import docopt
-from indexfile.cli import *
+from schema import Schema, Use, Optional
 
-def run(args, index):
-    args = validate(args)
+# set command info
+name = __name__.replace('indexfile_','')
+desc = "Remove files from the index"
+aliases = ['rm']
+
+def run(index):
+    """Remove files and/or datasets from the index"""
+
+    # parser args and remove dashes
+    args = docopt(__doc__ % command)
+    args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
+
+    # create validation schema
+    sch = Schema({
+        Optional('clear'): Use(bool),
+        str: object
+    })
+    args = sch.validate(args)
 
     index.lock()
-    paths = args.get('<path>')
-    try:
-        for path in paths:
-            if '=' in path:
-                kw = dict([path.split('=')])
-                index.remove(**kw)
-            else:
-                index.remove(path=path, clear=args.get('clear'))
-            index.save()
-    finally:
-        index.release()
+    query = args.get('<query>')
+    for query in queries:
+        if '=' in query:
+            kwargs = dict([query.split('=')])
+            kwargs['clear'] = args.get('clear')
+            index.remove(**kwargs)
+        else:
+            index.remove(path=query, clear=args.get('clear'))
+        index.save()
 
 if __name__ == '__main__':
-    args = docopt(__doc__)
-    run(args, index)
+    run(index)

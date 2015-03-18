@@ -151,6 +151,39 @@ def test_insert_update():
     assert hasattr(dataset['test.txt'], 'type')
     assert dataset['test.txt'].type == 'text'
 
+def test_insert_update_exc():
+    """Test insertion into the index adding non-existing keys"""
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    with pytest.raises(AttributeError):
+        i.insert(id='1', age=70, path='test.txt', type='text', length=20, update=True)
+
+def test_insert_force_update():
+    """Test insertion into the index"""
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    i.insert(id='1', age=70, path='test.txt', type='text', length=20, update=True, addkeys=True)
+    assert len(i.datasets) == 1
+    dataset = i.datasets.get('1')
+    assert dataset is not None
+    assert len(dataset) == 1
+    assert hasattr(dataset, 'id')
+    assert hasattr(dataset, 'age')
+    assert dataset.id == '1'
+    assert dataset.age == 70
+    assert dataset.length == 20
+    assert len(dataset['test.txt']) == 1
+    assert hasattr(dataset['test.txt'], 'type')
+    assert dataset['test.txt'].type == 'text'
+
+def test_add_file_external():
+    index = '''.\tage=-; cell=Neutrophils; dataType=RNA-Seq; dateSubmittedFirst=2012-10-17T09:49:23+0200; donorId=C000XW; ethnicity=NA; lab=MPIMG; labExpId=ERR180946; labProtocolId=C000XWB1; libProtocol=I_bc_pelib_858; localization="Primary Cell"; quality=phred; readStrand=MATE2_SENSE; readType=2x76D; rnaExtract=total; seqPlatform=ILLUMINA; seqRun=1; sex=Male; sraSampleAccession=ERS150362; sraStudyAccession=ERP001664; tissue="Cord blood";'''
+    i = Index()
+    i.set_format('test/data/tsv_format.json')
+    i.insert(**Index.parse_line(index, **i.format))
+    i.insert(id="ERR180946", path="/users/rg/epalumbo/projects/BluePrint/reads/20130805/data/ERR180946_1.fastq.gz", view="FastqRd1",type="fastq")
+    assert i.export(map=None)[0] == '''/users/rg/epalumbo/projects/BluePrint/reads/20130805/data/ERR180946_1.fastq.gz\tage=-; cell=Neutrophils; dataType=RNA-Seq; dateSubmittedFirst=2012-10-17T09:49:23+0200; donorId=C000XW; ethnicity=NA; lab=MPIMG; labExpId=ERR180946; labProtocolId=C000XWB1; libProtocol=I_bc_pelib_858; localization="Primary Cell"; quality=phred; readStrand=MATE2_SENSE; readType=2x76D; rnaExtract=total; seqPlatform=ILLUMINA; seqRun=1; sex=Male; sraSampleAccession=ERS150362; sraStudyAccession=ERP001664; tissue="Cord blood"; type=fastq; view=FastqRd1;'''
+
 
 def test_lookup_simple_dataset():
     i = Index()
@@ -307,6 +340,20 @@ def test_remove_file():
     assert len(i.datasets.get('1')) == 1
 
 
+def test_remove_fileinfo():
+    i = Index()
+    i.insert(id='1', age=65, path='test.txt', type='txt')
+    i.insert(id='1', path='test1.txt', type='txt')
+    i.insert(id='1', path='test1.jpg', type='jpeg')
+    assert len(i.datasets) == 1
+    dataset = i.datasets.get('1')
+    assert len(dataset) == 3
+    i.remove(type='jpeg')
+    print i.datasets.get('1')._files
+    assert len(i.datasets) == 1
+    assert len(i.datasets.get('1')) == 2
+
+
 def test_export():
     """Test export"""
     i = Index('test/data/index.txt')
@@ -341,6 +388,16 @@ def test_export_no_map():
     assert 'fileinfo' not in exp[0]
 
 
+def test_export_no_format_no_map():
+    """Test export"""
+    i = Index()
+    #assert i is not None
+    i.insert(id="myId", path="test/data/index.txt", type="text", view="TxtFile")
+    exp = i.export(map=None, export_type='tab', tags=['id'])
+    assert len(exp) == 1
+    assert exp[0] == 'myId'
+
+
 def test_export_no_map_tab_tags_no_miss():
     """Test export without missing values"""
     i = Index('test/data/index.txt')
@@ -351,6 +408,30 @@ def test_export_no_map_tab_tags_no_miss():
                    hide_missing=True)
     assert len(exp) == 200
     assert exp[0] == 'EL3.1\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig'
+
+
+def test_export_no_map_tab_repeated_tags():
+    """Test export tab output with repeated tags"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['id', 'id', 'path'],
+                   hide_missing=True)
+    assert len(exp) == 200
+    assert exp[0] == 'EL3.1\tEL3.1\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig'
+
+
+def test_export_no_map_tab_path_template():
+    """Test export tab output with path template"""
+    i = Index('test/data/index.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['path','{dirname}/{id}.{view}.{ext}'],
+                   hide_missing=True)
+    assert len(exp) == 200
+    assert exp[0] == '/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1.MinusRawSignal.bigwig'
 
 
 def test_export_oneline_no_map():
@@ -370,6 +451,7 @@ def test_export_ol_no_map_tab_tags():
     i.set_format('test/data/format.json')
     i.open()
     exp = i.export(map=None, export_type='tab', tags=['id', 'path'])
+    print exp[0]
     assert exp[0] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
 
 
@@ -391,8 +473,20 @@ def test_export_ol_no_map_tab_tags_header():
     i.open()
     exp = i.export(map=None, export_type='tab', tags=['id', 'path'],
                    header=True)
-    assert exp[0] == 'id\tpath'
+    assert exp[0] == 'labExpId\tpath'
     assert exp[1] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
+
+
+def test_export_ol_no_map_tab_repeated_tags_header():
+    """Test export"""
+    i = Index('test/data/index_oneline.txt')
+    assert i is not None
+    i.set_format('test/data/format.json')
+    i.open()
+    exp = i.export(map=None, export_type='tab', tags=['id', 'id', 'path'],
+                   header=True)
+    assert exp[0] == 'labExpId\tlabExpId\tpath'
+    assert exp[1] == 'aWL3.2\taWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
 
 
 def test_export_ol_no_map_tab_all():
@@ -420,15 +514,16 @@ def test_replicates():
     """Test merged datasets"""
     i = Index('test/data/index.txt')
     i.set_format('test/data/format.json')
+    dsid = i.format.get('id','id')
     i.open()
     reps = i.find_replicates(id="EWP.1,EWP.2")
     dataset = reps[0]
     others = reps[1:]
-    merged = dataset.merge(others)
+    merged = dataset.merge(others, dsid=dsid)
     for key in merged.get_meta_tags():
         vals = [getattr(d, key) for d in reps]
         if len(set(vals)) > 1:
-            if key == 'id':
+            if key == dsid:
                 vals = ','.join(vals)
             assert getattr(merged, key) == vals
         else:

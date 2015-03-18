@@ -69,7 +69,10 @@ class Dataset(dict):
 
         if not file_type:
             log.debug('Get file type from file extension')
-            file_type = os.path.splitext(path)[1].strip('.')
+            file_name, file_type = [s.strip('.') for s in os.path.splitext(path)]
+            if file_type == 'gz':
+                file_type = os.path.splitext(file_name)[1].strip('.')
+
             kwargs['type'] = file_type
 
         if path in self._files and not update:
@@ -107,9 +110,9 @@ class Dataset(dict):
                 del self._files[path]
         else:
             log.debug('Delete all %r entries', type)
-            for f in [v for k,v in self._files.items()
-                      if v.type == type]:
-                del f
+            for f in [k for k,v in self._files.items()
+                         if v.type == type]:
+                del self._files[f]
 
     def export(self, types=None, tags=None):
         """Export a :class:Dataset object to a list of dictionaries (one for
@@ -129,6 +132,7 @@ class Dataset(dict):
                 tags.extend([k for v in self._files.values()
                              for k in v.keys()])
             tags = list(set(tags))
+        templates = [t for t in tags if '{' in t]
         if not types:
             types = set([v.type for v in self._files.values()])
         if type(types) == str:
@@ -144,9 +148,12 @@ class Dataset(dict):
         for path, info in self._files.items():
             if info.type in types:
                 log.debug('Export type %r', info.type)
-                data = dict([(k, v) for k, v in self._metadata.items()
-                            + {'path': path, 'type': info.type}.items()
-                            + info.items() if k in tags])
+                items = self._metadata.items() + {'path': path, 'type': info.type}.items() + info.items()
+                data = dict(items)
+                for t in templates:
+                    data = map_path(data, t)
+                data = dict([(k, v) for k, v in data.items() if k in tags])
+
                 out.append(data)
         return out
 
@@ -181,22 +188,22 @@ class Dataset(dict):
         data = dict([i for i in self._metadata.iteritems() if i[0] in tags])
         return to_tags(**data)
 
-    def merge(self, datasets, sep=','):
+    def merge(self, datasets, sep=',', dsid='id'):
         """Merge metadata of this dataset with the ones from another dataset
 
         :param datasets: A list of datasets to be merged with the current
         dataset
         """
-        if type(datasets) != list and hasattr(datasets, 'id'):
+        if type(datasets) != list and hasattr(datasets, dsid):
             datasets = [datasets]
-        dsid = sep.join([self.id] + [d.id for d in datasets])
+        mdsid = sep.join([getattr(self, dsid)] + [getattr(d, dsid) for d in datasets])
         meta = {}
         for k in set(self._metadata.keys() + [
                 j for d1 in datasets for j in d1.get_meta_tags()]):
             vals = [self._metadata.get(k)] + [
                 getattr(d, k) for d in datasets]
             meta[k] = vals if len(set(vals)) > 1 else vals[0]
-        meta['id'] = dsid
+        meta[dsid] = mdsid
         d = Dataset(**meta)
         return d
 
@@ -262,7 +269,7 @@ class Dataset(dict):
             self.__dict__['_metadata'][name] = value
 
     def __repr__(self):
-        return "(Dataset %s)" % (self.id)
+        return "(Dataset)"
 
     def __str__(self):
         return self.get_tags()
@@ -277,6 +284,9 @@ class Dataset(dict):
 
     def __len__(self):
         return len(self._files)
+
+    def __nonzero__(self):
+        return bool(self.__dict__['_metadata'])
 
     def __contains__(self, item):
         """Returns True if the dataset contains the key-value pairs
@@ -295,7 +305,7 @@ class Dataset(dict):
         for k, v in kw.items():
             if k in self._metadata:
                 val = self._metadata.get(k)
-                if val and not match(str(v), str(val), exact=exact):
+                if val and not match(v, val, exact=exact):
                     return False
                 del kw[k]
 

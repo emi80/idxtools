@@ -7,4 +7,4 @@ devel:
 	python setup.py develop
 
 test:
-	@py.test test
+	@py.test test --maxfail=1
