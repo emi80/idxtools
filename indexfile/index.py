@@ -287,7 +287,7 @@ class Index(object):
             index.write("%s%s" % (line, os.linesep))
 
     def export(self, absolute=False, export_type='index', tags=None,
-               header=False, hide_missing=False, sort_by=None, **kwargs):
+               header=False, hide_missing=False, **kwargs):
         """Export the index file information. ``kwargs`` contains the format
         information.
 
@@ -296,7 +296,7 @@ class Index(object):
         :keyword type: specify the export type. Values:
         ['index','tab','json']. Default: 'index'
         """
-
+        sort_by = None
         if self.format:
             log.debug('Use format from the Index instance')
             if not kwargs:
@@ -313,6 +313,7 @@ class Index(object):
         if tags:
             tags = [tag if tag != 'id' else dsid for tag in tags]
             tags = [t.replace('{id}','{'+ dsid + '}') for t in tags]
+            sort_by = tags
 
         if idxmap:
             log.debug('Use correspondence table for keywords')
@@ -345,8 +346,12 @@ class Index(object):
                         line[k] = val
                 dsets.append(line)
 
-        # if sort_by:
-        dsets.sort(key=lambda x: (x.get('path')))
+        # default sort datasets by path if no tags specified
+        if not sort_by:
+            sort_by = [path]
+
+        # sort datasets
+        dsets.sort(key=lambda x: [x.get(tag) for tag in sort_by])
 
         log.debug('Create output for %s format', export_type)
         out = []
