@@ -5,7 +5,7 @@
 import logging
 
 __name__ = "idxtools"
-__version__ = "0.12.0"
+__version__ = "0.12.1"
 _log_level = 30
 
 # default format
