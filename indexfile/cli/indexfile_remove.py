@@ -33,7 +33,7 @@ def run(index):
     args = sch.validate(args)
 
     index.lock()
-    query = args.get('<query>')
+    queries = args.get('<query>')
     for query in queries:
         if '=' in query:
             kwargs = dict([query.split('=')])
