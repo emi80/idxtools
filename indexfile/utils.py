@@ -1,26 +1,9 @@
 """Utility methods used in the API"""
-import copy
 import re
 import os
+import copy
 
-def to_tags(kw_sep=' ', sep='=', trail=';', rep_sep=',', addons=None, quote=None, **kwargs):
-    """Convert a dictionary to a string in index file format"""
-    taglist = []
-    #for k,v in kwargs.items():
-    for key, val in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
-        if addons and key in addons:
-            continue
-        if type(val) == list:
-            val = rep_sep.join([
-                quote_tags([key, value])[1] for value in val])
-        else:
-            val = str(val)
-            key, val = quote_tags([key, val])
-        taglist.append('%s%s%s%s' % (key, sep, val, trail))
-    return kw_sep.join(sorted(taglist))
-
-
-def quote_tags(strings, force=False):
+def quote(strings, force=False):
     """Quotes string/s"""
     out = []
     if type(strings) == str:

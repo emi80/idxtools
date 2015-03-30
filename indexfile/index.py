@@ -12,8 +12,8 @@ import tempfile
 import simplejson as json
 from lockfile import LockFile
 from copy import deepcopy
-from indexfile.utils import *
 from copy import copy, deepcopy
+from indexfile import utils
 from indexfile.dataset import Dataset
 
 # setup logger
@@ -360,7 +360,7 @@ class Index(object):
                 if hide_missing and not line.get(path):
                     continue
                 out.append(colsep.join([line.pop(path, '.'),
-                           to_tags(**dict(line.items() +
+                           Dataset.to_tags(**dict(line.items() +
                            kwargs.items()))]))
 
         if export_type == 'json':
@@ -392,11 +392,11 @@ class Index(object):
                     if hide_missing and val == "NA":
                         break
                     if type(val) == list:
-                        val = quote_tags(val)
+                        val = utils.quote(val)
                         vals[i] = self.format.get('rep_sep', ",").join(val)
                 else:
-                    if colsep.join(quote_tags(vals)) not in out:
-                        out.append(colsep.join(quote_tags(vals)))
+                    if colsep.join(utils.quote(vals)) not in out:
+                        out.append(colsep.join(utils.quote(vals)))
             if header:
                 out.insert(0, colsep.join(headline))
 

@@ -3,6 +3,26 @@ import pytest
 from indexfile.dataset import Dataset
 
 
+def test_to_tags():
+    """Convert dictionary to indexfile string"""
+    info = {'id': '1', 'path': 'test.txt', 'view': 'text', 'type': 'txt'}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    out = Dataset.to_tags(**info)
+    # pylint: enable=W0142
+    assert out == "id=1; path=test.txt; type=txt; view=text;"
+
+
+def test_to_tags_rep():
+    """Convert dictionary to indexfile string"""
+    info = {'id': ['1', '2'], 'path': ['test1.txt', 'test2.txt'],
+            'view': ['text', 'text'], 'type': ['txt', 'txt']}
+    # Disable warning about * magic
+    # pylint: disable=W0142
+    out = Dataset.to_tags(**info)
+    # pylint: enable=W0142
+    assert out == '''id=1,2; path=test1.txt,test2.txt; type=txt,txt; view=text,text;'''
+
 def test_create_empty_dataset():
     """Create empty dataset"""
     dataset = Dataset()

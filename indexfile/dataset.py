@@ -4,10 +4,10 @@ import csv
 import simplejson as json
 import tempfile
 import simplejson as json
-from lockfile import LockFile
 from copy import deepcopy
-from indexfile.utils import *
 from copy import copy, deepcopy
+from lockfile import LockFile
+from indexfile import utils
 
 
 
@@ -30,8 +30,8 @@ class Dataset(dict):
         the dataset attributes.
 
         """
-        self.__dict__['_metadata'] = DotDict()
-        self.__dict__['_files'] = DotDict()
+        self.__dict__['_metadata'] = utils.DotDict()
+        self.__dict__['_files'] = utils.DotDict()
         self.__dict__['_attributes'] = {}
 
         if not fileinfo:
@@ -151,7 +151,7 @@ class Dataset(dict):
                 items = self._metadata.items() + {'path': path, 'type': info.type}.items() + info.items()
                 data = dict(items)
                 for t in templates:
-                    data = map_path(data, t)
+                    data = utils.map_path(data, t)
                 data = dict([(k, v) for k, v in data.items() if k in tags])
 
                 out.append(data)
@@ -186,7 +186,7 @@ class Dataset(dict):
 
         tags = list(set(tags).difference(set(exclude)))
         data = dict([i for i in self._metadata.iteritems() if i[0] in tags])
-        return to_tags(**data)
+        return Dataset.to_tags(**data)
 
     def merge(self, datasets, sep=',', dsid='id'):
         """Merge metadata of this dataset with the ones from another dataset
@@ -227,7 +227,7 @@ class Dataset(dict):
                 path = [v]
             else:
                 path = [key for key, value in self._files.items()
-                        if match(v, value.get(k), exact=exact)]
+                        if utils.match(v, value.get(k), exact=exact)]
             if not path:
                 return None
             files.append(set(path))
@@ -252,6 +252,23 @@ class Dataset(dict):
 
     def get(self, key):
         return self[key]
+
+    @classmethod
+    def to_tags(cls, kw_sep=' ', sep='=', trail=';', rep_sep=',', addons=None, quote=None, **kwargs):
+        """Convert a dictionary to a string in index file format"""
+        taglist = []
+        #for k,v in kwargs.items():
+        for key, val in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
+            if addons and key in addons:
+                continue
+            if type(val) == list:
+                val = rep_sep.join([
+                    utils.quote([key, value])[1] for value in val])
+            else:
+                val = str(val)
+                key, val = utils.quote([key, val])
+            taglist.append('%s%s%s%s' % (key, sep, val, trail))
+        return kw_sep.join(sorted(taglist))
 
     def __getitem__(self, key):
         return self._files.get(key)
@@ -305,14 +322,14 @@ class Dataset(dict):
         for k, v in kw.items():
             if k in self._metadata:
                 val = self._metadata.get(k)
-                if val and not match(v, val, exact=exact):
+                if val and not utils.match(v, val, exact=exact):
                     return False
                 del kw[k]
 
         for key in self._files:
-            result = list(set([match(v, self._files.get(key).get(k),
+            result = list(set([utils.match(v, self._files.get(key).get(k),
                                      exact=exact)
-                               if k != 'path' else match(v, key, exact=exact)
+                               if k != 'path' else utils.match(v, key, exact=exact)
                                for k, v in kw.items()]))
             if len(result) == 1 and result[0] is True:
                 break
