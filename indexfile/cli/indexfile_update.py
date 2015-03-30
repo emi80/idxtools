@@ -53,8 +53,8 @@ def run(index):
     kwargs = {}
     if not infos and mdlist:
         for file_ in mdlist.readlines():
-            file_ = file_.split()
-            assert len(file_) == len(header)
+            file_ = file_.strip().split('\t')
+            assert len(file_) == len(header), "The number of attributes in the metadata list is different from the one given in the command line"
             for i, k in enumerate(header):
                 kwargs[k] = file_[i]
             index.insert(update=update, addkeys=force, **kwargs)
