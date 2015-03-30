@@ -66,7 +66,7 @@ def run(index):
         index.insert(update=update, **kwargs)
         index.save()
     else:
-        log.warn("Nothing to do")
+        docopt(__doc__ % command, argv='--help')
 
 if __name__ == '__main__':
     run(index)
