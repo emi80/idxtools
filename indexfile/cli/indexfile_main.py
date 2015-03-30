@@ -20,10 +20,10 @@ import os
 import errno
 import runpy
 import indexfile
+import traceback
 from docopt import docopt
 from schema import Schema, And, Or, Use, Optional
 from indexfile.cli import open_index, load_config, Command, get_command, load_commands, get_commands_help
-
 
 def main():
     """
@@ -62,6 +62,9 @@ def main():
         args = docopt(helpstr, version="%s v%s" % (name, version), options_first=True)
         args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
 
+        # set loglevel before validation
+        indexfile.setLogLevel(args.get('loglevel','warn'))
+
         # validate args
         args = sch.validate(args)
 
@@ -72,7 +75,6 @@ def main():
         # load the index and delegate command
         config = load_config(os.getcwd(), args)
 
-        indexfile.setLogLevel(config.get('loglevel'))
         index = open_index(config)
 
         command_ = get_command(args.get('<command>'), commands)
@@ -93,7 +95,8 @@ def main():
             raise
 
     except Exception, e:
-        sys.stderr.write("[ERROR] {0}\n".format(e))
+        log.error("{0}\n".format(e))
+        log.debug("Stacktrace:\n{0}".format(''.join(traceback.format_stack())))
         sys.exit(1)
 
     finally:
