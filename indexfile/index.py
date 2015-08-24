@@ -208,7 +208,8 @@ class Index(object):
             kwargs[dsid] = kwargs.pop('id')
 
         meta = kwargs
-        if self.format.get('fileinfo'):
+        fileinfo = self.format.get('fileinfo')
+        if fileinfo:
             log.debug('Use file specific keywords from the format')
             meta = dict([(k, v) for k, v in kwargs.items()
                         if k not in self.format.get('fileinfo')])
@@ -239,7 +240,7 @@ class Index(object):
         if kwargs.get('path') not in empty_paths:
         #if os.path.isfile(kwargs.get('path')):
             log.debug('Add %s to dataset', kwargs.get('path'))
-            dataset.add_file(update=update, **kwargs)
+            dataset.add_file(update=update, fileinfo=fileinfo, **kwargs)
 
         return dataset
 
