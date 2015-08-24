@@ -134,6 +134,27 @@ def test_insert():
     assert dataset['test.txt'].type == 'txt'
 
 
+def test_insert_non_default_fileinfo():
+    """Test insertion into the index with specified fileinfo"""
+    i = Index()
+    i.format['fileinfo'] = ['path', 'type', 'date']
+    i.insert(id='1', age=65, path='test.txt', type='txt', date='20150304')
+    assert len(i.datasets) == 1
+    dataset = i.datasets.get('1')
+    assert dataset is not None
+    assert len(dataset) == 1
+    assert hasattr(dataset, 'id')
+    assert hasattr(dataset, 'age')
+    assert dataset.id == '1'
+    assert dataset.age == 65
+    assert dataset.dice('test.txt') is not None
+    assert len(dataset['test.txt']) == 2
+    assert hasattr(dataset['test.txt'], 'type')
+    assert hasattr(dataset['test.txt'], 'date')
+    assert dataset['test.txt'].type == 'txt'
+    assert dataset['test.txt'].date == '20150304'
+
+
 def test_insert_update():
     """Test insertion into the index"""
     i = Index()
