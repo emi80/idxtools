@@ -6,7 +6,7 @@ import logging
 
 __name__ = "idxtools"
 __version__ = "0.12.2.dev1"
-_log_level = 30
+_log_level = "WARN"
 
 # default format
 
@@ -32,6 +32,7 @@ class CustomFormatter(logging.Formatter):
         logging.DEBUG: '[DBG] %(name)s - %(funcName)s - %(message)s',
         logging.WARN: '[WARN] %(msg)s',
         logging.ERROR: '[ERR] %(msg)s',
+        logging.INFO: '[INFO] %(msg)s',
         'DEFAULT': '%(msg)s'
     }
     # dbg_time = '%m/%d/%Y %H:%M:%S'
