@@ -28,7 +28,7 @@ class Index(object):
     """A class to access information stored into 'index files'.
     """
 
-    def __init__(self, path=None, datasets=None, format=None):
+    def __init__(self, path=None, format=None, datasets=None):
         """Creates an instance of an Index
 
         :param path: the path to the index file
@@ -48,17 +48,21 @@ class Index(object):
 
         """
 
-        if path:
+        if isinstance(path, str):
             path = os.path.abspath(path)
+
         self.path = path
 
         self.datasets = datasets or {}
         self._lock = None
         self.format = deepcopy(indexfile.default_format)
         if format:
-            self.format.update(format)
+            self.set_format(format)
         self._lookup = {}
         self._alltags = []
+
+        if path and format:
+            self.open()
 
     def open(self, path=None):
         """Open a file and load/import data into the index
@@ -82,29 +86,33 @@ class Index(object):
                 self.path = os.path.abspath(path.name)
 
     def set_format(self, input_format=None):
-        """Set index format from YAML/JSON string or file
+        """Set index format from dictionary or file
 
-        :param str: the input string. It can be a path to a file or a valid
-        YAML/JSON string.
+        :param str|dict|file: the input string. It can be a path to a file, a file handle 
+                              or a dictionary
 
         """
 
         if not input_format and self.format:
             return
 
+        update_format = input_format
+
         idx_format = deepcopy(indexfile.default_format)
 
-        log.debug('Load format %s', input_format)
-        try:
-            format_file = open(input_format, 'r')
-            idx_format.update(yaml.load(format_file))
+        log.debug('Set format %s', input_format)
+
+        if isinstance(input_format, str):
+            try:
+                input_format = open(input_format, 'r')
+            except IOError as e:
+                update_format = {}
+        
+        if isinstance(input_format, file):
+            update_format = yaml.load(input_format)
             log.debug("Succesfully loaded file")
-        # Disable pylint message about no exception type specifies
-        # pylint: disable=W0702
-        except:
-            idx_format.update(yaml.load(input_format.decode('string_escape')))
-            log.debug("Succesfully loaded string")
-        # pylint: enable=W0702
+
+        idx_format.update(update_format)
 
         self.format = idx_format
 
