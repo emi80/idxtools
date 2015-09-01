@@ -58,6 +58,12 @@ def test_match_ops():
     assert not u.match("!=3", "4")
 
 
+def test_get_file_type():
+    assert u.get_file_type('test.txt') == 'txt'
+    assert u.get_file_type('test.txt.gz') == 'txt'
+    assert u.get_file_type('test') == ''
+
+
 def test_dot_dict_setitem():
     """Test DotDict"""
     dic = u.DotDict()

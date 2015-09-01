@@ -41,6 +41,14 @@ def match(src, dest, exact=False, oplist=['>', '!=', '<', '==']):
     return False
 
 
+def get_file_type(file_path):
+    """Get file type from file extension"""
+    file_name, file_type = [s.strip('.') for s in os.path.splitext(file_path)]
+    if file_type == 'gz':
+        file_type = os.path.splitext(file_name)[1].strip('.')
+    return file_type
+
+
 def map_path(pathd, template):
     """Rename a file given a template string"""
     d = pathd.copy()
