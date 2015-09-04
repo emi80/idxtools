@@ -2,6 +2,16 @@
 import re
 import os
 import copy
+import operator
+
+op_map = {
+    '==': 'eq', '=':  'eq', 'eq': 'eq',
+    '<':  'lt', 'lt': 'lt',
+    '<=': 'le', 'le': 'le',
+    '>':  'gt', 'gt': 'gt',
+    '>=': 'ge', 'ge': 'ge',
+    '!=': 'ne', '<>': 'ne', 'ne': 'ne'
+}
 
 def quote(strings, force=False):
     """Quotes string/s"""
@@ -16,29 +26,37 @@ def quote(strings, force=False):
     return out
 
 
-def match(src, dest, exact=False, oplist=['>', '!=', '<', '==']):
+def match(src, dest, exact=False, match_all=False):
+    """Match pattern from src to dst"""
 
-    if type(src) == list:
-        return dest in src
-
-    if type(dest) == int:
+    if exact:
+        return src == dest
+    else:
         try:
-            src = int(src)
-            return src == dest
-        except ValueError:
-            if not src.startswith(tuple(oplist)):
-                raise SyntaxError("Invalid sytax: {0}{1}".format(dest, src))
-            return eval("{0}{1}".format(dest, src), {"__builtins__": {}})
-
-    if type(dest) == str:
-        if exact:
-            return src == dest
-        cre = re.compile(src)
-        if cre.match(dest):
-            return True
-        else:
-            return False
-    return False
+            op_re = re.compile("(?P<op>[<>=!]+)(?P<number>[0-9]+)")
+            op_match = op_re.search(src)
+            if op_match:
+                op = getattr(operator, op_map[op_match.group('op')])
+                if not isinstance(dest, list):
+                    dest = [dest]      
+                src = int(op_match.group('number'))
+                dest = [int(x) for x in dest]
+                result = [op(d, src) for d in dest]
+            else:
+                src_re = re.compile(src)
+                if not isinstance(dest, list):
+                    dest = [dest]
+                result = [bool(src_re.search(d)) for d in dest]
+            if match_all:
+                return all(result)
+            return True in result
+        except KeyError:
+            raise SyntaxError('Unrecognized {}. Operator must be one of: {}.'.format(
+                repr(op_match.group('op')), ' '.join(op_map.keys())))
+        except (TypeError, ValueError):
+            if not isinstance(dest, list):
+                    dest = [dest]  
+            return src in dest
 
 
 def get_file_type(file_path):
