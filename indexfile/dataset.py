@@ -146,7 +146,7 @@ class Dataset(dict):
         mdsid = sep.join([getattr(self, dsid)] + [getattr(d, dsid) for d in datasets])
         meta = {}
         for k in set(self._metadata.keys() + [
-                j for d1 in datasets for j in d1.get_meta_tags()]):
+                j for d1 in datasets for j in d1.keys()]):
             vals = [self._metadata.get(k)] + [
                 getattr(d, k) for d in datasets]
             meta[k] = vals if len(set(vals)) > 1 else vals[0]
@@ -164,7 +164,7 @@ class Dataset(dict):
         if args and len(args) == 1:
             return self.clone(args[0])
         if not kwargs:
-            return None
+            return Dataset()
         exact = kwargs.pop('exact', False)
         files = []
         for k, v in kwargs.items():
@@ -176,10 +176,10 @@ class Dataset(dict):
                 path = [key for key, value in self._files.items()
                         if utils.match(v, value.get(k), exact=exact)]
             if not path:
-                return None
+                return Dataset()
             files.append(set(path))
         if not files:
-            return None
+            return Dataset()
         return self.clone(list(set.intersection(*files)))
 
     def clone(self, paths=None):
