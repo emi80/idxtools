@@ -84,6 +84,20 @@ class Index(object):
             self._open_file(path)
             if path is not sys.stdin:
                 self.path = os.path.abspath(path.name)
+    def seekable(self):
+        if not self.path:
+            return False
+        index_file = self.path
+        if not hasattr(index_file, 'seek'):
+            index_file = open(index_file, 'r')
+        try:
+            index_file.seek(0)
+        except IOError as e:
+            if e.message == "underlying stream is not seekable":
+                return False
+            else:
+                raise e
+        return True
 
     def set_format(self, input_format=None):
         """Set index format from dictionary or file
