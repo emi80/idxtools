@@ -8,22 +8,14 @@ config.fileinfo.add('view')
 def test_create_empty_dataset():
     """Create empty dataset"""
     dataset = Dataset()
-    # Disable warning about:
-    # - missing pytest.raises
-    # - statement with no effect
-    # pylint: disable=E1101,W0104
     with pytest.raises(AttributeError):
         dataset.id
-    # pylint: enable=E1101,W0104
 
 
 def test_create_dataset():
     """Create dataset with string values only"""
-    info = {'id': '1', 'sex': 'M', 'age': '65'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'sex': 'M', 'age': '65'}
+    dataset = Dataset(**mdata)
     assert dataset.id == '1'
     assert dataset.sex == 'M'
     assert dataset.age == '65'
@@ -31,11 +23,8 @@ def test_create_dataset():
 
 def test_create_dataset_w_numbers():
     """Create dataset with string and numeric values"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
     assert dataset.id == '1'
     assert dataset.sex == 'M'
     assert dataset.age == 65
@@ -43,27 +32,8 @@ def test_create_dataset_w_numbers():
 
 def test_create_dataset_w_path():
     """Create dataset with file path"""
-    info = {'id': '1', 'path': 'test.txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    assert not hasattr(dataset, 'path')
-    assert not hasattr(dataset, 'type')
-    assert len(dataset) == 1
-    assert dataset._files is not None
-    assert dataset.get('test.txt') is not None
-    assert dataset['test.txt'].get('type') == 'txt'
-    assert dataset['test.txt'].get('view') == 'text'
-
-
-def test_create_dataset_w_path_type():
-    """Create dataset with file path"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     assert not hasattr(dataset, 'path')
     assert not hasattr(dataset, 'type')
     assert len(dataset) == 1
@@ -71,15 +41,29 @@ def test_create_dataset_w_path_type():
     assert dataset['test.txt'] is not None
     assert dataset['test.txt'].get('type') == 'txt'
     assert dataset['test.txt'].get('view') == 'text'
+    assert dataset.txt == [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
+    assert dataset.text == [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
+
+
+def test_create_dataset_w_path_type():
+    """Create dataset with file path"""
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
+    assert not hasattr(dataset, 'path')
+    assert not hasattr(dataset, 'type')
+    assert len(dataset) == 1
+    assert dataset._files is not None
+    assert dataset['test.txt'] is not None
+    assert dataset['test.txt'].get('type') == 'txt'
+    assert dataset['test.txt'].get('view') == 'text'
+    assert dataset.txt == [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
+    assert dataset.text == [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
 
 
 def test_create_dataset_w_na():
     """Create dataset with file path"""
-    info = {'id': '1', 'age': 65, 'sex': ''}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'age': 65, 'sex': ''}
+    dataset = Dataset(**mdata)
     assert len(dataset) == 0
     assert dataset.id == '1'
     assert dataset.age == 65
@@ -87,57 +71,50 @@ def test_create_dataset_w_na():
 
 
 def test_repr():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    assert repr(dataset) == '(Dataset)'
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
+    assert repr(dataset) == '(Dataset 1)'
+
 
 def test_str():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    assert str(dataset) == 'age=65; id=1; sex=M;'
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
+    assert str(dataset) == "[{'age': 65, 'id': '1', 'sex': 'M'}]"
 
 
 def test_add_file():
     """Add file to existing dataset"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    fileinfo = {'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset.add_file(**fileinfo)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    fdata = {'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
+    dataset.add_file(**fdata)
     assert len(dataset) == 1
     assert dataset is not None
     assert dataset['test.txt'] is not None
     assert dataset['test.txt'].get('type') == 'txt'
     assert dataset['test.txt'].get('view') == 'text'
+    assert dataset.txt == [('test.txt', {'id': '1', 'sex': 'M', 'age': 65, 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
+
+
+def test_add_file_exists():
+    """Add file to existing dataset"""
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    fdata = {'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
+    with pytest.raises(IOError):
+        dataset.add_file(check_exists=True, **fdata)
 
 
 def test_add_file_update():
     """Add file to existing dataset"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    fileinfo = {'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    newfileinfo = {'path': 'test.txt', 'type': 'txt', 'view': 'Text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    dataset.add_file(**fileinfo)
-    dataset.add_file(**newfileinfo)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    fdata = {'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    newfdata = {'path': 'test.txt', 'type': 'txt', 'view': 'Text'}
+    dataset = Dataset(**mdata)
+    dataset.add_file(**fdata)
+    dataset.add_file(**newfdata)
     assert dataset['test.txt'].get('view') == 'text'
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset.add_file(update=True, **newfileinfo)
-    # pylint: enable=W0142
+    dataset.add_file(update=True, **newfdata)
     assert len(dataset) == 1
     assert dataset._files is not None
     assert dataset['test.txt'] is not None
@@ -147,21 +124,15 @@ def test_add_file_update():
 
 def test_add_file_update_type():
     """Add file to existing dataset"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    fileinfo = {'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    newfileinfo = {'path': 'test.txt', 'type': 'text', 'view': 'Text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    dataset.add_file(**fileinfo)
-    dataset.add_file(**newfileinfo)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    fdata = {'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    newfdata = {'path': 'test.txt', 'type': 'text', 'view': 'Text'}
+    dataset = Dataset(**mdata)
+    dataset.add_file(**fdata)
+    dataset.add_file(**newfdata)
     assert dataset['test.txt'].get('view') == 'text'
     assert dataset['test.txt'].get('type') == 'txt'
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset.add_file(update=True, **newfileinfo)
-    # pylint: enable=W0142
+    dataset.add_file(update=True, **newfdata)
     assert len(dataset) == 1
     assert dataset._files is not None
     assert dataset['test.txt'] is not None
@@ -171,41 +142,26 @@ def test_add_file_update_type():
 
 def test_add_file_no_path():
     """Add file with no path"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    fileinfo = {'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset.add_file(**fileinfo)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    fdata = {'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
+    dataset.add_file(**fdata)
     assert len(dataset) == 0
 
 
 def test_add_file_missing_values():
     """Add file with no path"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    fileinfo = {'path': 'test.txt', 'type': 'txt', 'view': ''}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset.add_file(**fileinfo)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    fdata = {'path': 'test.txt', 'type': 'txt', 'view': ''}
+    dataset = Dataset(**mdata)
+    dataset.add_file(**fdata)
     assert len(dataset) == 1
     assert dataset['test.txt'].get('view') == 'NA'
 
 
 def test_multiple_files():
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test1.txt', type='txt', view='text')
     dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
     dataset.add_file(path='test1.jpg', type='jpg', view='jpeg')
@@ -214,99 +170,66 @@ def test_multiple_files():
 
 def test_iter():
     """Iterates over all files in dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test1.txt', type='txt', view='text')
     dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
     dataset.add_file(path='test1.jpg', type='jpg', view='jpeg')
     i = 0
-    for path, info in dataset:
+    for path, mdata in dataset:
         assert path
-        assert info
+        assert mdata
         i += 1
     assert i == 4
 
 
 def test_rm_file():
     """Remove file from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test1.txt', type='txt', view='text')
     dataset.rm_file(path='test.txt')
     assert len(dataset) == 1
-    assert dataset['test.txt'] is None
-
+    with pytest.raises(AttributeError):
+        dataset['test.txt']
 
 def test_rm_last_file_for_a_type():
     """Remove file from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
     dataset.rm_file(path='test.txt')
-    # Disable warning about:
-    # - missing pytest.raises.
-    # - statement with no effect
-    # pylint: disable=E1101,W0104
     with pytest.raises(AttributeError):
         dataset.txt
-    # pylint: enable=E1101,W0104
     assert len(dataset) == 1
 
 
 def test_rm_last_file():
     """Remove file from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-        # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.rm_file(path='test.txt')
-    # Disable warning about:
-    # - missing pytest.raises.
-    # - statement with no effect
-    # pylint: disable=E1101,W0104
     with pytest.raises(AttributeError):
         dataset.txt
-    # pylint: enable=E1101,W0104
     assert len(dataset) == 0
 
 
 def test_rm_file_type():
     """Remove file from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test1.txt', type='txt', view='text')
     assert dataset._files
     assert len(dataset) == 2
     dataset.rm_file(type='txt')
-    # Disable warning about:
-    # - missing pytest.raises.
-    # - statement with no effect
-    # pylint: disable=E1101,W0104
     with pytest.raises(AttributeError):
-        dataset.txt
-    # pylint: enable=E1101,W0104
+        dataset['test1.txt']
 
 
 def test_rm_file_no_path_no_type():
     """Remove file from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     assert len(dataset) == 1
     dataset.rm_file(id='1')
     assert len(dataset) == 1
@@ -314,23 +237,34 @@ def test_rm_file_no_path_no_type():
 
 def test_rm_file_not_existing_file():
     """Remove file from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     assert len(dataset) == 1
     dataset.rm_file(path='test.pdf')
     assert len(dataset) == 1
 
 
+def test_rm_file_native():
+    """Remove file from dataset"""
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
+    assert len(dataset) == 1
+    del dataset.txt
+    assert len(dataset) == 0
+    del dataset.txt
+    assert len(dataset) == 0
+    dataset.add_file(path='test.pdf', type='pdf', view='PDF')
+    assert len(dataset) == 1
+    assert dataset.pdf == [('test.pdf',{'id': '1', 'path': 'test.pdf', 'type':'pdf', 'view':'PDF'})]
+    assert dataset['test.pdf'] == {'path': 'test.pdf', 'type':'pdf', 'view':'PDF'}
+    del dataset['test.pdf']
+    assert len(dataset) == 0
+
+
 def test_export_all():
     """Export files from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
     exp = dataset.export()
     assert exp
@@ -345,11 +279,8 @@ def test_export_all():
 
 def test_export_type():
     """Export files from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
     exp = dataset.export(types='jpg')
     assert exp
@@ -364,11 +295,8 @@ def test_export_type():
 
 def test_export_tag():
     """Export files from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
     exp = dataset.export(tags=['path', 'view'])
     assert exp
@@ -383,11 +311,8 @@ def test_export_tag():
 
 def test_export_one_tag():
     """Export files from dataset"""
-    info = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
+    mdata = {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view': 'text'}
+    dataset = Dataset(**mdata)
     dataset.add_file(path='test.jpg', type='jpg', view='jpeg')
     exp = dataset.export(tags='path')
     assert exp
@@ -400,70 +325,12 @@ def test_export_one_tag():
         assert dic.get('type') is None
 
 
-def test_get_tags_all():
-    """Concatenate all metadata tags from dataset"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    string = dataset.get_tags()
-    assert string == "age=65; id=1; sex=M;"
-
-
-def test_get_tags_all_w_quotes():
-    """Concatenate all metadata tags from dataset"""
-    info = {'id': '1', 'sex': 'M', 'age': 65, 'desc': 'A test dataset'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    string = dataset.get_tags()
-    assert string == "age=65; desc=\"A test dataset\"; id=1; sex=M;"
-
-
-def test_get_tags_exclude():
-    """Concatenate metadata tags from dataset with exclusion list"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    string = dataset.get_tags(exclude='sex')
-    assert string == "age=65; id=1;"
-
-
-def test_get_tags_include():
-    """Concatenate metadata tags from dataset with exclusion list"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    string = dataset.get_tags(tags=['id', 'sex'])
-    assert string == "id=1; sex=M;"
-
-
-def test_get_tags_only_one():
-    """Concatenate metadata tags from dataset with exclusion list"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = Dataset(**info)
-    # pylint: enable=W0142
-    string = dataset.get_tags(tags='id')
-    assert string == "id=1;"
-
-
 def test_merge():
     """Merge metadata from two or more datasets"""
     info1 = {'id': '1', 'sex': 'M', 'age': 65, 'desc': 'First test dataset'}
     info2 = {'id': '2', 'sex': 'F', 'age': 61, 'desc': 'Second test dataset'}
-    # Disable warning about * magic
-    # pylint: disable=W0142
     dataset1 = Dataset(**info1)
     dataset2 = Dataset(**info2)
-    # pylint: enable=W0142
     merged = dataset1.merge(dataset2)
     assert merged is not None
     assert merged.id == '1,2'
@@ -472,23 +339,9 @@ def test_merge():
     assert merged.desc == ['First test dataset', 'Second test dataset']
 
 
-def test_get_tags_on_merged():
-    """Merge metadata from two or more datasets"""
-    info1 = {'id': '1', 'sex': 'M', 'age': 65, 'desc': 'First test dataset'}
-    info2 = {'id': '2', 'sex': 'F', 'age': 61, 'desc': 'Second test dataset'}
-     # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset1 = Dataset(**info1)
-    dataset2 = Dataset(**info2)
-    # pylint: enable=W0142
-    merged = dataset1.merge(dataset2)
-    string = merged.get_tags()
-    assert string == '''age=65,61; desc="First test dataset","Second test dataset"; id=1,2; sex=M,F;'''
-
-
 def test_dataset_clone():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
     dataset.add_file(id='1', path='test.txt', type='txt')
     dataset.add_file(id='1', path='test.bam', type='bam')
     assert len(dataset) == 2
@@ -497,21 +350,17 @@ def test_dataset_clone():
     assert type(dataset) == type(clone)
     assert dataset._metadata == clone._metadata
     assert dataset._files == clone._files
-    assert dataset._attributes == clone._attributes
     assert hasattr(clone, "clone")
     assert hasattr(clone, "add_file")
     assert hasattr(clone, "rm_file")
     assert hasattr(clone, "export")
-    assert hasattr(clone, "get_meta_tags")
-    assert hasattr(clone, "get_meta_items")
-    assert hasattr(clone, "get_tags")
     assert hasattr(clone, "merge")
     assert hasattr(clone, "get")
 
 
 def test_dataset_has():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
     result = {'age': 65} in dataset
     assert result is True
     dataset.add_file(id='1', path='test.txt', type='txt')
@@ -519,28 +368,32 @@ def test_dataset_has():
     assert result is True
 
 
-def test_dataset_multi_has():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
-    result = {'age': 65} in dataset
-    assert result is True
+def test_dataset_contains():
+    # metadata
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
+    assert {'age': 65} in dataset
+    assert {'sex': 'M'} in dataset
+    # files
     dataset.add_file(id='1', path='test.txt', type='txt')
     dataset.add_file(id='1', path='test.gff', type='gff')
-    result = {'type': 'txt'} in dataset
-    assert result is True
-
-
-def test_dataset_has_files():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
-    dataset.add_file(id='1', path='test.txt', type='txt')
-    result = {'type': 'txt'} in dataset
-    assert dataset._files
+    assert {'id': '1'} in dataset
+    assert {'id': 1} not in dataset
+    assert {'id': '2'} not in dataset
+    assert {'type': 'txt'} in dataset
+    assert {'path': 'test'} in dataset
+    assert {'path': 'test', 'exact': True} not in dataset
+    assert {'type': 'pdf'} not in dataset
+    assert {'age': 65, 'type': 'gff'} in dataset
+    assert {'age': 65, 'type': 'gff', 'match_all': True} not in dataset
+    assert {'gender': 'M'} not in dataset
+    assert {'size': 1000} not in dataset
+    assert {'md5': '098f6bcd4621d373cade4e832627b4f6'} not in dataset
 
 
 def test_dataset_dice_exact():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
     dataset.add_file(id='1', path='test.txt', type='txt')
     txt = dataset.dice(type='txt', exact=True)
     assert txt
@@ -550,11 +403,12 @@ def test_dataset_dice_exact():
     txt = dataset.dice(type='txt')
     assert len(txt) == 2
     txt = dataset.dice(type='t', exact=True)
-    assert txt is None
+    assert isinstance(txt, Dataset)
+    assert len(txt) == 0
 
 def test_dataset_dice_regex_simple():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
     dataset.add_file(id='1', path='test.txt', type='txt')
     txt = dataset.dice(type='txt')
     assert txt
@@ -566,8 +420,8 @@ def test_dataset_dice_regex_simple():
 
 
 def test_dataset_dice_regex():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
     dataset.add_file(id='1', path='test.gtf', type='gtf')
     dataset.add_file(id='1', path='test.gff', type='gff')
     txt = dataset.dice(type='g[tf]f')
@@ -576,8 +430,8 @@ def test_dataset_dice_regex():
 
 
 def test_dataset_dice_ops():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
     dataset.add_file(id='1', path='test.gtf', type='gtf', size=100)
     dataset.add_file(id='1', path='test.gff', type='gff', size=50)
     txt = dataset.dice(size='>50')
@@ -588,35 +442,14 @@ def test_dataset_dice_ops():
 
 
 def test_dataset_dice_ops():
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    dataset = Dataset(**info)
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
     dataset.add_file(id='1', path='test.gtf', type='gtf', size=100)
     dataset.add_file(id='1', path='test.gff', type='gff', size=50)
     with pytest.raises(SyntaxError):
         txt = dataset.dice(size='!50')
 
 
-class MyDataset(Dataset):
-    """My test dataset"""
-    def __init__(self, **kwargs):
-        super(MyDataset, self).__init__(**kwargs)
-
-        self._init_attributes()
-
-    def _init_attributes(self):
-        """Initialize attributes"""
-        self._attributes['test'] = (lambda x: "This is a dataset"
-                                    if type(x) == MyDataset else None)
-
-
-def test_attributes():
-    """Test attribute creations and accession"""
-    info = {'id': '1', 'sex': 'M', 'age': 65}
-    # Disable warning about * magic
-    # pylint: disable=W0142
-    dataset = MyDataset(**info)
-    # pylint: enable=W0142
-    assert dataset.test == "This is a dataset"
 def test_dataset_callbacks():
     mdata = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**mdata)
