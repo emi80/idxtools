@@ -269,10 +269,10 @@ class Dataset(dict):
             yield (path, info)
 
     def __len__(self):
-        return len(self._files)
+        return len(self.__dict__['_files'])
 
     def __nonzero__(self):
-        return bool(self.__dict__['_metadata'])
+        return bool(self.__dict__['_files'])
 
     def __contains__(self, item):
         """Returns True if the dataset contains the key-value pairs
