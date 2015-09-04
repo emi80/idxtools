@@ -23,8 +23,7 @@ class Dataset(dict):
         """
         self.__dict__['_metadata'] = utils.DotDict()
         self.__dict__['_files'] = utils.DotDict()
-        self.__dict__['_attributes'] = {}
-
+        self.__dict__['_callbacks'] = utils.DotDict()
 
         is_file = False
 
@@ -187,14 +186,12 @@ class Dataset(dict):
         """Return a copy of the datasets"""
         metadata = self._metadata
         files = self._files
-        attrs = self._attributes
         if paths:
             files = dict([(key, self._files[key]) for key in self._files
                           if key in paths])
         new_ds = deepcopy(self)
         new_ds.__dict__['_metadata'] = deepcopy(metadata)
         new_ds.__dict__['_files'] = deepcopy(files)
-        new_ds.__dict__['_attributes'] = deepcopy(attrs)
 
         return new_ds
 
@@ -218,16 +215,44 @@ class Dataset(dict):
                 yield (path, all_info)
 
     def __getattr__(self, name):
-        if name in self.__dict__['_attributes'].keys():
-            return self.__dict__['_attributes'][name](self)
         if name in self._metadata.keys():
             return self._metadata.get(name)
+        elif name in self._files.keys():
+            return self._files.get(name)
+        elif name in self._callbacks.keys():
+            return self._callbacks.get(name)(self)
+        files = []
+        for k, v in self:
+            if name in v.values():
+                files.append((k, v))
+        if files:
+            return files
         raise AttributeError('%r object has no attribute %r' % (
             self.__class__.__name__, name))
 
     def __setattr__(self, name, value):
+        if name in config.fileinfo:
+            return
+        if not value:
+            value = 'NA'
         if name != '__dict__':
-            self.__dict__['_metadata'][name] = value
+            if hasattr(value, '__call__'):
+                self.__dict__['_callbacks'][name] = value
+            else:
+                self.__dict__['_metadata'][name] = value
+
+    def __delattr__(self, name):
+        if name in self.__dict__['_metadata']:
+            del self.__dict__['_metadata'][name]
+        elif name in self.__dict__['_files']:
+            del self.__dict__['_files'][name]
+        elif name in self.__dict__['_callbacks']:
+            del self.__dict__['_callbacks'][name]
+        else:
+            for k, v in self:
+                if name in v.values():
+                    del self[k]
+
 
     def __repr__(self):
         return "(Dataset)"
@@ -282,3 +307,7 @@ class Dataset(dict):
                 return False
 
         return True
+    __getitem__ = __getattr__
+    __setitem__ = __setattr__
+    __delitem__ = __delattr__
+    get = __getattr__
