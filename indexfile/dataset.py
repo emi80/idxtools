@@ -1,22 +1,13 @@
 import os
 import sys
-import csv
-import simplejson as json
-import tempfile
+import indexfile
 import simplejson as json
 from copy import deepcopy
-from copy import copy, deepcopy
-from lockfile import LockFile
-from indexfile import utils
-
-
+from . import utils
+from .config import config
 
 # setup logger
-import indexfile
-# Disable warning about invalid constant name
-# pylint: disable=C0103
 log = indexfile.getLogger(__name__)
-# pylint: enable=C0103
 
 class Dataset(dict):
     """A class that represent dataset in the index file.
