@@ -255,10 +255,10 @@ class Dataset(dict):
 
 
     def __repr__(self):
-        return "(Dataset)"
+        return "(Dataset {id})".format(**self._metadata)
 
     def __str__(self):
-        return self.get_tags()
+        return str(self.export())
 
     def __iter__(self):
         """
