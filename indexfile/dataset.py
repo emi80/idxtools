@@ -198,23 +198,6 @@ class Dataset(dict):
 
         return new_ds
 
-
-    @classmethod
-    def to_tags(cls, kw_sep=' ', sep='=', trail=';', rep_sep=',', addons=None, quote=None, **kwargs):
-        """Convert a dictionary to a string in index file format"""
-        taglist = []
-        #for k,v in kwargs.items():
-        for key, val in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
-            if addons and key in addons:
-                continue
-            if type(val) == list:
-                val = rep_sep.join([
-                    utils.quote([key, value])[1] for value in val])
-            else:
-                val = str(val)
-                key, val = utils.quote([key, val])
-            taglist.append('%s%s%s%s' % (key, sep, val, trail))
-        return kw_sep.join(sorted(taglist))
     def keys(self):
         """Return metadata tags"""
         return self._metadata.keys()
