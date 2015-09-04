@@ -41,7 +41,7 @@ class Dataset(dict):
         if is_file:
             self.add_file(**kwargs)
 
-    def add_file(self, update=False, fileinfo=None, **kwargs):
+    def add_file(self, check_exists=False, update=False, **kwargs):
         """Add a file to the dataset files dictionary. ``kwargs`` contains
         the file information. The 'path' argument is mandatory in order
         to add the file.
@@ -60,6 +60,9 @@ class Dataset(dict):
         if path in self._files and not update:
             log.debug("Skip existing %s entry", path)
             return
+
+        if check_exists and not os.path.exists(path):
+            raise IOError("File {} not found".format(path))
 
         if not path in self._files:
             self._files[path] = {}
