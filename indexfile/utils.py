@@ -67,20 +67,21 @@ def get_file_type(file_path):
     return file_type
 
 
-def map_path(pathd, template):
-    """Rename a file given a template string"""
-    d = pathd.copy()
+def render(info, template):
+    """Render a template string given some information"""
+    # add some file information
+    d = info.copy()
     path = d.get('path')
+    # dirname and basename
     dirname, basename = (os.path.dirname(path), os.path.basename(path))
     d['dirname'] = dirname
     d['basename'] = basename
-
-    # get extension
+    # extension
     pathsplit = basename.split('.')
     n = 2 if pathsplit[-1] == 'gz' else 1
     d['ext'] = '.'.join(pathsplit[-n:])
 
-    # map path
+    # render template
     d[template] = template.format(**d)
 
     return d
