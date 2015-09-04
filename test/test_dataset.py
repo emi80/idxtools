@@ -1,5 +1,6 @@
 """Unit tests for the Dataset class"""
 import pytest
+from indexfile.config import config
 from indexfile.dataset import Dataset
 
 
@@ -22,6 +23,7 @@ def test_to_tags_rep():
     out = Dataset.to_tags(**info)
     # pylint: enable=W0142
     assert out == '''id=1,2; path=test1.txt,test2.txt; type=txt,txt; view=text,text;'''
+config.fileinfo.add('view')
 
 def test_create_empty_dataset():
     """Create empty dataset"""
