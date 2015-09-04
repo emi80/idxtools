@@ -10,7 +10,7 @@ from .config import config
 log = indexfile.getLogger(__name__)
 
 class Dataset(dict):
-    """A class that represent dataset in the index file.
+    """A class that represent a dataset in the index file.
 
     Each entry is identified by a dataset id (eg. labExpId) and has metadata
     information as long as file information.
@@ -98,15 +98,11 @@ class Dataset(dict):
         exported).
 
         :keyword tags: the list of tags to be exported. If set only the
-        sepcified tags will be put on output. Default: Nene (all tags exported)
+        sepcified tags will be put on output. Default: None (all tags exported)
         """
         out = []
         if not tags:
-            tags = self._metadata.keys() + ['path', 'type']
-            if self._files:
-                tags.extend([k for v in self._files.values()
-                             for k in v.keys()])
-            tags = list(set(tags))
+            tags = set(self.keys() + list(config.fileinfo))
         templates = [t for t in tags if '{' in t]
         if not types:
             types = set([v.type for v in self._files.values()])
@@ -114,22 +110,18 @@ class Dataset(dict):
             types = [types]
         if type(tags) == str:
             tags = [tags]
-        # if 'id' not in tags:
-        #     tags.append('id')
-        if not self._files:
+        if not self:
             log.debug('No files found in the index. Write metadata index')
             return [dict([(k, v) for k, v in self._metadata.items()
                     if k in tags])]
-        for path, info in self._files.items():
-            if info.type in types:
-                log.debug('Export type %r', info.type)
-                items = self._metadata.items() + {'path': path, 'type': info.type}.items() + info.items()
-                data = dict(items)
-                for t in templates:
-                    data = utils.map_path(data, t)
-                data = dict([(k, v) for k, v in data.items() if k in tags])
-
-                out.append(data)
+        for path, info in self.iterfiles(types=types):
+            log.debug('Export file item: %r', path)
+            data = info.copy()
+            for t in templates:
+                data = utils.render(data, t)
+            for k in set(data.keys()).difference(tags):
+                del data[k]
+            out.append(data)
         return out
 
 
