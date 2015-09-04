@@ -135,36 +135,6 @@ class Dataset(dict):
                 out.append(data)
         return out
 
-    def get_meta_tags(self):
-        """Return all metadata tag names"""
-        return self._metadata.keys()
-
-    def get_meta_items(self):
-        """Return all metadata tag key value pairs"""
-        return self._metadata.items()
-
-    def get_tags(self, tags=None, exclude=None):
-        """Concatenate specified tags. The tag are formatted according to the
-        index file format
-
-        :keyword tags: list of keys to be included into output. Default: None
-        (all tags returned).
-        :keyword exclude: list of keys to be excluded from output. Default:
-        None (all keys included).
-
-        """
-        if not tags:
-            tags = self._metadata.keys()
-        if exclude is None:
-            exclude = []
-        if type(tags) == str:
-            tags = [tags]
-        if type(exclude) == str:
-            exclude = [exclude]
-
-        tags = list(set(tags).difference(set(exclude)))
-        data = dict([i for i in self._metadata.iteritems() if i[0] in tags])
-        return Dataset.to_tags(**data)
 
     def merge(self, datasets, sep=',', dsid='id'):
         """Merge metadata of this dataset with the ones from another dataset
@@ -228,8 +198,6 @@ class Dataset(dict):
 
         return new_ds
 
-    def get(self, key):
-        return self[key]
 
     @classmethod
     def to_tags(cls, kw_sep=' ', sep='=', trail=';', rep_sep=',', addons=None, quote=None, **kwargs):
@@ -251,8 +219,6 @@ class Dataset(dict):
         """Return metadata tags"""
         return self._metadata.keys()
 
-    def __getitem__(self, key):
-        return self._files.get(key)
     def items(self):
         """Return metadata items"""
         return self._metadata.items()
