@@ -71,19 +71,34 @@ def map_path(pathd, template):
 class DotDict(dict):
     """Extends python dictionary allowing attribute access"""
     def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-        for key, val in self.items():
-            if type(val) == dict:
-                val = DotDict(**val)
-            self.__setitem__(key, val)
+        super(DotDict, self).__init__(*args, **kwargs)
+
+        for key, val in self.iteritems():
+            if isinstance(val, dict):
+                self[key] = DotDict(val)
 
     def __getattr__(self, name):
-        return self.get(name)
+        if name in self:
+            return self.get(name)
+        raise AttributeError('%r object has no attribute %r' % (
+                                 self.__class__.__name__, name))
+
 
     def __setitem__(self, key, value):
         if type(value) == dict:
             value = DotDict(**value)
         dict.__setitem__(self, key, value)
+
+
+    def update(self, other=None, **kwargs):
+        """Update a DotDict supporting nested attribute access"""
+        other = other or []
+        if type(other) == dict:
+            other = DotDict(other)
+        kwargs = DotDict(kwargs)
+        # call update from superclass
+        super(DotDict, self).update(other, **kwargs)
+
 
     def lookup(self, value, exact=False):
         result = []
@@ -91,7 +106,6 @@ class DotDict(dict):
             if isinstance(v, list) and value in v:
                 result.append(k)
             if isinstance(v, dict):
-                print k, DotDict(v).lookup(value)
                 result += ["{0}.{1}".format(k, i)
                            for i in DotDict(v).lookup(value)]
             if v == value:
@@ -100,7 +114,7 @@ class DotDict(dict):
         return result
 
     def __deepcopy__(self, memo):
-        return DotDict(copy.deepcopy(dict(self)))
+        return DotDict(copy.deepcopy(dict(self), memo))
 
     __setattr__ = __setitem__
     __delattr__ = dict.__delitem__
