@@ -16,12 +16,12 @@ op_map = {
 def quote(strings, force=False):
     """Quotes string/s"""
     out = []
-    if type(strings) == str:
+    if not isinstance(strings, list):
         strings = [strings]
     for item in strings:
         item = str(item)
-        if force or ' ' in item and '\"' not in item:
-            item = ('\"%s\"' % item)
+        if force or ' ' in item and '"' not in item:
+            item = ('"%s"' % item)
         out.append(item)
     return out
 
