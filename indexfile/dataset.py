@@ -281,32 +281,21 @@ class Dataset(dict):
         if not isinstance(item, dict):
             return False
 
-        if 'path' in item and item.get('path') not in self._files:
-            return False
-
+        vals = None
         exact = item.pop('exact', False)
+        match_all = item.pop('match_all', False)
 
-        kw = item.copy()
-
-        for k, v in kw.items():
-            if k in self._metadata:
-                val = self._metadata.get(k)
-                if val and not utils.match(v, val, exact=exact):
-                    return False
-                del kw[k]
-
-        for key in self._files:
-            result = list(set([utils.match(v, self._files.get(key).get(k),
-                                     exact=exact)
-                               if k != 'path' else utils.match(v, key, exact=exact)
-                               for k, v in kw.items()]))
-            if len(result) == 1 and result[0] is True:
-                break
-        else:
-            if kw:
+        for k,v in item.items():
+            if k in self.keys():
+                vals = self[k]
+            if k in config.fileinfo:
+                vals = [info.get(k) for _, info in self.iterfiles()]
+            if not vals or not utils.match(v, vals, exact=exact, match_all=match_all):
                 return False
 
-        return True
+        else:
+            return True
+
     __getitem__ = __getattr__
     __setitem__ = __setattr__
     __delitem__ = __delattr__
