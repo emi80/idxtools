@@ -69,27 +69,25 @@ class Dataset(dict):
 
     def rm_file(self, **kwargs):
         """Remove a file form the dataset files dictionary. ``kwargs`` contains
-        the file information. The 'path' argument is mandatory in order
-        to delete the file.
-
+        the file information to be matched for the deletion.
         """
 
         path = kwargs.get('path')
-        type = kwargs.get('type')
 
-        if not path and not type:
-            log.debug('No file path and type specified')
+        if not path and not kwargs:
+            log.debug('No file path neither file information specified')
             return
 
-        if not type:
-            log.debug('Delete entry for %s', path)
-            if path in self._files:
-                del self._files[path]
-        else:
-            log.debug('Delete all %r entries', type)
-            for f in [k for k,v in self._files.items()
-                         if v.type == type]:
-                del self._files[f]
+        if path and path in self._files:
+            log.debug('Delete file entry: %s', path)
+            del self[path]
+            return
+
+        result = self.dice(**kwargs)
+
+        for k, v in result:
+            del self[k]
+
 
     def export(self, types=None, tags=None):
         """Export a :class:Dataset object to a list of dictionaries (one for
