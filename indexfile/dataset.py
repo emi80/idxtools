@@ -265,8 +265,8 @@ class Dataset(dict):
         Iterates over all files in a dataset. Returns a tuple containing the
         path and a dictionary with the file information.
         """
-        for path, info in self._files.items():
-                yield (path, info)
+        for path, info in self.iterfiles():
+            yield (path, info)
 
     def __len__(self):
         return len(self._files)
