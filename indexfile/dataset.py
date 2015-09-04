@@ -247,9 +247,26 @@ class Dataset(dict):
                 key, val = utils.quote([key, val])
             taglist.append('%s%s%s%s' % (key, sep, val, trail))
         return kw_sep.join(sorted(taglist))
+    def keys(self):
+        """Return metadata tags"""
+        return self._metadata.keys()
 
     def __getitem__(self, key):
         return self._files.get(key)
+    def items(self):
+        """Return metadata items"""
+        return self._metadata.items()
+
+    def iteritems(self):
+        """Return an iterator on metadata items"""
+        return self._metadata.iteritems()
+
+    def iterfiles(self, types=None):
+        """Return an iterator on all files in dataset. Adds also metadata items"""
+        for path, info in self._files.items():
+            if not types or (types and info.type in types):
+                all_info = utils.DotDict(self.items() + info.items())
+                yield (path, all_info)
 
     def __getattr__(self, name):
         if name in self.__dict__['_attributes'].keys():
