@@ -16,26 +16,21 @@ class Dataset(dict):
     information as long as file information.
     """
 
-    def __init__(self, fileinfo=None, **kwargs):
+    def __init__(self, **kwargs):
         """Create an instance of a Dataset. ``kwargs`` contains
-        the dataset attributes.
+        the dataset metadata.
 
         """
         self.__dict__['_metadata'] = utils.DotDict()
         self.__dict__['_files'] = utils.DotDict()
         self.__dict__['_attributes'] = {}
 
-        if not fileinfo:
-            fileinfo = indexfile.default_format.get('fileinfo')
 
         is_file = False
 
         for key, val in kwargs.items():
-            if key in fileinfo:
+            if key in config.fileinfo:
                 is_file = True
-                continue
-            if not val or val == '':
-                val = 'NA'
             self.__setattr__(key, val)
 
         if is_file:
