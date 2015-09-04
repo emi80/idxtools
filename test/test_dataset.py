@@ -617,3 +617,14 @@ def test_attributes():
     dataset = MyDataset(**info)
     # pylint: enable=W0142
     assert dataset.test == "This is a dataset"
+def test_dataset_callbacks():
+    mdata = {'id': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
+    def age_cb(d):
+        if d.age > 50:
+            return "old"
+        return young
+    dataset.myAge = age_cb
+    assert dataset.myAge == "old"
+    assert dataset['myAge'] == "old"
+    assert dataset.get('myAge') == "old"
