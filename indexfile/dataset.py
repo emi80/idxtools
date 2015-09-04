@@ -40,14 +40,9 @@ class Dataset(dict):
         """Add a file to the dataset files dictionary. ``kwargs`` contains
         the file information. The 'path' argument is mandatory in order
         to add the file.
-
         """
 
-        path = kwargs.get('path')
-
-        if not fileinfo:
-            fileinfo = indexfile.default_format.get('fileinfo')
-
+        path = kwargs.get('path', None)
         if not path:
             log.debug('No path specified. Skipping')
             return
@@ -62,13 +57,16 @@ class Dataset(dict):
         if not path in self._files:
             self._files[path] = {}
 
+        if not 'type' in kwargs: 
+            kwargs['type'] = utils.get_file_type(path)
+
         for key, val in kwargs.items():
-            if key == 'path' or key not in fileinfo:
+            if key not in config.fileinfo:
                 continue
-            if not val or val == '':
-                log.debug('Replace missing value with NA for %s', key)
+            if not val:
+                log.debug('%s - replace missing value with NA', key)
                 val = 'NA'
-            self._files[path][key] = val
+            self._files[path][key] = val           
 
     def rm_file(self, **kwargs):
         """Remove a file form the dataset files dictionary. ``kwargs`` contains
