@@ -43,13 +43,12 @@ class Dataset(dict):
 
     def add_file(self, update=False, fileinfo=None, **kwargs):
         """Add a file to the dataset files dictionary. ``kwargs`` contains
-        the file information. 'path' and 'type' argument are mandatory in order
+        the file information. The 'path' argument is mandatory in order
         to add the file.
 
         """
 
         path = kwargs.get('path')
-        file_type = kwargs.get('type')
 
         if not fileinfo:
             fileinfo = indexfile.default_format.get('fileinfo')
@@ -57,14 +56,6 @@ class Dataset(dict):
         if not path:
             log.debug('No path specified. Skipping')
             return
-
-        if not file_type:
-            log.debug('Get file type from file extension')
-            file_name, file_type = [s.strip('.') for s in os.path.splitext(path)]
-            if file_type == 'gz':
-                file_type = os.path.splitext(file_name)[1].strip('.')
-
-            kwargs['type'] = file_type
 
         if path in self._files and not update:
             log.debug("Skip existing %s entry", path)
