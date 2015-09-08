@@ -2,6 +2,7 @@
 Indexfile main configuration
 """
 import yaml
+import indexfile
 from .utils import DotDict
 
 # default index format
