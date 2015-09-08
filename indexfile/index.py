@@ -22,6 +22,141 @@ from .dataset import Dataset
 log = indexfile.getLogger(__name__)
 
 
+# module functions
+def map_keys(obj, map_only=False, **kwargs):
+    """ Maps ``obj`` keys using the mapping information contained
+    in the arguments. ``kwargs`` is used to specify the index format
+    information.
+
+    :param obj: the input dictionary
+
+    """
+    # TODO: use map_keys as a general function for mapping
+    if not obj:
+        log.debug('No data to map')
+        return {}
+
+    dsid = kwargs.get('id', 'id')
+    idxmap = kwargs.get('map', {})
+
+    # return original dict if no id and map definitions are found
+    if not idxmap and not dsid:
+        return obj
+
+    out = dict(obj.items())
+    if idxmap:
+        log.debug('Mapping attribute names using map: %s', idxmap)
+        if map_only:
+            # use known attributes with non-empty mapping
+            log.debug("Using only known mappings from the map")
+            out = dict([(idxmap.get(k), v) for (k, v) in out.iteritems()
+                       if idxmap.get(k)])
+            if not dsid in out:
+                out[dsid] = obj[dsid]
+        else:
+            log.debug("Using input attributes if no mapping found")
+            out = dict([(idxmap.get(k), v) if idxmap.get(k)
+                       else (k, v) for (k, v) in out.iteritems()])
+
+    return out
+
+
+def to_str(kw_sep=' ', sep='=', trail=';', rep_sep=',', addons=None, quote=None, **kwargs):
+    """Convert a dictionary to a string in index file format"""
+    taglist = []
+    for key, val in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
+        if addons and key in addons:
+            continue
+        if type(val) == list:
+            val = rep_sep.join([
+                utils.quote([key, value])[1] for value in val])
+        else:
+            val = str(val)
+            key, val = utils.quote([key, val])
+        taglist.append('%s%s%s%s' % (key, sep, val, trail))
+    return kw_sep.join(sorted(taglist))
+
+
+def guess_type(input_file, trail=';', delimiters=None):
+    """Guess type of an input file for importing data into the index.
+
+    :param file: the input file
+    :keyword trail: the trailing charachter of each key/value pair
+    :keyword delimiters: the allowed fields delimiters
+
+    """
+    columns = input_file.readline().split("\t")
+    if len(columns) == 2 and ';' in columns[1]:
+        return "idx", None
+
+    if not csv.Sniffer().has_header(input_file.readline()):
+        raise ValueError('Metadata input_file must have a header')
+    input_file.seek(0)
+
+    dialect = csv.Sniffer().sniff(input_file.readline(),
+                                  delimiters=delimiters)
+    input_file.seek(0)
+
+    if dialect.delimiter == ',':
+        log.debug('Csv input_file detected')
+        return 'csv', dialect
+
+    reader = csv.DictReader(input_file, dialect=dialect)
+
+    if len(reader.fieldnames) < 2:
+        raise ValueError('Not enough columns in metadata input_file')
+
+    if trail in reader.fieldnames[1]:
+        log.debug('Indexfile detected')
+        return 'index', None
+
+    log.debug('Tsv input_file detected')
+    return 'tsv', dialect
+
+
+def parse_line(line, **kwargs):
+    """Parse an index file line and returns a tuple with
+    the path to the file referred by the line (if any) and a
+    dictionary with the parsed key/value pairs. ``kwargs`` is
+    used to specify the index format information.
+
+    :param str: the line to parse
+
+    """
+    file_path = None
+    tags = line
+
+    sep = kwargs.get('sep', '=')
+    trail = kwargs.get('trail', ';')
+    dsid = kwargs.get('id')
+
+    expr = '^(?P<file>.+)\t(?P<tags>.+)$'
+    match = re.match(expr, line)
+    if match:
+        log.debug('Matched indexile line %s', line)
+        file_path = match.group('file')
+        tags = match.group('tags')
+
+    tagsd = {}
+    expr = '(?P<key>[^ ]+)%s\"?(?P<value>[^%s\"]*)\"?%s' % (
+        sep, trail, trail)
+    for match in re.finditer(expr, tags):
+        key = match.group('key')
+        log.debug('Matched keyword %s', key)
+        tagsd[key] = match.group('value')
+
+    if not tagsd:
+        log.debug('No keywords matched')
+        if os.path.isfile(os.path.abspath(tags)):
+            log.debug('Second column is a file')
+            file_path = os.path.abspath(tags)
+
+    tagsd['path'] = file_path
+
+    return tagsd
+
+
+
 class Index(object):
     """A class to access information stored into 'index files'.
     """
@@ -504,120 +639,3 @@ class Index(object):
         self._lock.release()
         self._lock = None
         return True
-
-    @classmethod
-    def guess_type(cls, input_file, trail=';', delimiters=None):
-        """Guess type of an input file for importing data into the index.
-
-        :param file: the input file
-        :keyword trail: the trailing charachter of each key/value pair
-        :keyword delimiters: the allowed fields delimiters
-
-        """
-        columns = input_file.readline().split("\t")
-        if len(columns) == 2 and ';' in columns[1]:
-            return "idx", None
-
-        if not csv.Sniffer().has_header(input_file.readline()):
-            raise ValueError('Metadata input_file must have a header')
-        input_file.seek(0)
-
-        dialect = csv.Sniffer().sniff(input_file.readline(),
-                                      delimiters=delimiters)
-        input_file.seek(0)
-
-        if dialect.delimiter == ',':
-            log.debug('Csv input_file detected')
-            return 'csv', dialect
-
-        reader = csv.DictReader(input_file, dialect=dialect)
-
-        if len(reader.fieldnames) < 2:
-            raise ValueError('Not enough columns in metadata input_file')
-
-        if trail in reader.fieldnames[1]:
-            log.debug('Indexfile detected')
-            return 'index', None
-
-        log.debug('Tsv input_file detected')
-        return 'tsv', dialect
-
-    @classmethod
-    def parse_line(cls, line, **kwargs):
-        """Parse an index file line and returns a tuple with
-        the path to the file referred by the line (if any) and a
-        dictionary with the parsed key/value pairs. ``kwargs`` is
-        used to specify the index format information.
-
-        :param str: the line to parse
-
-        """
-        file_path = None
-        tags = line
-
-        sep = kwargs.get('sep', '=')
-        trail = kwargs.get('trail', ';')
-        dsid = kwargs.get('id')
-
-        expr = '^(?P<file>.+)\t(?P<tags>.+)$'
-        match = re.match(expr, line)
-        if match:
-            log.debug('Matched indexile line %s', line)
-            file_path = match.group('file')
-            tags = match.group('tags')
-
-        tagsd = {}
-        expr = '(?P<key>[^ ]+)%s\"?(?P<value>[^%s\"]*)\"?%s' % (
-            sep, trail, trail)
-        for match in re.finditer(expr, tags):
-            key = match.group('key')
-            log.debug('Matched keyword %s', key)
-            tagsd[key] = match.group('value')
-
-        if not tagsd:
-            log.debug('No keywords matched')
-            if os.path.isfile(os.path.abspath(tags)):
-                log.debug('Second column is a file')
-                file_path = os.path.abspath(tags)
-
-        tagsd['path'] = file_path
-
-        return tagsd
-
-    @classmethod
-    def map_keys(cls, obj, map_only=True, normalize_keys=True, **kwargs):
-        """ Maps ``obj`` keys using the mapping information contained
-        in the arguments. ``kwargs`` is used to specify the index format
-        information.
-
-        :param obj: the input dictionary
-
-        """
-        # TODO: use map_keys as a general function for mapping
-        if not obj:
-            log.debug('No data to map')
-            return {}
-
-        dsid = kwargs.get('id', 'id')
-        idxmap = kwargs.get('map', {})
-
-        # return original dict if no id and map definitions are found
-        if not idxmap and not dsid:
-            return obj
-
-        out = dict(obj.items())
-        if idxmap:
-            log.debug('Mapping attribute names using map: %s', idxmap)
-            if map_only:
-                # use known attributes with non-empty mapping
-                log.debug("Using only known mappings from the map")
-                out = dict([(idxmap.get(k), v) for (k, v) in out.iteritems()
-                           if idxmap.get(k)])
-                if not dsid in out:
-                    out[dsid] = obj[dsid]
-            else:
-                log.debug("Using input attributes if no mapping found")
-                out = dict([(idxmap.get(k), v) if idxmap.get(k)
-                           else (k, v) for (k, v) in out.iteritems()])
-
-        return out
