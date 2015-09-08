@@ -409,18 +409,22 @@ class Index(object):
         :keyword absolute: specify if absolute paths should be used. Default:
         false
         :keyword type: specify the export type. Values:
-        ['index','tab','json']. Default: 'index'
-        """
+        {0}. Default: 'index'
+        """.format(OUTPUT_FORMATS)
+
+        if isinstance(tags, str):
+            tags=[tags]
+
         sort_by = None
-        if self.format:
+        if config.format:
             log.debug('Use format from the Index instance')
             if not kwargs:
                 kwargs = {}
-            kwargs = dict(self.format.items() + kwargs.items())
+            kwargs = dict(config.format.items() + kwargs.items())
 
         dsid = kwargs.pop('id', 'id')
         idxmap = kwargs.pop('map', None)
-        colsep = kwargs.pop('colsep', '\t')
+        colsep = OUTPUT_FORMATS.get(output_format, {}).get('colsep','\t')
         fileinfo = kwargs.pop('fileinfo', [])
 
         path = 'path'
@@ -468,9 +472,9 @@ class Index(object):
         # sort datasets
         dsets.sort(key=lambda x: [x.get(tag) for tag in sort_by])
 
-        log.debug('Create output for %s format', export_type)
+        log.debug('Create output for %s format', output_format)
         out = []
-        if export_type == 'index':
+        if output_format == 'index':
             for line in dsets:
                 if hide_missing and not line.get(path):
                     continue
@@ -478,11 +482,13 @@ class Index(object):
                            to_str(**dict(line.items()
                            ))]))
 
-        if export_type == 'json':
-            for line in dsets:
-                out.append(json.dumps(line))
+        if output_format == 'json':
+            out.append(json.dumps(dsets, indent=4))
 
-        if export_type == 'tab':
+        if output_format == 'yaml':
+            out.append(yaml.dump(dsets, indent=4, default_flow_style=False))
+
+        if output_format == 'tsv' or output_format == 'csv':
             headline = []
             if tags:
                 headline = [tag if tag != 'id' else dsid for tag in tags]
