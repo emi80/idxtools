@@ -1,6 +1,5 @@
 """Unit tests for the Dataset class"""
 import pytest
-from indexfile.config import config
 from indexfile.dataset import Dataset
 
 
