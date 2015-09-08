@@ -188,9 +188,6 @@ class Index(object):
 
         self.datasets = datasets or {}
         self._lock = None
-        self.format = deepcopy(indexfile.default_format)
-        if format:
-            self.set_format(format)
         self._lookup = {}
         self._alltags = []
 
@@ -231,37 +228,6 @@ class Index(object):
             else:
                 raise e
         return True
-
-    def set_format(self, input_format=None):
-        """Set index format from dictionary or file
-
-        :param str|dict|file: the input string. It can be a path to a file, a file handle 
-                              or a dictionary
-
-        """
-
-        if not input_format and self.format:
-            return
-
-        update_format = input_format
-
-        idx_format = deepcopy(indexfile.default_format)
-
-        log.debug('Set format %s', input_format)
-
-        if isinstance(input_format, str):
-            try:
-                input_format = open(input_format, 'r')
-            except IOError as e:
-                update_format = {}
-        
-        if isinstance(input_format, file):
-            update_format = yaml.load(input_format)
-            log.debug("Succesfully loaded file")
-
-        idx_format.update(update_format)
-
-        self.format = idx_format
 
     def _open_file(self, index_file):
         """Open index file"""
@@ -317,13 +283,13 @@ class Index(object):
 
         format_file = 'imported_format.yml'
         import_format = not os.path.exists(format_file)
-        idxmap = self.format.get('map', {})
+        idxmap = config.format.get('map', {})
         if import_format and not idxmap:
-            self.format['map'] = idxmap
+            config.format['map'] = idxmap
             for key in reader.fieldnames:
                 if not key in idxmap:
                     idxmap[key] = key
-            yaml.dump(self.format, open(format_file, 'w'), default_flow_style=False)
+            yaml.dump(config.format, open(format_file, 'w'), default_flow_style=False)
 
         for line in reader:
             tags = map_keys(line, config.map_only, **config.format)
@@ -357,17 +323,17 @@ class Index(object):
         """
         empty_paths = [None, '', '.']
 
-        dsid = self.format.get('id', 'id')
+        dsid = config.format.get('id', 'id')
 
         if 'id' in kwargs:
             kwargs[dsid] = kwargs.pop('id')
 
         meta = kwargs
-        fileinfo = self.format.get('fileinfo')
-        if fileinfo:
+        config.format.fileinfo = config.format.get('fileinfo')
+        if config.format.get('fileinfo'):
             log.debug('Use file specific keywords from the format')
             meta = dict([(k, v) for k, v in kwargs.items()
-                        if k not in self.format.get('fileinfo')])
+                        if k not in config.format.get('fileinfo')])
         if not dataset:
             dataset = Dataset(**meta)
 
@@ -403,7 +369,7 @@ class Index(object):
         """Remove dataset(s) from the index given a search query.
         """
 
-        dsid = self.format.get('id', 'id')
+        dsid = config.format.get('id', 'id')
 
         if 'id' in kwargs:
             kwargs[dsid] = kwargs.pop('id')
@@ -413,7 +379,7 @@ class Index(object):
             log.debug('Remove datasets %s', datasets)
             for k in datasets:
                 dataset = self.datasets.get(k)
-                fileinfo = self.format.get('fileinfo')
+                fileinfo = config.format.get('fileinfo')
                 if any([tag in fileinfo for tag in kwargs]):
                     rmargs = dict((tag, kwargs[tag]) for k in kwargs if k in fileinfo)
                     log.debug('Remove %s', rmargs)
@@ -482,7 +448,7 @@ class Index(object):
         dsets = []
 
         for dataset in self.datasets.values():
-            for ak, addon in self.format.get('addons', {}).items(): # addon ~ 'data_type'
+            for ak, addon in config.format.get('addons', {}).items(): # addon ~ 'data_type'
                 mapping = addon.get('mapping') # 'view'
                 if mapping:
                     for k, v in dataset:
@@ -549,7 +515,7 @@ class Index(object):
                         break
                     if type(val) == list:
                         val = utils.quote(val)
-                        vals[i] = self.format.get('rep_sep', ",").join(val)
+                        vals[i] = config.format.get('rep_sep', ",").join(val)
                 else:
                     if colsep.join(utils.quote(vals)) not in out:
                         out.append(colsep.join(utils.quote(vals)))
@@ -574,7 +540,7 @@ class Index(object):
 
         if kwargs:
             if 'id' in kwargs:
-                kwargs[self.format.get('id', 'id')] = kwargs.pop('id')
+                kwargs[config.format.get('id', 'id')] = kwargs.pop('id')
             log.debug('Query by %s', kwargs)
             if not self.datasets:
                 return self
@@ -596,7 +562,7 @@ class Index(object):
                         datasets[dsetk] = obj
                     else:
                         datasets[dsetk] = dset
-            return Index(datasets=datasets, format=self.format)
+            return Index(datasets=datasets)
 
         return None
 
