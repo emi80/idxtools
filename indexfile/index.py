@@ -161,7 +161,7 @@ class Index(object):
     """A class to access information stored into 'index files'.
     """
 
-    def __init__(self, path=None, format=None, datasets=None):
+    def __init__(self, fp=None, datasets=None):
         """Creates an instance of an Index
 
         :param path: the path to the index file
@@ -180,25 +180,18 @@ class Index(object):
         :key kw_sep: the keywords separator character
 
         """
-
-        if isinstance(path, str):
-            path = os.path.abspath(path)
-
-        self.path = path
+        self.fp = fp
 
         self.datasets = datasets or {}
         self._lock = None
         self._lookup = {}
         self._alltags = []
 
-        if path and format:
-            self.open()
+        if self.fp:
+            self.load()
 
-    def open(self, path=None):
-        """Open a file and load/import data into the index
-
-        :param path: the path to the input file
-
+    def load(self):
+        """Load/import data into the index
         """
         if not path:
             if not self.path:
@@ -396,14 +389,14 @@ class Index(object):
     def save(self, path=None):
         """Save changes to the index file
         """
-        if not path and self.path:
+        if not path and self.fp:
             log.debug('Use path from the Index instance')
-            path = self.path
+            path = self.fp
             index = open(path, 'w+')
-        elif not self.path:
+        elif not self.fp:
             index = sys.stdout
-        if path != self.path:
-            self.path = os.path.abspath(path)
+        if path != self.fp:
+            self.fp = os.path.abspath(path)
         log.debug('Save %s', path)
         for line in self.export(map=None):
             index.write("%s%s" % (line, os.linesep))
@@ -467,8 +460,8 @@ class Index(object):
                 line = dict()
                 for k, val in dic.items():
                     if k == 'path' and absolute:
-                        if self.path and not os.path.isabs(val):
-                            val = os.path.join(os.path.dirname(self.path),
+                        if self.fp and not os.path.isabs(val):
+                            val = os.path.join(os.path.dirname(self.fp),
                                                os.path.normpath(val))
                     if idxmap:
                         k = idxmap.get(k, k)
@@ -577,6 +570,13 @@ class Index(object):
     def __len__(self):
         return len(self.datasets)
 
+    def __setattr__(self, name, value):
+        if name == 'fp':
+            if isinstance(value, str):
+                value = open(value, 'r')
+
+        super(Index, self).__setattr__(name, value)
+
     def lock(self):
         """Lock this index file
 
@@ -585,17 +585,17 @@ class Index(object):
             log.debug('Indexfile already locked')
             return False
 
-        if not self.path:
+        if not self.fp:
             log.debug('Index has no path')
             return False
 
-        base = os.path.dirname(self.path)
+        base = os.path.dirname(self.fp)
         if not os.path.exists(base):
             os.makedirs(base)
 
-        self._lock = LockFile(self.path)
+        self._lock = LockFile(self.fp)
         try:
-            log.debug('Lock indexfile %s', self.path)
+            log.debug('Lock indexfile %s', self.fp)
             self._lock.acquire()
             return True
         except Exception, exc:
