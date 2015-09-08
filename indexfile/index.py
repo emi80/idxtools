@@ -38,6 +38,7 @@ class Index(object):
         information. Default: None.
 
         The format information can be expressed with a dictionary as followsclone:
+        The format information can be expressed with a dictionary as follows:
 
         :key fileinfo: a list with the names of the keys related to files
         :key id: the dataset identifier name. Default: 'id'
