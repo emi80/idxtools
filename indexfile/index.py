@@ -20,7 +20,7 @@ from .config import config, OUTPUT_FORMATS
 from .dataset import Dataset
 
 # setup logger
-log = indexfile.getLogger(__name__)
+log = indexfile.get_logger(__name__)
 
 
 # module functions

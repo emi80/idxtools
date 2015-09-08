@@ -7,7 +7,7 @@ from . import utils
 from .config import config
 
 # setup logger
-log = indexfile.getLogger(__name__)
+log = indexfile.get_logger(__name__)
 
 class Dataset(dict):
     """A class that represent a dataset in the index file.

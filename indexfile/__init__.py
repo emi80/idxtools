@@ -41,21 +41,28 @@ class CustomFormatter(logging.Formatter):
         return result
 
 
-def getLogger(name):
+def get_logger(name):
     """Return the logger given the name"""
     logger = logging.getLogger(name)
     logger.handler = []
     return logger
 
 
-def setLogLevel(level):
+def set_loglevel(level):
     """Set logger loglevel"""
     log.setLevel(getattr(logging, str(level).upper(), 30))
 
+
+def log_levels():
+    return [k.lower() for k in logging._levelNames.keys() 
+        if isinstance(k, str)]
+
+
+# setup logging
 log = logging.getLogger()
 log.handler = []
 log.propagate = False
-setLogLevel(_log_level)
+set_loglevel(_log_level)
 
 ch = logging.StreamHandler()
 fmt = CustomFormatter()
