@@ -482,8 +482,8 @@ class Index(object):
                 if hide_missing and not line.get(path):
                     continue
                 out.append(colsep.join([line.pop(path, '.'),
-                           Dataset.to_tags(**dict(line.items() +
-                           kwargs.items()))]))
+                           to_str(**dict(line.items()
+                           ))]))
 
         if export_type == 'json':
             for line in dsets:
