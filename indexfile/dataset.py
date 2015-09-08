@@ -28,7 +28,7 @@ class Dataset(dict):
         is_file = False
 
         for key, val in kwargs.items():
-            if key in config.fileinfo:
+            if key in config.format.fileinfo:
                 is_file = True
             self.__setattr__(key, val)
 
@@ -60,7 +60,7 @@ class Dataset(dict):
             kwargs['type'] = utils.get_file_type(path)
 
         for key, val in kwargs.items():
-            if key not in config.fileinfo:
+            if key not in config.format.fileinfo:
                 continue
             if not val:
                 log.debug('%s - replace missing value with NA', key)
@@ -102,7 +102,7 @@ class Dataset(dict):
         """
         out = []
         if not tags:
-            tags = set(self.keys() + list(config.fileinfo))
+            tags = set(self.keys() + list(config.format.fileinfo))
         templates = [t for t in tags if '{' in t]
         if not types:
             types = set([v.type for v in self._files.values()])
@@ -221,7 +221,7 @@ class Dataset(dict):
             self.__class__.__name__, name))
 
     def __setattr__(self, name, value):
-        if name in config.fileinfo:
+        if name in config.format.fileinfo:
             return
         if not value:
             value = 'NA'
@@ -278,7 +278,7 @@ class Dataset(dict):
         for k,v in item.items():
             if k in self.keys():
                 vals = self[k]
-            if k in config.fileinfo:
+            if k in config.format.fileinfo:
                 vals = [info.get(k) for _, info in self.iterfiles()]
             if not vals or not utils.match(v, vals, exact=exact, match_all=match_all):
                 return False
