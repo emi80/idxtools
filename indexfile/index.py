@@ -4,24 +4,22 @@ The module provide classes to perform operations on index files.
 
 """
 import re
+import io
 import os
 import sys
 import csv
 import yaml
 import tempfile
+import indexfile
 import simplejson as json
-from lockfile import LockFile
 from copy import deepcopy
-from copy import copy, deepcopy
-from indexfile import utils
-from indexfile.dataset import Dataset
+from lockfile import LockFile
+from . import utils
+from .config import config, OUTPUT_FORMATS
+from .dataset import Dataset
 
 # setup logger
-import indexfile
-# Disable warning about invalid constant name
-# pylint: disable=C0103
 log = indexfile.getLogger(__name__)
-# pylint: enable=C0103
 
 
 class Index(object):
