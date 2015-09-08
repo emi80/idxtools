@@ -278,7 +278,7 @@ class Index(object):
                 index_file.write("%s" % line)
             index_file.seek(0)
         log.debug('Guess file format')
-        dummy_file_type, dialect = Index.guess_type(index_file)
+        dummy_file_type, dialect = guess_type(index_file)
         index_file.seek(0)
         if dialect:
             log.debug('Load table file with %s', dialect)
@@ -295,8 +295,8 @@ class Index(object):
         """
         replicates = []
         for line in index_file:
-            tags = Index.parse_line(line, **self.format)
-            if self.format.get('rep_sep') in tags[self.format.get('id', 'id')]:
+            tags = parse_line(line, **config.format)
+            if config.format.get('rep_sep') in tags[config.format.get('id', 'id')]:
                 # postpone inserting replicates lines
                 replicates.append(tags)
             else:
@@ -326,7 +326,7 @@ class Index(object):
             yaml.dump(self.format, open(format_file, 'w'), default_flow_style=False)
 
         for line in reader:
-            tags = Index.map_keys(line, **self.format)
+            tags = map_keys(line, config.map_only, **config.format)
             dataset = self.insert(**tags)
 
     def find_replicates(self, **kwargs):
