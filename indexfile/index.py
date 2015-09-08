@@ -409,7 +409,7 @@ class Index(object):
             index.write("%s%s" % (line, os.linesep))
 
     def all_tags(self):
-        """Return all datasets as a list of dictionaries, one per file."""
+        """Return the list of all attributes in the index"""
         keys = [i for d in self.datasets.values() for i in d.export()]
         def union(x, y):
             return set.union(set(x), set(y))
