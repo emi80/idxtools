@@ -9,6 +9,7 @@ import os
 import sys
 import csv
 import yaml
+import hashlib
 import tempfile
 import indexfile
 import simplejson as json
@@ -193,52 +194,22 @@ class Index(object):
     def load(self):
         """Load/import data into the index
         """
-        if not path:
-            if not self.path:
-                raise AttributeError('No path sepcified')
-            log.debug('Use path from Index instance: %s', self.path)
-            path = self.path
-        log.debug('Open %s', path)
-        if type(path) == str:
-            with open(os.path.abspath(path), 'r') as index_file:
-                self._open_file(index_file)
-            self.path = os.path.abspath(path)
-        if type(path) == file:
-            self._open_file(path)
-            if path is not sys.stdin:
-                self.path = os.path.abspath(path.name)
-    def seekable(self):
-        if not self.path:
-            return False
-        index_file = self.path
-        if not hasattr(index_file, 'seek'):
-            index_file = open(index_file, 'r')
-        try:
-            index_file.seek(0)
-        except IOError as e:
-            if e.message == "underlying stream is not seekable":
-                return False
-            else:
-                raise e
-        return True
-
-    def _open_file(self, index_file):
-        """Open index file"""
-
         if self.datasets:
             log.debug("Overwrite exisitng data")
-            input_format = indexfile.default_format
             del self.datasets
             self.datasets = {}
-        if index_file == sys.stdin:
-            log.debug('Create temporary file for %s', index_file)
-            index_file = tempfile.TemporaryFile()
-            for line in sys.stdin:
-                index_file.write("%s" % line)
-            index_file.seek(0)
+
+        log.debug('Load from %s', self.fp)
+        index_file = self.get_seekable_stream()
+
+        log.debug('Compute index checksum')
+        self.hash = self.check_sum(force=True)
+        index_file.seek(0)
+
         log.debug('Guess file format')
         dummy_file_type, dialect = guess_type(index_file)
         index_file.seek(0)
+
         if dialect:
             log.debug('Load table file with %s', dialect)
             self._load_table(index_file, dialect)
@@ -288,24 +259,45 @@ class Index(object):
             tags = map_keys(line, config.map_only, **config.format)
             dataset = self.insert(**tags)
 
-    def find_replicates(self, **kwargs):
-        """Try to find replicates in the index using a dataset id made from
-        the concatenation of multiple dataset ids
+    def is_seekable(self):
+        """Check if the underlying stream is seekable
         """
-        dsid = self.format.get('id', 'id')
-        if 'id' in kwargs:
-            kwargs[dsid] = kwargs.pop('id')
-        if not kwargs.get(dsid):
-            return None
-        ids = kwargs.get(dsid).split(',')
-        datasets = dict([
-            (k, self.datasets[k]) for k in ids if k in self.datasets])
-        if not datasets:
-            return []
-        if len(datasets) != len(ids):
-            raise ValueError('Some of the ids for the replicate do not exist. \
-                Please check the dataset ids')
-        return [datasets[k] for k in sorted(datasets.keys())]
+        if not self.fp:
+            return False
+        try:
+            self.fp.seek(0)
+        except IOError as e:
+            if e.message == "underlying stream is not seekable":
+                return False
+            else:
+                raise e
+        return True
+
+    def get_seekable_stream(self):
+        """Return a seekable stream of the index file. Creates a temporary 
+        file if the original stream is not seekable.
+        """
+        if self.is_seekable():
+            self.fp.seek(0)
+            return self.fp
+        else:
+            log.debug('Create temporary file for %s', self.fp.name)
+            index_file = tempfile.TemporaryFile()
+            for line in self.fp:
+                index_file.write("%s" % line)
+            index_file.seek(0)
+            return index_file
+
+    def check_sum(self, algorithm='md5', force=False):
+        """Return the hash of the index file or compute it using :algorithm:"""
+        if not self.fp:
+            raise AttributeError('No path specified')
+        if force:
+            hasher = hashlib.new(algorithm)
+            for line in self.get_seekable_stream():
+                hasher.update(line)
+            self.hash = hasher.hexdigest()
+        return self.hash
 
     def insert(self, update=False, addkeys=False, dataset=None, **kwargs):
         """Add a dataset to the index. Keyword arguments contains the dataset
@@ -566,6 +558,25 @@ class Index(object):
             return Index(datasets=datasets)
 
         return None
+
+    def find_replicates(self, **kwargs):
+        """Try to find replicates in the index using a dataset id made from
+        the concatenation of multiple dataset ids
+        """
+        dsid = config.format.get('id', 'id')
+        if 'id' in kwargs:
+            kwargs[dsid] = kwargs.pop('id')
+        if not kwargs.get(dsid):
+            return None
+        ids = kwargs.get(dsid).split(',')
+        datasets = dict([
+            (k, self.datasets[k]) for k in ids if k in self.datasets])
+        if not datasets:
+            return []
+        if len(datasets) != len(ids):
+            raise ValueError('Some of the ids for the replicate do not exist. \
+                Please check the dataset ids')
+        return [datasets[k] for k in sorted(datasets.keys())]
 
     def __len__(self):
         return len(self.datasets)
