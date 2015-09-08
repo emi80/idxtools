@@ -112,12 +112,12 @@ class DotDict(dict):
     def update(self, other=None, **kwargs):
         """Update a DotDict supporting nested attribute access"""
         other = other or []
-        if type(other) == dict:
+        if type(other) == dict: # using 'type' on purpose here
             other = DotDict(other)
         kwargs = DotDict(kwargs)
         for k, v in kwargs.iteritems():
             if isinstance(v, dict):
-                kwargs[k] = self.get(k, {})
+                kwargs[k] = self.get(k, DotDict())
                 kwargs[k].update(v)
         # call update from superclass
         super(DotDict, self).update(other, **kwargs)
