@@ -115,6 +115,10 @@ class DotDict(dict):
         if type(other) == dict:
             other = DotDict(other)
         kwargs = DotDict(kwargs)
+        for k, v in kwargs.iteritems():
+            if isinstance(v, dict):
+                kwargs[k] = self.get(k, {})
+                kwargs[k].update(v)
         # call update from superclass
         super(DotDict, self).update(other, **kwargs)
 
