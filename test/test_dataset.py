@@ -3,7 +3,6 @@ import pytest
 from indexfile.config import config
 from indexfile.dataset import Dataset
 
-config.fileinfo.add('view')
 
 def test_create_empty_dataset():
     """Create empty dataset"""
