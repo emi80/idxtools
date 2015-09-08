@@ -408,7 +408,15 @@ class Index(object):
         for line in self.export(map=None):
             index.write("%s%s" % (line, os.linesep))
 
-    def export(self, absolute=False, export_type='index', tags=None,
+    def all_tags(self):
+        """Return all datasets as a list of dictionaries, one per file."""
+        keys = [i for d in self.datasets.values() for i in d.export()]
+        def union(x, y):
+            return set.union(set(x), set(y))
+        return list(reduce(union, keys))
+
+
+    def export(self, absolute=False, output_format='index', tags=None,
                header=False, hide_missing=False, **kwargs):
         """Export the index file information. ``kwargs`` contains the format
         information.
