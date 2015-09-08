@@ -395,7 +395,7 @@ class Index(object):
         if kwargs.get('path') not in empty_paths:
         #if os.path.isfile(kwargs.get('path')):
             log.debug('Add %s to dataset', kwargs.get('path'))
-            dataset.add_file(update=update, fileinfo=fileinfo, **kwargs)
+            dataset.add_file(update=update, **kwargs)
 
         return dataset
 
