@@ -1,5 +1,4 @@
 """The indexfile package
-
 """
 
 import logging
@@ -7,23 +6,6 @@ import logging
 __name__ = "idxtools"
 __version__ = "0.12.2.dev1"
 _log_level = "WARN"
-
-# default format
-
-default_format = {
-    "colsep": "\t",
-    "fileinfo": [
-        "path",
-        "size",
-        "md5",
-        "type",
-        "view"
-    ],
-    "kw_sep": " ",
-    "rep_sep": ",",
-    "sep": "=",
-    "trail": ";"
-}
 
 # custom log format
 class CustomFormatter(logging.Formatter):
