@@ -1,23 +1,32 @@
 """Unit test for the Index class"""
+import sys
 import pytest
-import indexfile
-from indexfile.index import Index
+import StringIO
+from indexfile.index import Index, parse_line, to_str
+from indexfile.config import config, set_index_format, set_config_defaults
 
 
 def test_create_empty():
     """Create empty index"""
     i = Index()
     assert i is not None
-    assert i.format == indexfile.default_format
     assert len(i) == 0
 
 
 def test_create_path():
     """Create index from file path"""
+    set_index_format("test/data/format.json")
     i = Index("test/data/index.txt", "test/data/format.json")
     assert i is not None
-    assert i.format != indexfile.default_format
     assert len(i) == 36
+
+
+def test_create_wrong_path():
+    """Create empty index"""
+    with pytest.raises(IOError):
+        i = Index('-')
+    with pytest.raises(IOError):
+        i = Index('test/data/index')
 
 
 def test_create_file():
@@ -26,17 +35,27 @@ def test_create_file():
     format = open("test/data/format.json", 'r')
     i = Index(fh, format)
     assert i is not None
-    assert i.format != indexfile.default_format
+    assert len(i) == 36
+
+
+def test_create_stdin():
+    """Create index from stdin"""
+    fh = open("test/data/index.txt",'r')
+    buf = fh.read().decode('utf-8')
+    format = open("test/data/format.json", 'r')
+    sys.stdin = StringIO.StringIO(buf)
+    sys.stdin.seek(0)
+    i = Index(sys.stdin, format)
+    assert i is not None
     assert len(i) == 36
 
 
 def test_create_defer_format():
     """Create index from file handle"""
+    set_index_format("test/data/format.json")
     i = Index("test/data/index.txt")
     assert i is not None
-    i.set_format("test/data/format.json")
-    i.open()
-    assert i.format != indexfile.default_format
+    i.load()
     assert len(i) == 36
 
 
@@ -54,121 +73,74 @@ def test_create_empty_w_format():
         "sep": "=",
         "trail": ";"
     }
-    i = Index(format=form)
+    set_index_format(form)
+    i = Index()
     assert i is not None
-    assert i.format != indexfile.default_format
     assert len(i) == 0
 
 
-def test_set_format_string():
-    """Test set format with JSON string"""
-    form = '''{
-        "id": "labExpId",
-        "colsep": "\\t",
-        "fileinfo": [
-            "path",
-            "size",
-            "md5"
-        ],
-        "kw_sep": " ",
-        "sep": "=",
-        "trail": ";"
-    }'''
-    i = Index()
-    assert i is not None
-    assert i.format == indexfile.default_format
-    i.set_format(form)
-    assert i.format
-    assert i.format == indexfile.default_format
-
-
-def test_set_format_path():
-    """Test set format with file path"""
-    i = Index()
-    assert i is not None
-    assert i.format == indexfile.default_format
-    i.set_format('test/data/format.json')
-    assert i.format
-    assert i.format != indexfile.default_format
-
-
-def test_set_format_file():
-    """Test set format with file path"""
-    i = Index()
-    assert i is not None
-    assert i.format == indexfile.default_format
-    fh = open('test/data/format.json', 'r')
-    i.set_format('test/data/format.json')
-    assert i.format
-    assert i.format != indexfile.default_format
-
-
-def test_set_format_none():
-    """Test set format with no argument"""
-    i = Index()
-    assert i is not None
-    assert i.format == indexfile.default_format
-    i.set_format()
-    assert i.format
-    assert i.format == indexfile.default_format
-
-
-def test_open_empty():
+def test_load_empty():
     """Open empty index"""
     i = Index()
     assert i is not None
-    # Disable warning about:
-    # - missing pytest.raises
-    # - statement with no effect
-    # pylint: disable=E1101,W0104
     with pytest.raises(AttributeError):
-        i.open()
-    # pylint: enable=E1101,W0104
+        i.load()
 
 
-def test_open_string():
+def test_load_string():
     """Test open with string parameter"""
     i = Index()
     assert i is not None
-    i.set_format('test/data/format.json')
-    i.open('test/data/index.txt')
+    i.fp = 'test/data/index.txt'
+    i.load()
     assert len(i) == 36
 
 
-def test_open_file():
+def test_load_file():
     """Test open with file parameter"""
     i = Index()
     assert i is not None
-    i.set_format('test/data/format.json')
-    f = open('test/data/index.txt','r')
-    i.open(f)
-    f.close()
+    with open('test/data/index.txt','r') as f:
+        i.fp = f
+        i.load()
     assert len(i) == 36
+
+
+def test_tsv_with_files():
+    """Test open with file parameter"""
+    set_index_format("test/data/format.json")
+    i = Index('test/data/table_with_files.tsv')
+    assert i is not None
+    assert len(i) == 20
+    assert len(i.lookup(type='bam')) == 20
+
+def test_checksum():
+    valid_checksum = '138b170830b04632f25da922442853a4'
+    i = Index("test/data/index.txt", "test/data/format.json")
+    assert i.check_sum() == valid_checksum
+
+
+def test_checksum_force():
+    valid_checksum = '138b170830b04632f25da922442853a4'
+    i = Index()
+    i.fp = "test/data/index.txt"
+    with pytest.raises(AttributeError):
+        i.check_sum()
+    assert i.check_sum(force=True) == valid_checksum
+
+
+def test_checksum_empty():
+    i = Index()
+    with pytest.raises(AttributeError):
+        i.check_sum()
 
 
 def test_insert():
     """Test insertion into the index"""
+    set_config_defaults()
     i = Index()
     i.insert(id='1', age=65, path='test.txt', type='txt')
-    assert len(i.datasets) == 1
-    dataset = i.datasets.get('1')
-    assert dataset is not None
-    assert len(dataset) == 1
-    assert hasattr(dataset, 'id')
-    assert hasattr(dataset, 'age')
-    assert dataset.id == '1'
-    assert dataset.age == 65
-    assert dataset.dice('test.txt') is not None
-    assert len(dataset['test.txt']) == 1
-    assert hasattr(dataset['test.txt'], 'type')
-    assert dataset['test.txt'].type == 'txt'
-
-
-def test_insert_non_default_fileinfo():
-    """Test insertion into the index with specified fileinfo"""
-    i = Index()
-    i.format['fileinfo'] = ['path', 'type', 'date']
-    i.insert(id='1', age=65, path='test.txt', type='txt', date='20150304')
+    print config.format
     assert len(i.datasets) == 1
     dataset = i.datasets.get('1')
     assert dataset is not None
@@ -179,6 +151,27 @@ def test_insert_non_default_fileinfo():
     assert dataset.age == 65
     assert dataset.dice('test.txt') is not None
     assert len(dataset['test.txt']) == 2
+    assert hasattr(dataset['test.txt'], 'path')
+    assert hasattr(dataset['test.txt'], 'type')
+    assert dataset['test.txt'].type == 'txt'
+
+
+def test_insert_non_default_fileinfo():
+    """Test insertion into the index with specified fileinfo"""
+    i = Index()
+    config.format['fileinfo'] = ['path', 'type', 'date']
+    i.insert(id='1', age=65, path='test.txt', type='txt', date='20150304')
+    assert len(i.datasets) == 1
+    dataset = i.datasets.get('1')
+    assert dataset is not None
+    assert len(dataset) == 1
+    assert hasattr(dataset, 'id')
+    assert hasattr(dataset, 'age')
+    assert dataset.id == '1'
+    assert dataset.age == 65
+    assert dataset.dice('test.txt') is not None
+    assert len(dataset['test.txt']) == 3
+    assert hasattr(dataset['test.txt'], 'path')
     assert hasattr(dataset['test.txt'], 'type')
     assert hasattr(dataset['test.txt'], 'date')
     assert dataset['test.txt'].type == 'txt'
@@ -198,7 +191,8 @@ def test_insert_update():
     assert hasattr(dataset, 'age')
     assert dataset.id == '1'
     assert dataset.age == 70
-    assert len(dataset['test.txt']) == 1
+    assert len(dataset['test.txt']) == 2
+    assert hasattr(dataset['test.txt'], 'path')
     assert hasattr(dataset['test.txt'], 'type')
     assert dataset['test.txt'].type == 'text'
 
@@ -223,20 +217,22 @@ def test_insert_force_update():
     assert dataset.id == '1'
     assert dataset.age == 70
     assert dataset.length == 20
-    assert len(dataset['test.txt']) == 1
+    assert len(dataset['test.txt']) == 2
+    assert hasattr(dataset['test.txt'], 'path')
     assert hasattr(dataset['test.txt'], 'type')
     assert dataset['test.txt'].type == 'text'
 
 def test_add_file_external():
     index = '''.\tage=-; cell=Neutrophils; dataType=RNA-Seq; dateSubmittedFirst=2012-10-17T09:49:23+0200; donorId=C000XW; ethnicity=NA; lab=MPIMG; labExpId=ERR180946; labProtocolId=C000XWB1; libProtocol=I_bc_pelib_858; localization="Primary Cell"; quality=phred; readStrand=MATE2_SENSE; readType=2x76D; rnaExtract=total; seqPlatform=ILLUMINA; seqRun=1; sex=Male; sraSampleAccession=ERS150362; sraStudyAccession=ERP001664; tissue="Cord blood";'''
+    set_index_format('test/data/tsv_format.json')
     i = Index()
-    i.set_format('test/data/tsv_format.json')
-    i.insert(**Index.parse_line(index, **i.format))
+    i.insert(**parse_line(index, **config.format))
     i.insert(id="ERR180946", path="/users/rg/epalumbo/projects/BluePrint/reads/20130805/data/ERR180946_1.fastq.gz", view="FastqRd1",type="fastq")
     assert i.export(map=None)[0] == '''/users/rg/epalumbo/projects/BluePrint/reads/20130805/data/ERR180946_1.fastq.gz\tage=-; cell=Neutrophils; dataType=RNA-Seq; dateSubmittedFirst=2012-10-17T09:49:23+0200; donorId=C000XW; ethnicity=NA; lab=MPIMG; labExpId=ERR180946; labProtocolId=C000XWB1; libProtocol=I_bc_pelib_858; localization="Primary Cell"; quality=phred; readStrand=MATE2_SENSE; readType=2x76D; rnaExtract=total; seqPlatform=ILLUMINA; seqRun=1; sex=Male; sraSampleAccession=ERS150362; sraStudyAccession=ERP001664; tissue="Cord blood"; type=fastq; view=FastqRd1;'''
 
 
 def test_lookup_simple_dataset():
+    set_config_defaults()
     i = Index()
     i.insert(id='1', age=65, path='test.txt', type='txt')
     selected = i.lookup(id='1')
@@ -318,6 +314,7 @@ def test_lookup_multiple_or():
 
 
 def test_lookup_no_path():
+    set_index_format('test/data/format.json')
     i = Index('test/data/index.txt', 'test/data/format.json')
     assert i.datasets.get('WLP.2') is not None
     selected = i.lookup(id='WLP.2')
@@ -330,6 +327,7 @@ def test_lookup_no_path():
 
 def test_lookup_more_types_index_id():
     """Test export"""
+    set_index_format('test/data/format.json')
     i = Index('test/data/index_gfs.txt', 'test/data/format.json')
     result = i.lookup(id='WWP.1')
     assert result.export()[0][0] != '.'
@@ -400,6 +398,15 @@ def test_export():
     assert 'LIBRARY_ID' in exp[0]
 
 
+def test_export_index_one_tag():
+    """Test export"""
+    i = Index('test/data/index.txt', 'test/data/format.json')
+    exp = i.export(tags='id')
+    assert type(exp) == list
+    assert len(exp) == 216
+    assert 'LIBRARY_ID' in exp[0]
+
+
 def test_export_oneline():
     """Test export one known line"""
     i = Index('test/data/index_oneline.txt', 'test/data/format.json')
@@ -419,9 +426,8 @@ def test_export_no_map():
 def test_export_no_format_no_map():
     """Test export"""
     i = Index()
-    #assert i is not None
     i.insert(id="myId", path="test/data/index.txt", type="text", view="TxtFile")
-    exp = i.export(map=None, export_type='tab', tags=['id'])
+    exp = i.export(map=None, output_format='tsv', tags=['id'])
     assert len(exp) == 1
     assert exp[0] == 'myId'
 
@@ -429,7 +435,7 @@ def test_export_no_format_no_map():
 def test_export_no_map_tab_tags_no_miss():
     """Test export without missing values"""
     i = Index('test/data/index.txt', 'test/data/format.json')
-    exp = i.export(map=None, export_type='tab', tags=['id', 'path'],
+    exp = i.export(map=None, output_format='tsv', tags=['id', 'path'],
                    hide_missing=True)
     assert len(exp) == 200
     assert exp[0] == 'EL3.1\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig'
@@ -438,7 +444,7 @@ def test_export_no_map_tab_tags_no_miss():
 def test_export_no_map_tab_repeated_tags():
     """Test export tab output with repeated tags"""
     i = Index('test/data/index.txt', 'test/data/format.json')
-    exp = i.export(map=None, export_type='tab', tags=['id', 'id', 'path'],
+    exp = i.export(map=None, output_format='tsv', tags=['id', 'id', 'path'],
                    hide_missing=True)
     assert len(exp) == 200
     assert exp[0] == 'EL3.1\tEL3.1\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig'
@@ -447,7 +453,7 @@ def test_export_no_map_tab_repeated_tags():
 def test_export_no_map_tab_path_template():
     """Test export tab output with path template"""
     i = Index('test/data/index.txt', 'test/data/format.json')
-    exp = i.export(map=None, export_type='tab', tags=['path','{dirname}/{id}.{view}.{ext}'],
+    exp = i.export(map=None, output_format='tsv', tags=['path','{dirname}/{id}.{view}.{ext}'],
                    hide_missing=True)
     assert len(exp) == 200
     assert exp[0] == '/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1_5355_ATCACG.minusRaw.bigwig\t/users/rg/epalumbo/projects/ERC/fly/bp.pipeline/EL3.1/EL3.1.MinusRawSignal.bigwig'
@@ -463,7 +469,7 @@ def test_export_oneline_no_map():
 def test_export_ol_no_map_tab_tags():
     """Test export"""
     i = Index('test/data/index_oneline.txt', 'test/data/format.json')
-    exp = i.export(map=None, export_type='tab', tags=['id', 'path'])
+    exp = i.export(map=None, output_format='tsv', tags=['id', 'path'])
     print exp[0]
     assert exp[0] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
 
@@ -471,14 +477,14 @@ def test_export_ol_no_map_tab_tags():
 def test_export_ol_no_map_tab_path():
     """Test export"""
     i = Index('test/data/index_oneline.txt','test/data/format.json')
-    exp = i.export(map=None, export_type='tab', tags=['path'])
+    exp = i.export(map=None, output_format='tsv', tags=['path'])
     assert exp[0] == 'aWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
 
 
 def test_export_ol_no_map_tab_tags_header():
     """Test export"""
     i = Index('test/data/index_oneline.txt', 'test/data/format.json')
-    exp = i.export(map=None, export_type='tab', tags=['id', 'path'],
+    exp = i.export(map=None, output_format='tsv', tags=['id', 'path'],
                    header=True)
     assert exp[0] == 'labExpId\tpath'
     assert exp[1] == 'aWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
@@ -487,7 +493,7 @@ def test_export_ol_no_map_tab_tags_header():
 def test_export_ol_no_map_tab_repeated_tags_header():
     """Test export"""
     i = Index('test/data/index_oneline.txt', 'test/data/format.json')
-    exp = i.export(map=None, export_type='tab', tags=['id', 'id', 'path'],
+    exp = i.export(map=None, output_format='tsv', tags=['id', 'id', 'path'],
                    header=True)
     assert exp[0] == 'labExpId\tlabExpId\tpath'
     assert exp[1] == 'aWL3.2\taWL3.2\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf'
@@ -496,27 +502,28 @@ def test_export_ol_no_map_tab_repeated_tags_header():
 def test_export_ol_no_map_tab_all():
     """Test export"""
     i = Index('test/data/index_oneline.txt', 'test/data/format.json')
-    exp = i.export(map=None, export_type='tab')
+    exp = i.export(map=None, output_format='tsv')
     assert exp[0] == '''ACTGAT(A)\tL3\tAR025\tanterior\trnaSeq\taWL3.2\t"5.8 ng/uL (30 nM) 08/04/2013"\tcell\t297\t37478754\tdmel\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\t2\tMATE1_SENSE\t2x75D\t2\tlongPolyA\t100\twing\tgtf\tTranscriptFB554'''
 
 
 def test_export_ol_no_map_tab_all_header():
     """Test export"""
     i = Index('test/data/index_oneline.txt', 'test/data/format.json')
-    exp = i.export(map=None, export_type='tab', header=True)
+    exp = i.export(map=None, output_format='tsv', header=True)
     assert exp[0] == 'adaptor\tage\tbarcode\tcell\tdataType\tlabExpId\tlibBio\tlocalization\tmaxPeak\tnReads\torganism\tpath\tpoolId\treadStrand\treadType\treplicate\trnaExtract\trnaQuantity\ttissue\ttype\tview'
     assert exp[1] == '''ACTGAT(A)\tL3\tAR025\tanterior\trnaSeq\taWL3.2\t"5.8 ng/uL (30 nM) 08/04/2013"\tcell\t297\t37478754\tdmel\taWL3.2/aWL3.2_4204_ACTGAT_transcript.gtf\t2\tMATE1_SENSE\t2x75D\t2\tlongPolyA\t100\twing\tgtf\tTranscriptFB554'''
 
 
 def test_replicates():
     """Test merged datasets"""
+    set_index_format('test/data/format.json')
     i = Index('test/data/index.txt', 'test/data/format.json')
-    dsid = i.format.get('id','id')
+    dsid = config.format.get('id','id')
     reps = i.find_replicates(id="EWP.1,EWP.2")
     dataset = reps[0]
     others = reps[1:]
     merged = dataset.merge(others, dsid=dsid)
-    for key in merged.get_meta_tags():
+    for key in merged.keys():
         vals = [getattr(d, key) for d in reps]
         if len(set(vals)) > 1:
             if key == dsid:
@@ -535,3 +542,15 @@ def test_replicates_w_metadata():
              view='json')
     i.lookup(id='aWL3.1,aWL3.2')
     i.remove(path='test/data/format.json', clear=True)
+
+
+def test_format():
+    """Convert dictionary to indexfile string"""
+    info = {'id': '1', 'path': 'test.txt', 'view': 'text', 'type': 'txt'}
+    out = to_str(**info)
+    assert out == "id=1; path=test.txt; type=txt; view=text;"
+    # with replicates
+    info = {'id': ['1', '2'], 'path': ['test1.txt', 'test2.txt'],
+            'view': ['text', 'text'], 'type': ['txt', 'txt']}
+    out = to_str(**info)
+    assert out == '''id=1,2; path=test1.txt,test2.txt; type=txt,txt; view=text,text;'''
