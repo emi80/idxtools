@@ -192,6 +192,7 @@ def test_DotDict_update():
     assert dic.id == '1'
     assert type(dic.info) == u.DotDict
     assert dic.info.view == 'Text'
+    assert dic.info.type == 'txt'
     assert dic.stat
     assert type(dic.stat) == u.DotDict
     assert dic.stat.size == 10
