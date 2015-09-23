@@ -24,7 +24,7 @@ log = indexfile.get_logger(__name__)
 
 
 # module functions
-def map_keys(obj, map_only=False, **kwargs):
+def map_keys(obj, map_only=False):
     """ Maps ``obj`` keys using the mapping information contained
     in the arguments. ``kwargs`` is used to specify the index format
     information.
@@ -37,48 +37,41 @@ def map_keys(obj, map_only=False, **kwargs):
         log.debug('No data to map')
         return {}
 
-    dsid = kwargs.get('id', 'id')
-    idxmap = kwargs.get('map', {})
-
-    # return original dict if no id and map definitions are found
-    if not idxmap and not dsid:
-        return obj
-
-    out = dict(obj.items())
-    if idxmap:
-        log.debug('Mapping attribute names using map: %s', idxmap)
+    out = deepcopy(obj)
+    if config.map:
+        log.debug('Mapping attribute names using map: %s', config.map)
         if map_only:
             # use known attributes with non-empty mapping
             log.debug("Using only known mappings from the map")
-            out = dict([(idxmap.get(k), v) for (k, v) in out.iteritems()
-                       if idxmap.get(k)])
-            if not dsid in out:
-                out[dsid] = obj[dsid]
+            out = dict([(config.map.get(k), v) for (k, v) in out.iteritems()
+                       if config.map.get(k)])
+            # if not dsid in out:
+            #     out[dsid] = obj[dsid]
         else:
             log.debug("Using input attributes if no mapping found")
-            out = dict([(idxmap.get(k), v) if idxmap.get(k)
+            out = dict([(config.map.get(k), v) if config.map.get(k)
                        else (k, v) for (k, v) in out.iteritems()])
 
     return out
 
 
-def to_str(kw_sep=' ', sep='=', trail=';', rep_sep=',', addons=None, quote=None, **kwargs):
+def to_str(addons=None, quote=None, **kwargs):
     """Convert a dictionary to a string in index file format"""
     taglist = []
     for key, val in dict(sorted(kwargs.items(), key=lambda k: k[0])).items():
         if addons and key in addons:
             continue
         if type(val) == list:
-            val = rep_sep.join([
+            val = config.format.rep_sep.join([
                 utils.quote([key, value])[1] for value in val])
         else:
             val = str(val)
             key, val = utils.quote([key, val])
-        taglist.append('%s%s%s%s' % (key, sep, val, trail))
-    return kw_sep.join(sorted(taglist))
+        taglist.append('%s%s%s%s' % (key, config.format.kw_sep, val, config.format.kw_trail))
+    return config.format.tag_sep.join(sorted(taglist))
 
 
-def guess_type(input_file, trail=';', delimiters=None):
+def guess_type(input_file, delimiters=None):
     """Guess type of an input file for importing data into the index.
 
     :param file: the input file
@@ -87,8 +80,8 @@ def guess_type(input_file, trail=';', delimiters=None):
 
     """
     columns = input_file.readline().split("\t")
-    if len(columns) == 2 and ';' in columns[1]:
-        return "idx", None
+    if len(columns) == 2 and config.format.kw_trail in columns[1]:
+        return "index", None
 
     if not csv.Sniffer().has_header(input_file.readline()):
         raise ValueError('Metadata input_file must have a header')
@@ -107,15 +100,14 @@ def guess_type(input_file, trail=';', delimiters=None):
     if len(reader.fieldnames) < 2:
         raise ValueError('Not enough columns in metadata input_file')
 
-    if trail in reader.fieldnames[1]:
+    if config.format.kw_trail in reader.fieldnames[1]:
         log.debug('Indexfile detected')
         return 'index', None
 
     log.debug('Tsv input_file detected')
     return 'tsv', dialect
 
-
-def parse_line(line, **kwargs):
+def parse_line(line):
     """Parse an index file line and returns a tuple with
     the path to the file referred by the line (if any) and a
     dictionary with the parsed key/value pairs. ``kwargs`` is
@@ -225,8 +217,8 @@ class Index(object):
         """
         replicates = []
         for line in index_file:
-            tags = parse_line(line, **config.format)
-            if config.format.get('rep_sep') in tags[config.format.get('id', 'id')]:
+            tags = parse_line(line)
+            if config.format.rep_sep in tags[config.id_desc]:
                 # postpone inserting replicates lines
                 replicates.append(tags)
             else:
@@ -247,7 +239,7 @@ class Index(object):
 
         format_file = 'imported_format.yml'
         import_format = not os.path.exists(format_file)
-        idxmap = config.format.get('map', {})
+        idxmap = config.get('map', {})
         if import_format and not idxmap:
             config.format['map'] = idxmap
             for key in reader.fieldnames:
@@ -256,7 +248,7 @@ class Index(object):
             yaml.dump(config.format, open(format_file, 'w'), default_flow_style=False)
 
         for line in reader:
-            tags = map_keys(line, config.map_only, **config.format)
+            tags = map_keys(line, config.map_only)
             dataset = self.insert(**tags)
 
     def is_seekable(self):
@@ -274,7 +266,7 @@ class Index(object):
         return True
 
     def get_seekable_stream(self):
-        """Return a seekable stream of the index file. Creates a temporary 
+        """Return a seekable stream of the index file. Creates a temporary
         file if the original stream is not seekable.
         """
         if self.is_seekable():
@@ -353,18 +345,12 @@ class Index(object):
     def remove(self, clear=False, **kwargs):
         """Remove dataset(s) from the index given a search query.
         """
-
-        dsid = config.format.get('id', 'id')
-
-        if 'id' in kwargs:
-            kwargs[dsid] = kwargs.pop('id')
-
         datasets = self.lookup(**kwargs).datasets.keys()
         if datasets:
             log.debug('Remove datasets %s', datasets)
             for k in datasets:
                 dataset = self.datasets.get(k)
-                fileinfo = config.format.get('fileinfo')
+                fileinfo = config.fileinfo
                 if any([tag in fileinfo for tag in kwargs]):
                     rmargs = dict((tag, kwargs[tag]) for k in kwargs if k in fileinfo)
                     log.debug('Remove %s', rmargs)
@@ -372,26 +358,19 @@ class Index(object):
                     if len(dataset) == 0 and clear:
                         del self.datasets[k]
                 else:
-                    if dsid in kwargs:
+                    if config.id_desc in kwargs:
                         log.debug('Remove whole %s', dataset)
                         del self.datasets[k]
                     else:
                         log.debug('Nothing to remove for %s', kwargs)
 
-    def save(self, path=None):
+    def save(self):
         """Save changes to the index file
         """
-        if not path and self.fp:
-            log.debug('Use path from the Index instance')
-            path = self.fp
-            index = open(path, 'w+')
-        elif not self.fp:
-            index = sys.stdout
-        if path != self.fp:
-            self.fp = os.path.abspath(path)
-        log.debug('Save %s', path)
-        for line in self.export(map=None):
-            index.write("%s%s" % (line, os.linesep))
+        log.debug('Save index to %s', self.fp.name)
+        with open(self.fp.name, 'w') as index:
+            for line in self.export(ignore_map=True):
+                index.write("%s%s" % (line, os.linesep))
 
     def all_tags(self):
         """Return the list of all attributes in the index"""
@@ -402,7 +381,7 @@ class Index(object):
 
 
     def export(self, absolute=False, output_format='index', tags=None,
-               header=False, hide_missing=False, **kwargs):
+               header=False, hide_missing=False, map_keys=False, **kwargs):
         """Export the index file information. ``kwargs`` contains the format
         information.
 
@@ -539,7 +518,7 @@ class Index(object):
 
         if kwargs:
             if 'id' in kwargs:
-                kwargs[config.format.get('id', 'id')] = kwargs.pop('id')
+                kwargs[config.id_desc] = kwargs.pop('id')
             log.debug('Query by %s', kwargs)
             if not self.datasets:
                 return self
@@ -569,16 +548,15 @@ class Index(object):
         """Try to find replicates in the index using a dataset id made from
         the concatenation of multiple dataset ids
         """
-        dsid = config.format.get('id', 'id')
         if 'id' in kwargs:
-            kwargs[dsid] = kwargs.pop('id')
-        if not kwargs.get(dsid):
+            kwargs[config.id_desc] = kwargs.pop('id')
+        if not kwargs.get(config.id_desc):
             return None
-        ids = kwargs.get(dsid).split(',')
+        ids = kwargs.get(config.id_desc).split(config.format.rep_sep)
         datasets = dict([
             (k, self.datasets[k]) for k in ids if k in self.datasets])
         if not datasets:
-            return []
+            return None
         if len(datasets) != len(ids):
             raise ValueError('Some of the ids for the replicate do not exist. \
                 Please check the dataset ids')
