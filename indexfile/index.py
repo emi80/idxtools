@@ -372,31 +372,27 @@ class Index(object):
             tags=[tags]
 
         sort_by = None
-        if config.format:
-            log.debug('Use format from the Index instance')
-            if not kwargs:
-                kwargs = {}
-            kwargs = dict(config.format.items() + kwargs.items())
+        fileinfo = config.fileinfo
+        path = config.path_desc
+        col_sep = OUTPUT_FORMATS.get(output_format, {}).get('col_sep')
 
-        dsid = kwargs.pop('id', 'id')
-        idxmap = kwargs.pop('map', None)
-        colsep = OUTPUT_FORMATS.get(output_format, {}).get('colsep','\t')
-        fileinfo = kwargs.pop('fileinfo', [])
+        skip_col_sep = [k for k,v in OUTPUT_FORMATS.iteritems() if not v.get('col_sep')]
 
-        path = 'path'
+        if output_format not in skip_col_sep and not col_sep:
+            raise RuntimeError("Undefined column seprator for {!r} format".format(output_format))
 
         if tags:
-            tags = [tag if tag != 'id' else dsid for tag in tags]
-            tags = [t.replace('{id}','{'+ dsid + '}') for t in tags]
+            tags = [tag if tag != 'id' else config.id_desc for tag in tags]
+            tags = [t.replace('{id}','{'+ config.id_desc + '}') for t in tags]
             sort_by = tags
 
-        if idxmap:
+        if map_keys and config.map:
             log.debug('Use correspondence table for keywords')
-            for key, val in idxmap.items():
+            for key, val in config.map.items():
                 if val:
-                    idxmap[val] = key
+                    config.map[val] = key
 
-            path = idxmap.get('path', 'path')
+            path = config.path_desc
 
         dsets = []
 
@@ -411,12 +407,12 @@ class Index(object):
             for dic in expd:
                 line = dict()
                 for k, val in dic.items():
-                    if k == 'path' and absolute:
+                    if k == config.path_desc and absolute:
                         if self.fp and not os.path.isabs(val):
                             val = os.path.join(os.path.dirname(self.fp),
                                                os.path.normpath(val))
-                    if idxmap:
-                        k = idxmap.get(k, k)
+                    if map_keys:
+                        k = config.map.get(k, k)
                     if k:
                         line[k] = val
                 dsets.append(line)
@@ -429,25 +425,24 @@ class Index(object):
         dsets.sort(key=lambda x: [x.get(tag) for tag in sort_by])
 
         log.debug('Create output for %s format', output_format)
-        out = []
         if output_format == 'index':
             for line in dsets:
                 if hide_missing and not line.get(path):
                     continue
-                out.append(colsep.join([line.pop(path, '.'),
+                yield col_sep.join([line.pop(path, '.'),
                            to_str(**dict(line.items()
-                           ))]))
+                           ))])
 
         if output_format == 'json':
-            out.append(json.dumps(dsets, indent=4))
+            yield json.dumps(dsets, indent=4)
 
         if output_format == 'yaml':
-            out.append(yaml.dump(dsets, indent=4, default_flow_style=False))
+            yield yaml.dump(dsets, indent=4, default_flow_style=False)
 
         if output_format == 'tsv' or output_format == 'csv':
             headline = []
             if tags:
-                headline = [tag if tag != 'id' else dsid for tag in tags]
+                headline = [tag if tag != 'id' else config.id_desc for tag in tags]
             else:
                 keys = [d.keys() for d in dsets]
                 def union(x, y):
@@ -461,6 +456,9 @@ class Index(object):
                 return sys.maxint
 
             headline.sort(key=sort_header)
+            out = []
+            if header:
+                yield col_sep.join(headline)
             for line in dsets:
                 vals = [line.get(k, 'NA') for k in headline]
                 if tags or len(line.values()) != len(headline):
@@ -470,14 +468,13 @@ class Index(object):
                         break
                     if type(val) == list:
                         val = utils.quote(val)
-                        vals[i] = config.format.get('rep_sep', ",").join(val)
+                        vals[i] = config.format.rep_sep.join(val)
                 else:
-                    if colsep.join(utils.quote(vals)) not in out:
-                        out.append(colsep.join(utils.quote(vals)))
-            if header:
-                out.insert(0, colsep.join(headline))
+                    out_line = col_sep.join(utils.quote(vals))
+                    if out_line not in out:
+                        out.append(out_line)
+                        yield col_sep.join(utils.quote(vals))
 
-        return out
 
     def lookup(self, exact=False, or_query=False, **kwargs):
         """Select datasets from indexfile. ``kwargs`` contains the attributes
