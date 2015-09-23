@@ -285,44 +285,36 @@ class Index(object):
         """
         empty_paths = [None, '', '.']
 
-        dsid = config.format.get('id', 'id')
-
-        if 'id' in kwargs:
-            kwargs[dsid] = kwargs.pop('id')
-
         meta = kwargs
-        config.format.fileinfo = config.format.get('fileinfo')
-        if config.format.get('fileinfo'):
+        if config.fileinfo:
             log.debug('Use file specific keywords from the format')
             meta = dict([(k, v) for k, v in kwargs.items()
-                        if k not in config.format.get('fileinfo')])
-        if not dataset:
-            dataset = Dataset(**meta)
+                        if k not in config.fileinfo])
 
-        existing_dataset = self.datasets.get(getattr(dataset, dsid))
+        dsid = kwargs.get(config.id_desc) or kwargs.get('id')
+
+        existing_dataset = self.datasets.get(dsid)
 
         if existing_dataset is not None:
+            log.debug('Use existing dataset %s', existing_dataset.id)
             if update:
-                log.debug('Update existing dataset %s', getattr(existing_dataset, dsid))
+                log.debug('Update existing dataset %s', existing_dataset.id)
                 for key, val in meta.items():
                     if addkeys or getattr(existing_dataset, key):
                         existing_dataset.__setattr__(key, val)
             dataset = existing_dataset
-
-        if existing_dataset is None:
-            if ',' in getattr(dataset, dsid):
-                log.info('Gather replicates info for %s', getattr(dataset, dsid))
+        else:
+            dataset = Dataset(**meta)
+            if config.format.rep_sep in dataset.id:
+                log.info('Gather replicates info for %s', dataset.id)
                 reps = self.find_replicates(**kwargs)
                 if reps:
-                    dataset = reps[0].merge(reps[1:], dsid=dsid)
-            self.datasets[getattr(dataset, dsid)] = dataset
-            dataset = self.datasets.get(getattr(dataset, dsid))
-        else:
-            log.debug('Use existing dataset %s', getattr(dataset, dsid))
+                    dataset = reps[0].merge(reps[1:])
+            self.datasets[dataset.id] = dataset
+            dataset = self.datasets.get(dataset.id)
 
-        if kwargs.get('path') not in empty_paths:
-        #if os.path.isfile(kwargs.get('path')):
-            log.debug('Add %s to dataset', kwargs.get('path'))
+        if kwargs.get(config.path_desc) not in empty_paths:
+            log.debug('Add %s to dataset', kwargs.get(config.path_desc))
             dataset.add_file(update=update, **kwargs)
 
         return dataset
