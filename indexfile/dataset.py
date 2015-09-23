@@ -25,14 +25,10 @@ class Dataset(dict):
         self.__dict__['_files'] = utils.DotDict()
         self.__dict__['_callbacks'] = utils.DotDict()
 
-        is_file = False
-
-        for key, val in kwargs.items():
-            if key in config.format.fileinfo:
-                is_file = True
+        for key, val in kwargs.iteritems():
             self.__setattr__(key, val)
 
-        if is_file:
+        if config.path_desc in kwargs:
             self.add_file(**kwargs)
 
     def add_file(self, check_exists=False, update=False, **kwargs):
@@ -41,7 +37,7 @@ class Dataset(dict):
         to add the file.
         """
 
-        path = kwargs.get('path', None)
+        path = kwargs.get(config.path_desc, None)
         if not path:
             log.debug('No path specified. Skipping')
             return
@@ -56,23 +52,24 @@ class Dataset(dict):
         if not path in self._files:
             self._files[path] = {}
 
-        if not 'type' in kwargs: 
-            kwargs['type'] = utils.get_file_type(path)
+        if not config.type_desc in kwargs:
+            kwargs[config.type_desc] = utils.get_file_type(path)
 
-        for key, val in kwargs.items():
-            if key not in config.format.fileinfo:
+        for key in config.fileinfo:
+            if not key in kwargs:
                 continue
+            val = kwargs.get(key)
             if not val:
                 log.debug('%s - replace missing value with NA', key)
-                val = 'NA'
-            self._files[path][key] = val           
+                val = config.missing_value
+            self._files[path][key] = val
 
     def rm_file(self, **kwargs):
         """Remove a file form the dataset files dictionary. ``kwargs`` contains
         the file information to be matched for the deletion.
         """
 
-        path = kwargs.get('path')
+        path = kwargs.get(config.path_desc, None)
 
         if not path and not kwargs:
             log.debug('No file path neither file information specified')
@@ -102,7 +99,7 @@ class Dataset(dict):
         """
         out = []
         if not tags:
-            tags = set(self.keys() + list(config.format.fileinfo))
+            tags = set(self.keys() + list(config.fileinfo))
         templates = [t for t in tags if '{' in t]
         if not types:
             types = set([v.type for v in self._files.values()])
@@ -160,7 +157,7 @@ class Dataset(dict):
         for k, v in kwargs.items():
             if k in self._metadata:
                 continue
-            if k == 'path' and v in self._files:
+            if k == config.path_desc and v in self._files:
                 path = [v]
             else:
                 path = [key for key, value in self._files.items()
@@ -221,15 +218,13 @@ class Dataset(dict):
             self.__class__.__name__, name))
 
     def __setattr__(self, name, value):
-        if name in config.format.fileinfo:
+        if name in config.fileinfo:
             return
-        if not value:
-            value = 'NA'
-        if name != '__dict__':
-            if hasattr(value, '__call__'):
-                self.__dict__['_callbacks'][name] = value
-            else:
-                self.__dict__['_metadata'][name] = value
+        val = value or config.missing_value
+        if hasattr(value, '__call__'):
+            self.__dict__['_callbacks'][name] = val
+        else:
+            self.__dict__['_metadata'][name] = val
 
     def __delattr__(self, name):
         if name in self.__dict__['_metadata']:
@@ -278,7 +273,7 @@ class Dataset(dict):
         for k,v in item.items():
             if k in self.keys():
                 vals = self[k]
-            if k in config.format.fileinfo:
+            if k in config.fileinfo:
                 vals = [info.get(k) for _, info in self.iterfiles()]
             if not vals or not utils.match(v, vals, exact=exact, match_all=match_all):
                 return False
