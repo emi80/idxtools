@@ -37,6 +37,10 @@ OUTPUT_FORMATS = {
     'yaml': {}
 }
 
+# merge types
+class MergeTypes:
+    First, All, Sum, Check = range(4)
+
 
 def _get_dict(fp):
     if isinstance(fp, str):
@@ -71,6 +75,7 @@ class Config(DotDict):
         self.fileinfo = DEFAULT_FILEINFO[:]
         self.missing_value = DEFAULT_MISSING_VALUE
         self.map = DotDict()
+        self.merge_type = MergeTypes.All
         self.decimal_point = locale.localeconv()['decimal_point']
 
     def load(self, fp):
