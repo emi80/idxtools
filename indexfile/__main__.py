@@ -11,7 +11,7 @@ def main(): # needed for console script
         path = os.path.dirname(os.path.dirname(__file__))
         sys.path[0:0] = [path]
     import indexfile.cli.indexfile_main as idx
-    sys.exit(idx.main())
+    sys.exit(idx.cli())
 
 if __name__ == "__main__":
     sys.exit(main())

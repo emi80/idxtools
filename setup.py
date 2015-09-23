@@ -50,7 +50,7 @@ setup(
                       "PyYAML>=3.11"],
     entry_points={
         'console_scripts': [
-            '%s = indexfile.cli.indexfile_main:main' % indexfile.__name__,
+            '%s = indexfile.cli.indexfile_main:cli' % indexfile.__name__,
         ]
     },
     tests_require=['pytest'],
