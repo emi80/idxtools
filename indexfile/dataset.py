@@ -240,7 +240,7 @@ class Dataset(dict):
 
 
     def __repr__(self):
-        return "(Dataset {id})".format(**self._metadata)
+        return "(Dataset {0})".format(self.id)
 
     def __str__(self):
         return str(self.export())
