@@ -116,38 +116,23 @@ def parse_line(line):
     :param str: the line to parse
 
     """
-    file_path = None
-    tags = line
 
-    sep = kwargs.get('sep', '=')
-    trail = kwargs.get('trail', ';')
-    dsid = kwargs.get('id')
+    col = config.format.col_sep
+    trail = config.format.kw_trail
+    sep = config.format.kw_sep
+    pd = config.path_desc
 
-    expr = '^(?P<file>.+)\t(?P<tags>.+)$'
-    match = re.match(expr, line)
-    if match:
-        log.debug('Matched indexile line %s', line)
-        file_path = match.group('file')
-        tags = match.group('tags')
+    file_path, meta = line.strip().split(col)
 
-    tagsd = {}
-    expr = '(?P<key>[^ ]+)%s\"?(?P<value>[^%s\"]*)\"?%s' % (
-        sep, trail, trail)
-    for match in re.finditer(expr, tags):
-        key = match.group('key')
-        log.debug('Matched keyword %s', key)
-        tagsd[key] = match.group('value')
+    def kws():
+        for item in meta[:-1].strip().split(trail):
+            key, value = item.strip().split(sep)
+            yield (key, value)
 
-    if not tagsd:
-        log.debug('No keywords matched')
-        if os.path.isfile(os.path.abspath(tags)):
-            log.debug('Second column is a file')
-            file_path = os.path.abspath(tags)
+    tags = dict(kws())
+    tags[pd] = file_path
 
-    tagsd['path'] = file_path
-
-    return tagsd
-
+    return tags
 
 
 class Index(object):
