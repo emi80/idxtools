@@ -4,7 +4,7 @@ import indexfile
 import simplejson as json
 from copy import deepcopy
 from . import utils
-from .config import config
+from .config import config, MergeTypes
 
 # setup logger
 log = indexfile.get_logger(__name__)
@@ -122,22 +122,38 @@ class Dataset(dict):
         return out
 
 
-    def merge(self, datasets, sep=',', dsid='id'):
+    def merge(self, datasets):
         """Merge metadata of this dataset with the ones from another dataset
 
         :param datasets: A list of datasets to be merged with the current
         dataset
         """
-        if type(datasets) != list and hasattr(datasets, dsid):
+        if type(datasets) != list and hasattr(datasets, config.id_desc):
             datasets = [datasets]
-        mdsid = sep.join([getattr(self, dsid)] + [getattr(d, dsid) for d in datasets])
+        mdsid = config.format.rep_sep.join([getattr(self, config.id_desc)] + [getattr(d, config.id_desc) for d in datasets])
         meta = {}
         for k in set(self._metadata.keys() + [
                 j for d1 in datasets for j in d1.keys()]):
-            vals = [self._metadata.get(k)] + [
-                getattr(d, k) for d in datasets]
+            attr = config.get(k)
+            merge_type = attr.merge_type if attr else config.merge_type
+            vals = [self._metadata.get(k)]
+            if merge_type != MergeTypes.First:
+                vals += [d.get(k) for d in datasets]
+            if merge_type == MergeTypes.Check:
+                vals = list(set(vals))
+                if len(vals) != 1:
+                    raise Exception("Cannot merge datasets!")
+            if merge_type == MergeTypes.Sum:
+                ints = []
+                for i in vals:
+                    try:
+                        v = float(i) if config.decimal_point in i else int(i)
+                    except ValueError:
+                        v = 0
+                    ints.append(v)
+                vals = [sum(ints)]
             meta[k] = vals if len(set(vals)) > 1 else vals[0]
-        meta[dsid] = mdsid
+        meta[config.id_desc] = mdsid
         d = Dataset(**meta)
         return d
 
