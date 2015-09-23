@@ -1,72 +1,84 @@
 """
 Indexfile main configuration
 """
+import os
 import yaml
-import indexfile
+import locale
+import logger
 from .utils import DotDict
 
-# default index format
-DEFAULT_FORMAT = {
-    "colsep": "\t",
-    "fileinfo": set((
-        "path",
-        "size",
-        "type",
-        "view"
-    )),
-    "kw_sep": " ",
-    "rep_sep": ",",
-    "sep": "=",
-    "trail": ";"
-}
+# default config attributes
+DEFAULT_HASH_ALGORITHM = 'md5'
+DEFAULT_OUTPUT_FORMAT = 'index'
+DEFAULT_MISSING_VALUE = 'NA'
+
+# default descriptors for Dataset
+DEFAULT_ID_DESCRIPTOR = 'id'
+DEFAULT_PATH_DESCRIPTOR = 'path'
+DEFAULT_TYPE_DESCRIPTOR = 'type'
+DEFAULT_FILEINFO = [ DEFAULT_PATH_DESCRIPTOR, DEFAULT_TYPE_DESCRIPTOR, DEFAULT_HASH_ALGORITHM ]
 
 # output formats
 OUTPUT_FORMATS = {
-    'index': DEFAULT_FORMAT.copy(),
+    'index': {
+        "col_sep": "\t",
+        "tag_sep": " ",
+        "rep_sep": ",",
+        "kw_sep": "=",
+        "kw_trail": ";"
+    },
     'tsv': {
-        'colsep': '\t',
+        'col_sep': '\t',
     },
     'csv': {
-        'colsep': ','
+        'col_sep': ','
     },
     'json': {},
     'yaml': {}
 }
 
 
-def set_config_defaults():
-    """Set default values for config"""
-    config.hash_algorithm = 'md5'
-    config.map_only = False
-    config.loglevel = indexfile._log_level
-    config.format = DEFAULT_FORMAT
+def _get_dict(fp):
+    if isinstance(fp, str):
+        fp = open(fp, 'r')
+    if isinstance(fp, file):
+        fp = yaml.load(fp)
+    return fp
+
 
 class Config(DotDict):
-    """Config class that extends DotDict"""
+    """Config class extending DotDict"""
+
+    def __init__(self, *args, **kwargs):
+        super(Config, self).__init__(*args, **kwargs)
+        self.reset()
 
     def update(self, other=None, **kwargs):
-        """Update a DotDict supporting nested attribute access"""
-        if 'format' in kwargs:
-            kwargs['format'] = Config._get_dict(kwargs['format'])
+        """Update a Config object"""
+        other = _get_dict(other)
         # call update from superclass
         super(Config, self).update(other, **kwargs)
 
-    def __setitem__(self, key, value):
-        if key == 'format':
-           value = Config._get_dict(value) 
-        DotDict.__setitem__(self, key, value)
+    def reset(self):
+        """Set default values for config"""
+        self.hash_algorithm = DEFAULT_HASH_ALGORITHM
+        self.map_only = False
+        self.loglevel = logger._log_level
+        self.format = DotDict(OUTPUT_FORMATS[DEFAULT_OUTPUT_FORMAT])
+        self.id_desc = DEFAULT_ID_DESCRIPTOR
+        self.path_desc = DEFAULT_PATH_DESCRIPTOR
+        self.type_desc = DEFAULT_TYPE_DESCRIPTOR
+        self.fileinfo = DEFAULT_FILEINFO[:]
+        self.missing_value = DEFAULT_MISSING_VALUE
+        self.map = DotDict()
+        self.decimal_point = locale.localeconv()['decimal_point']
 
-    @staticmethod
-    def _get_dict(fp):
-        if isinstance(fp, str):
-            fp = open(fp, 'r')
-        if isinstance(fp, file):
-            fp = yaml.load(fp)
-        return fp
-
-    __setattr__ = __setitem__
+    def load(self, fp):
+        """Load configuration from file or dir"""
+        if not fp:
+            return
+        self.update(_get_dict(fp))
 
 
 # initialize default config
 config = Config()
-set_config_defaults()
