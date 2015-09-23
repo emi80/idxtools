@@ -1,6 +1,11 @@
 """Unit tests for the Dataset class"""
 import pytest
+from indexfile.config import config
 from indexfile.dataset import Dataset
+
+@pytest.fixture(scope='session', autouse=True)
+def setup_config():
+    config.fileinfo.append('view')
 
 
 def test_create_empty_dataset():
@@ -39,8 +44,8 @@ def test_create_dataset_w_path():
     assert dataset['test.txt'] is not None
     assert dataset['test.txt'].get('type') == 'txt'
     assert dataset['test.txt'].get('view') == 'text'
-    assert dataset.txt == [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
-    assert dataset.text == [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
+    expected = [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
+    assert dataset.txt == dataset.text == expected
 
 
 def test_create_dataset_w_path_type():
@@ -54,8 +59,8 @@ def test_create_dataset_w_path_type():
     assert dataset['test.txt'] is not None
     assert dataset['test.txt'].get('type') == 'txt'
     assert dataset['test.txt'].get('view') == 'text'
-    assert dataset.txt == [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
-    assert dataset.text == [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
+    expected = [('test.txt', {'id': '1', 'path': 'test.txt', 'type': 'txt', 'view':'text'})]
+    assert dataset.txt == dataset.text == expected
 
 
 def test_create_dataset_w_na():
@@ -69,9 +74,15 @@ def test_create_dataset_w_na():
 
 
 def test_repr():
+    config.id_desc = 'labExpId'
+    mdata = {'labExpId': '1', 'sex': 'M', 'age': 65}
+    dataset = Dataset(**mdata)
+    assert repr(dataset) == '(Dataset 1)'
+    config.reset()
     mdata = {'id': '1', 'sex': 'M', 'age': 65}
     dataset = Dataset(**mdata)
     assert repr(dataset) == '(Dataset 1)'
+    setup_config()
 
 
 def test_str():
@@ -325,6 +336,7 @@ def test_export_one_tag():
 
 def test_merge():
     """Merge metadata from two or more datasets"""
+    config.reset()
     info1 = {'id': '1', 'sex': 'M', 'age': 65, 'desc': 'First test dataset'}
     info2 = {'id': '2', 'sex': 'F', 'age': 61, 'desc': 'Second test dataset'}
     dataset1 = Dataset(**info1)
