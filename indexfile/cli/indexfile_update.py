@@ -10,63 +10,50 @@ Options:
   -u --update                   Update information for existing datasets
   -f --force                    Only works in combination with --update. Add non-existing keys to the dataset.
 """
-
 import re
-import sys
+import click
 import indexfile
-from schema import Schema, Use, Optional, Or, And
-from docopt import docopt
 
-# set command info
-name = __name__.replace('indexfile_','')
-desc = "Add or update file/dataset metadata to the index"
-aliases = ['add']
+def attributes_cb(ctx, param, value):
+    if value:
+        try:
+            attrs = value.split(',')
+            return attrs
+        except ValueError:
+            raise click.BadParameter('attributes must be comma separated')
 
-def run(index):
+    else:
+        return []
+
+@click.command()
+@click.option('-l', '--metadata-list', type=click.File('r'), default='-', help='List of metadata information to be used.')
+@click.option('-a', '--attributes', callback=attributes_cb, help='List of attribute names referring to the metadata list')
+@click.option('-u', '--update', is_flag=True, help='Update information for existing datasets', default=False, show_default=True)
+@click.option('-f', '--force', is_flag=True, help='Only works in combination with --update. Add non-existing keys to the dataset.',
+              default=False, show_default=True)
+@click.argument('metadata', nargs=-1)
+@click.pass_context
+def cli(ctx, metadata_list, attributes, update, force, metadata):
     """Add or update metadata information to the index"""
-    log = indexfile.getLogger(__name__)
-
-    # parser args and remove dashes
-    args = docopt(__doc__ % command)
-    args = dict([(k.replace('-', ''), v) for k, v in args.iteritems()])
-
-    # create validation schema
-    sch = Schema({
-        'metadatalist': Or(None,
-                       And(Or('-', 'stdin'),
-                       Use(lambda x: sys.stdin)),
-                       Use(open)),
-        'attributes': Or(And(None, Use(lambda x: "")), str),
-        Optional('update'): Use(bool),
-        Optional('force'): Use(bool),
-        str: object
-    })
-    args = sch.validate(args)
-
-    index.lock()
-
-    header = args.get('attributes').split(",")
-    mdlist = args.get('metadatalist')
-    infos = args.get("<metadata>")
-    update = args.get("update")
-    force = args.get("force")
+    log = indexfile.get_logger(__name__)
     kwargs = {}
-    if not infos and mdlist:
-        for file_ in mdlist.readlines():
+    index = ctx.parent.index
+    if not metadata and metadata_list:
+        for file_ in metadata_list.readlines():
             file_ = file_.strip().split('\t')
-            assert len(file_) == len(header), "The number of attributes in the metadata list is different from the one given in the command line"
-            for i, k in enumerate(header):
+            assert len(file_) == len(attributes), 'The number of attributes in the metadata list is different from the one given in the command line'
+            for i, k in enumerate(attributes):
                 kwargs[k] = file_[i]
+
             index.insert(update=update, addkeys=force, **kwargs)
+
         index.save()
-    elif infos:
-        for info in infos:
-            match_ = re.match("(?P<key>[^=<>!]*)=(?P<value>.*)", info)
+    elif metadata:
+        for md in metadata:
+            match_ = re.match('(?P<key>[^=<>!]*)=(?P<value>.*)', md)
             kwargs[match_.group('key')] = match_.group('value')
+
         index.insert(update=update, **kwargs)
         index.save()
     else:
         docopt(__doc__ % command, argv='--help')
-
-if __name__ == '__main__':
-    run(index)

@@ -1,173 +1,109 @@
 """
 Command line interface to the IndexFile API
 """
-import sys
 import os
-import csv
-import imp
 import yaml
 import glob
-import indexfile
-import simplejson as json
-from os import environ as env
-from schema import SchemaError
-from indexfile.index import Index
+import click
 
-DEFAULT_CONFIG_FILE = '.indexfile.yml'
-DEFAULT_ENV_INDEX = 'IDX_FILE'
-DEFAULT_ENV_FORMAT = 'IDX_FORMAT'
+__all__ = [
+    'IndexfileCLI', 'CONTEXT_SETTINGS', 'DEFAULT_ENV_INDEX', 'DEFAULT_ENV_FORMAT'
+]
 
-IGNORE_COMMANDS = ['__init__', 'indexfile_main']
+IGNORE_COMMANDS = [
+    '__init__',
+    'indexfile_main',
+]
 
-def walk_up(bottom):
+COMMANDS_FOLDER = os.path.dirname(__file__)
+
+PREFIX = 'indexfile_'
+
+COMMAND_ALIASES = {
+    'show': ['view'],
+    'remove': ['rm'],
+    'update': ['add']
+}
+
+# environment variables
+DEFAULT_ENV_PREFIX = 'IDX'
+DEFAULT_ENV_INDEX = DEFAULT_ENV_PREFIX + '_FILE'
+DEFAULT_ENV_FORMAT = DEFAULT_ENV_PREFIX + '_FORMAT'
+
+# load settings from file
+DEFAULT_SETTINGS_FILE = '.indexfile.yml'
+CONTEXT_SETTINGS = {}
+
+# utility methods
+def _walk_up(bottom='.'):
     """
     mimic os.walk, but walk 'up'
     instead of down the directory tree
     """
-
     bottom = os.path.realpath(bottom)
-
-    #get files in current dir
-    try:
-        names = os.listdir(bottom)
-    except Exception as e:
-        print e
-        return
-
+    # get files in current dir
+    names = os.listdir(bottom)
     dirs, nondirs = [], []
     for name in names:
         if os.path.isdir(os.path.join(bottom, name)):
             dirs.append(name)
         else:
             nondirs.append(name)
-
     yield bottom, dirs, nondirs
-
     new_path = os.path.realpath(os.path.join(bottom, '..'))
-
     # see if we are at the top
     if new_path == bottom:
         return
-
-    for x in walk_up(new_path):
+    for x in _walk_up(new_path):
         yield x
 
+def _read_config():
+    fp = None
+    for c, d, f in _walk_up():
+        if DEFAULT_SETTINGS_FILE in f:
+            fp = os.path.join(c, DEFAULT_SETTINGS_FILE)
+            break
+    if fp:
+        with open(fp) as cfg:
+            CONTEXT_SETTINGS['default_map'] = yaml.load(cfg)
 
-def load_commands():
-    """Load commands from files"""
-    basedir = os.path.dirname(__file__)
-    cmds = glob.glob('{0}/*.py'.format(basedir))
-    d = {}
+def _get_aliases_str(name):
+    if name in COMMAND_ALIASES:
+       return " (aliases: {})".format(', '.join([name] + COMMAND_ALIASES[name]))
+    return ''
 
-    for cmd in cmds:
-        mod = os.path.basename(cmd).replace('.py', '')
-        if mod in IGNORE_COMMANDS:
-            continue
-        info = imp.find_module(mod, [basedir])
-        m = imp.load_module(mod, *info)
-        d[m.name] = {'desc': m.desc, 'aliases': m.aliases}
+# main multicommand class
+class IndexfileCLI(click.MultiCommand):
 
-    d['help'] = {'desc': "Show the help"}
+    def list_commands(self, ctx):
+        """List available commands"""
+        rv = []
+        cmds = glob.glob('{0}/*.py'.format(COMMANDS_FOLDER))
+        for cmd in cmds:
+            mod = os.path.basename(cmd).replace('.py', '')
+            if mod in IGNORE_COMMANDS:
+                continue
+            name = mod.replace(PREFIX, '')
+            rv.append(name)
 
-    return d
+        rv.sort()
+        return rv
 
+    def get_command(self, ctx, name):
+        """Load command from files"""
+        ns = {}
+        commands = self.list_commands(ctx) + [ i for v in COMMAND_ALIASES.values() for i in v ]
+        if name not in commands:
+            return None
+        for k, v in COMMAND_ALIASES.iteritems():
+            if name in v:
+                name = k
+        fn = os.path.join(COMMANDS_FOLDER, PREFIX + name + '.py')
+        with open(fn) as f:
+            code = compile(f.read(), fn, 'exec')
+            eval(code, ns, ns)
+        ns['cli'].help += _get_aliases_str(name)
+        return ns['cli']
 
-def get_command_aliases(cmds):
-    """Get all command aliases"""
-    return [alias for command in cmds.values()
-            for alias in command.get('aliases', [])]
-
-
-def get_command(alias, cmds):
-    """Get command from command string or alias"""
-    if alias in cmds:
-        return alias
-    return [k for k, v in cmds.iteritems()
-            if alias in v.get('aliases', [])][0]
-
-
-def get_commands_help(cmds):
-    """Get list of commands and descriptions for the help message"""
-    s = []
-    m = 0
-    for k, v in cmds.iteritems():
-        if v.get('aliases'):
-            k = k + " ({0})".format(', '.join(v.get('aliases')))
-        m = max(m, len(k))
-        s.append([k, v.get('desc', "")])
-    return '\n'.join(['  {0}\t{1}'.format(name.ljust(m), desc) for name, desc in s])
-
-
-def default_config():
-    """Return the default configuration"""
-    config = {}
-    config['loglevel'] = indexfile._log_level
-    config['format'] = json.dumps(indexfile.default_format)
-    return config
-
-
-def update_config(config, new_config):
-    """Update config with values in new_config"""
-    for key, val in new_config.iteritems():
-        if key not in config or val not in [None]:
-            if type(val) is unicode and val[0] == "$":
-                val = os.getenv(val[1:])
-            config[key] = val
-
-
-def load_config(path=None, args=None, use_env=True):
-    """Load configuration for a session"""
-    config = default_config()
-    if use_env:
-        if DEFAULT_ENV_INDEX in env:
-            update_config(config, {'index': env.get(DEFAULT_ENV_INDEX)})
-        if DEFAULT_ENV_FORMAT in env:
-            update_config(config, {'format': env.get(DEFAULT_ENV_FORMAT)})
-    if path:
-        if os.path.isdir(path):
-            for c, d, f in walk_up(path):
-                if DEFAULT_CONFIG_FILE in f:
-                    config_file = os.path.join(c, DEFAULT_CONFIG_FILE)
-                    update_config(config, yaml.load(open(config_file)))
-                    break
-    if args:
-        update_config(config, args)
-    return config
-
-
-def open_index(config):
-    """Open index file from config dictionary"""
-
-    i = Index()
-    index = config.get('index')
-    idx_format = config.get('format')
-
-    try:
-        i.set_format(idx_format)
-        i.open(index)
-    except csv.Error:
-        index = config.get('index')
-        i.open(index)
-    except AttributeError:
-        pass
-
-    return i
-
-
-# validation objects
-class Command(object):
-
-    def __init__(self, error=None, commands=None):
-        self._error = error
-        self._commands = commands
-
-    def validate(self, data):
-        """Return valid command string or SchemaException in case of error"""
-        if not data:
-            data = 'help'
-        if data in self._commands.keys() + get_command_aliases(self._commands):
-            return data
-        else:
-            raise SchemaError('Invalid command %r' %
-                              data,
-                              self._error)
+# do stuff on import
+_read_config()
