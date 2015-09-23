@@ -38,7 +38,7 @@ def match(src, dest, exact=False, match_all=False):
             if op_match:
                 op = getattr(operator, op_map[op_match.group('op')])
                 if not isinstance(dest, list):
-                    dest = [dest]      
+                    dest = [dest]
                 src = int(op_match.group('number'))
                 dest = [int(x) for x in dest]
                 result = [op(d, src) for d in dest]
@@ -55,7 +55,7 @@ def match(src, dest, exact=False, match_all=False):
                 repr(op_match.group('op')), ' '.join(op_map.keys())))
         except (TypeError, ValueError):
             if not isinstance(dest, list):
-                    dest = [dest]  
+                    dest = [dest]
             return src in dest
 
 
@@ -102,12 +102,10 @@ class DotDict(dict):
         raise AttributeError('%r object has no attribute %r' % (
                                  self.__class__.__name__, name))
 
-
     def __setitem__(self, key, value):
         if type(value) == dict:
             value = DotDict(**value)
         dict.__setitem__(self, key, value)
-
 
     def update(self, other=None, **kwargs):
         """Update a DotDict supporting nested attribute access"""
@@ -115,13 +113,17 @@ class DotDict(dict):
         if type(other) == dict: # using 'type' on purpose here
             other = DotDict(other)
         kwargs = DotDict(kwargs)
+        if other:
+            for k, v in other.iteritems():
+                if isinstance(v, dict):
+                    other[k] = self.get(k, DotDict())
+                    other[k].update(v)
         for k, v in kwargs.iteritems():
             if isinstance(v, dict):
                 kwargs[k] = self.get(k, DotDict())
                 kwargs[k].update(v)
         # call update from superclass
         super(DotDict, self).update(other, **kwargs)
-
 
     def lookup(self, value, exact=False):
         result = []
@@ -141,4 +143,3 @@ class DotDict(dict):
 
     __setattr__ = __setitem__
     __delattr__ = dict.__delitem__
-
