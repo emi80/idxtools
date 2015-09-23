@@ -201,6 +201,16 @@ class Dataset(dict):
                 all_info = utils.DotDict(self.items() + info.items())
                 yield (path, all_info)
 
+    @property
+    def id(self):
+        return self[config.id_desc]
+
+    def get(self, name, default=None):
+        try:
+            return getattr(self, name)
+        except:
+            return default
+
     def __getattr__(self, name):
         if name in self._metadata.keys():
             return self._metadata.get(name)
@@ -284,4 +294,3 @@ class Dataset(dict):
     __getitem__ = __getattr__
     __setitem__ = __setattr__
     __delitem__ = __delattr__
-    get = __getattr__
