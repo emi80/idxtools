@@ -1,12 +1,12 @@
 argparse==1.2.1
+click==5.1
 clint==0.3.1
 distribute==0.6.34
-docopt==0.6.1
-docopts==0.6.1-fix2
 ipython==0.13.2
 lockfile==0.9.1
 py>=1.4.17
 pytest==2.3.5
+PyYAML==3.11
 readline==6.2.4.1
 simplejson==3.3.2
 tox==1.7.1
