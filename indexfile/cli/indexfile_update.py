@@ -41,6 +41,9 @@ def cli(ctx, metadata_list, attributes, update, force, metadata):
     if not metadata and metadata_list:
         for file_ in metadata_list.readlines():
             file_ = file_.strip().split('\t')
+            if not attributes:
+                attributes = file_
+                continue
             assert len(file_) == len(attributes), 'The number of attributes in the metadata list is different from the one given in the command line'
             for i, k in enumerate(attributes):
                 kwargs[k] = file_[i]
@@ -53,7 +56,7 @@ def cli(ctx, metadata_list, attributes, update, force, metadata):
             match_ = re.match('(?P<key>[^=<>!]*)=(?P<value>.*)', md)
             kwargs[match_.group('key')] = match_.group('value')
 
-        index.insert(update=update, **kwargs)
+        index.insert(update=update, addkeys=force, **kwargs)
         index.save()
     else:
         docopt(__doc__ % command, argv='--help')
