@@ -163,7 +163,7 @@ def test_insert_non_default_fileinfo():
     """Test insertion into the index with specified fileinfo"""
     i = Index()
     old_fileinfo = config.fileinfo
-    config.fileinfo = {'path', 'type', 'date'}
+    config.fileinfo = [ 'path', 'type', 'date' ]
     i.insert(id='1', age=65, path='test.txt', type='txt', date='20150304')
     assert len(i.datasets) == 1
     dataset = i.datasets.get('1')
