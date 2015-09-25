@@ -69,7 +69,7 @@ def _read_config():
 
 def _get_aliases_str(name):
     if name in COMMAND_ALIASES:
-       return " (aliases: {})".format(', '.join([name] + COMMAND_ALIASES[name]))
+       return " (aliases: {0})".format(', '.join([name] + COMMAND_ALIASES[name]))
     return ''
 
 # main multicommand class

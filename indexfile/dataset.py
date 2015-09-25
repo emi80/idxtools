@@ -47,7 +47,7 @@ class Dataset(dict):
             return
 
         if check_exists and not os.path.exists(path):
-            raise IOError("File {} not found".format(path))
+            raise IOError("File {0} not found".format(path))
 
         if not path in self._files:
             self._files[path] = {}

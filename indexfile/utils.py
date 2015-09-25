@@ -51,7 +51,7 @@ def match(src, dest, exact=False, match_all=False):
                 return all(result)
             return True in result
         except KeyError:
-            raise SyntaxError('Unrecognized {}. Operator must be one of: {}.'.format(
+            raise SyntaxError('Unrecognized {0}. Operator must be one of: {1}.'.format(
                 repr(op_match.group('op')), ' '.join(op_map.keys())))
         except (TypeError, ValueError):
             if not isinstance(dest, list):
