@@ -187,14 +187,14 @@ class Dataset(dict):
 
     def clone(self, paths=None):
         """Return a copy of the datasets"""
-        metadata = self._metadata
         files = self._files
         if paths:
             files = dict([(key, self._files[key]) for key in self._files
                           if key in paths])
-        new_ds = deepcopy(self)
-        new_ds.__dict__['_metadata'] = deepcopy(metadata)
+        new_ds = Dataset()
+        new_ds.__dict__['_metadata'] = deepcopy(self._metadata)
         new_ds.__dict__['_files'] = deepcopy(files)
+        new_ds.__dict__['_callbacks'] = deepcopy(self._callbacks)
 
         return new_ds
 
