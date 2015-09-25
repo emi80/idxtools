@@ -42,11 +42,11 @@ setup(
         'Topic :: Scientific/Engineering :: Bio-Informatics',
     ],
     install_requires=["argparse>=1.2.1",
-                      "click>=5.1"],
+                      "click>=5.1",
                       "clint>=0.3.1",
                       "lockfile>=0.9.1",
                       "PyYAML>=3.11",
-                      "simplejson>=3.3.2",
+                      "simplejson>=3.3.2"]
     entry_points={
         'console_scripts': [
             '%s = indexfile.cli.indexfile_main:cli' % indexfile.__name__,
