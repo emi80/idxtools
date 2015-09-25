@@ -46,7 +46,7 @@ setup(
         "click>=5.1",
         "clint>=0.3.1",
         "lockfile>=0.9.1",
-        "pytest==2.3.5",
+        "pytest>=2.3.5",
         "PyYAML>=3.11",
         "simplejson>=3.3.2"
     ],
