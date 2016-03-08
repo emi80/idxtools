@@ -581,3 +581,13 @@ def test_issue_37():
     assert line['SMPTHNTS'] == '"6 pieces; mucosa=3; muscularis=1; only muscle useful"'
     assert line['SMRDTTL'] == '91315246'
     assert line['SMRIN'] == '7'
+
+def test_issue_38():
+    line = dict()
+    line['id'] = '1'
+    line['SMPTHNTS'] = '2 pieces, 9x6 & 10x9mm; myofibers pale compared to other heart specimen; BSS notes ""mislabeled solution""'
+    line['SMRDTTL'] = '91315246'
+    line['SMRIN'] = '7'
+    out = to_str(**line)
+    print out
+    assert out == '''SMPTHNTS="2 pieces, 9x6 & 10x9mm; myofibers pale compared to other heart specimen; BSS notes ""mislabeled solution"""; SMRDTTL=91315246; SMRIN=7; id=1;'''

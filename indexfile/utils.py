@@ -20,7 +20,8 @@ def quote(strings, force=False):
         strings = [strings]
     for item in strings:
         item = str(item)
-        if force or ' ' in item and '"' not in item:
+        # if force or ' ' in item and '"' not in item:
+        if force or ' ' in item and not item.startswith('"'):
             item = ('"%s"' % item)
         out.append(item)
     return out
