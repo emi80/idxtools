@@ -591,3 +591,11 @@ def test_issue_38():
     out = to_str(**line)
     print out
     assert out == '''SMPTHNTS="2 pieces, 9x6 & 10x9mm; myofibers pale compared to other heart specimen; BSS notes ""mislabeled solution"""; SMRDTTL=91315246; SMRIN=7; id=1;'''
+
+def test_issue_39():
+    index = '''.\tid=1; SMPTHNTS="6 pieces mucosa=3; muscularis=1; only muscle useful"; SMRDTTL=91315246; SMRIN=7;'''
+    line = parse_line(index)
+    assert line['id'] == '1'
+    assert line['SMPTHNTS'] == '"6 pieces mucosa=3; muscularis=1; only muscle useful"'
+    assert line['SMRDTTL'] == '91315246'
+    assert line['SMRIN'] == '7'

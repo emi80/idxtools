@@ -133,7 +133,7 @@ def parse_line(line):
                 if value.endswith('"'):
                     append = False
             else:
-                key, value = item.strip().split(sep)
+                key, value = item.strip().split(sep, 1)
             if value.count('"')==1 and value.startswith('"'):
                 append = True
                 continue
