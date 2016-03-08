@@ -125,9 +125,20 @@ def parse_line(line):
     file_path, meta = line.strip().split(col)
 
     def kws():
+        append = False
+        key, value = ["", ""]
         for item in meta[:-1].strip().split(trail):
-            key, value = item.strip().split(sep)
-            yield (key, value)
+            if append:
+                value += trail+item
+                if value.endswith('"'):
+                    append = False
+            else:
+                key, value = item.strip().split(sep)
+            if value.count('"')==1 and value.startswith('"'):
+                append = True
+                continue
+            if not append:
+                yield (key, value)
 
     tags = dict(kws())
     tags[pd] = file_path

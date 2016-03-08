@@ -573,3 +573,11 @@ def test_format():
             'view': ['text', 'text'], 'type': ['txt', 'txt']}
     out = to_str(**info)
     assert out == '''id=1,2; path=test1.txt,test2.txt; type=txt,txt; view=text,text;'''
+
+def test_issue_37():
+    index = '''.\tid=1; SMPTHNTS="6 pieces; mucosa=3; muscularis=1; only muscle useful"; SMRDTTL=91315246; SMRIN=7;'''
+    line = parse_line(index)
+    assert line['id'] == '1'
+    assert line['SMPTHNTS'] == '"6 pieces; mucosa=3; muscularis=1; only muscle useful"'
+    assert line['SMRDTTL'] == '91315246'
+    assert line['SMRIN'] == '7'
